@@ -333,6 +333,7 @@ export class BookingsService {
           eventKey: `booking:${bookingId}:invite:${participant.id}`,
           userId: participant.id,
           type: "BOOKING_INVITATION",
+          category: "INVITATIONS",
           title: invitation.title,
           body: invitation.body,
           bookingId
@@ -634,6 +635,7 @@ export class BookingsService {
           eventKey: `booking:${bookingId}:cancel:${participant.user_id}`,
           userId: participant.user_id,
           type: "BOOKING_CANCELLED",
+          category: "CHANGES",
           title: "Зустріч скасовано",
           body: `Зустріч «${booking.title}» було скасовано.`,
           bookingId

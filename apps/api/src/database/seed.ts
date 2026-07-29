@@ -79,6 +79,25 @@ async function seed(): Promise<void> {
         `,
         [userId]
       );
+      await client.query(
+        `
+          insert into notification_subscriptions
+            (user_id, category, channel, enabled)
+          select
+            $1,
+            category,
+            channel,
+            channel <> 'TELEGRAM'
+          from unnest(
+            array['INVITATIONS', 'CHANGES', 'REMINDERS', 'ACCESS']
+          ) as categories(category)
+          cross join unnest(
+            array['IN_APP', 'EMAIL', 'TELEGRAM']
+          ) as channels(channel)
+          on conflict (user_id, category, channel) do nothing
+        `,
+        [userId]
+      );
     }
 
     const localBase = set(addDays(new Date(), 2), {

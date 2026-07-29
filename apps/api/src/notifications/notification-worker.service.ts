@@ -1,12 +1,18 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import nodemailer, { Transporter } from "nodemailer";
 import { DatabaseService } from "../database/database.service";
+import {
+  categoryForEventType,
+  ExternalNotificationChannelName,
+  NotificationCategory,
+  NotificationRecipient
+} from "./notification-channel";
+import { NotificationChannelRegistry } from "./notification-channel.registry";
 import { NotificationsService } from "./notifications.service";
 
 interface OutboxPayload {
   userId: string;
-  notificationId: string;
+  category?: NotificationCategory;
   title: string;
   body: string;
 }
@@ -21,33 +27,14 @@ interface OutboxRow {
 @Injectable()
 export class NotificationWorkerService {
   private readonly logger = new Logger(NotificationWorkerService.name);
-  private readonly transporter: Transporter | null;
-  private readonly telegramToken: string | undefined;
   private readonly notifyBeforeMinutes: number;
 
   constructor(
     private readonly database: DatabaseService,
     private readonly notifications: NotificationsService,
+    private readonly channels: NotificationChannelRegistry,
     config: ConfigService
   ) {
-    const smtpHost = config.get<string>("SMTP_HOST");
-    this.transporter = smtpHost
-      ? nodemailer.createTransport({
-          host: smtpHost,
-          port: Number(config.get("SMTP_PORT") ?? 587),
-          secure: String(config.get("SMTP_SECURE")) === "true",
-          auth: config.get<string>("SMTP_USER")
-            ? {
-                user: config.get<string>("SMTP_USER"),
-                pass: config.get<string>("SMTP_PASSWORD")
-              }
-            : undefined,
-          disableFileAccess: true,
-          disableUrlAccess: true
-        })
-      : null;
-    this.telegramToken =
-      config.get<string>("TELEGRAM_BOT_TOKEN") || undefined;
     this.notifyBeforeMinutes = Number(
       config.get("NOTIFY_BEFORE_MINUTES") ?? 10
     );
@@ -119,85 +106,45 @@ export class NotificationWorkerService {
   ): Promise<void> {
     const result = await this.database.query<{
       email: string;
-      email_enabled: boolean;
-      telegram_enabled: boolean;
-      chat_id: string | null;
-      invitations: boolean;
-      changes: boolean;
-      reminders: boolean;
+      telegram_chat_id: string | null;
+      enabled_channels: ExternalNotificationChannelName[];
     }>(
       `
         select
           u.email,
-          p.email_enabled,
-          p.telegram_enabled,
-          p.invitations,
-          p.changes,
-          p.reminders,
-          t.chat_id
+          t.chat_id as telegram_chat_id,
+          coalesce(
+            array_agg(s.channel) filter (
+              where s.enabled and s.channel in ('EMAIL', 'TELEGRAM')
+            ),
+            array[]::text[]
+          ) as enabled_channels
         from users u
-        join notification_preferences p on p.user_id = u.id
         left join telegram_connections t on t.user_id = u.id
+        left join notification_subscriptions s
+          on s.user_id = u.id and s.category = $2
         where u.id = $1
+        group by u.id, u.email, t.chat_id
       `,
-      [payload.userId]
+      [payload.userId, payload.category ?? categoryForEventType(eventType)]
     );
     const target = result.rows[0];
     if (!target) return;
-    const typeEnabled =
-      eventType === "BOOKING_INVITATION"
-        ? target.invitations
-        : eventType === "BOOKING_REMINDER"
-          ? target.reminders
-          : target.changes;
-    if (!typeEnabled) return;
-
-    const deliveries: Promise<unknown>[] = [];
-    if (target.email_enabled) {
-      if (this.transporter) {
-        deliveries.push(
-          this.transporter.sendMail({
-            from:
-              process.env.SMTP_FROM ??
-              "MeetBroker <notifications@example.com>",
-            to: target.email,
-            subject: payload.title,
-            text: payload.body
-          })
-        );
-      } else {
-        this.logger.log(
-          `[dev-email] ${target.email}: ${payload.title} — ${payload.body}`
-        );
-      }
-    }
-
-    if (
-      target.telegram_enabled &&
-      target.chat_id &&
-      this.telegramToken
-    ) {
-      deliveries.push(
-        fetch(
-          `https://api.telegram.org/bot${this.telegramToken}/sendMessage`,
-          {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              chat_id: target.chat_id,
-              text: `${payload.title}\n\n${payload.body}`
-            }),
-            signal: AbortSignal.timeout(10_000)
-          }
-        ).then((response) => {
-          if (!response.ok) {
-            throw new Error(`Telegram returned ${response.status}`);
-          }
-        })
-      );
-    }
-
-    await Promise.all(deliveries);
+    const recipient: NotificationRecipient = {
+      userId: payload.userId,
+      email: target.email,
+      telegramChatId: target.telegram_chat_id
+    };
+    await Promise.all(
+      target.enabled_channels.map(async (name) => {
+        const channel = this.channels.get(name);
+        if (!channel?.isAvailable() || !channel.canDeliver(recipient)) return;
+        await channel.deliver(recipient, {
+          title: payload.title,
+          body: payload.body
+        });
+      })
+    );
   }
 
   private async enqueueDueReminders(): Promise<void> {
@@ -251,6 +198,7 @@ export class NotificationWorkerService {
           eventKey: `booking:${reminder.booking_id}:reminder:${reminder.user_id}`,
           userId: reminder.user_id,
           type: "BOOKING_REMINDER",
+          category: "REMINDERS",
           title:
             reminder.locale === "en"
               ? "Meeting starts soon"

@@ -5,11 +5,16 @@ import { DatabaseService, SqlExecutor } from "../database/database.service";
 import { createOpaqueToken, hashToken } from "../common/crypto";
 import { apiError } from "../common/http-error";
 import type { UpdateNotificationPreferencesDto } from "./notifications.dto";
+import {
+  NotificationCategory,
+  NotificationChannelName
+} from "./notification-channel";
 
 export interface NotificationEvent {
   eventKey: string;
   userId: string;
   type: string;
+  category: NotificationCategory;
   title: string;
   body: string;
   bookingId?: string;
@@ -48,7 +53,7 @@ export class NotificationsService {
         event.type,
         JSON.stringify({
           userId: event.userId,
-          notificationId,
+          category: event.category,
           title: event.title,
           body: event.body
         })
@@ -60,7 +65,15 @@ export class NotificationsService {
       `
         insert into notifications
           (id, user_id, type, title, body, booking_id)
-        values ($1, $2, $3, $4, $5, $6)
+        select $1, $2, $3, $4, $5, $6
+        where exists (
+          select 1
+          from notification_subscriptions
+          where user_id = $2
+            and category = $7
+            and channel = 'IN_APP'
+            and enabled
+        )
       `,
       [
         notificationId,
@@ -68,7 +81,8 @@ export class NotificationsService {
         event.type,
         event.title,
         event.body,
-        event.bookingId ?? null
+        event.bookingId ?? null,
+        event.category
       ]
     );
   }
@@ -116,35 +130,29 @@ export class NotificationsService {
 
   async getPreferences(userId: string) {
     const result = await this.database.query<{
-      email_enabled: boolean;
-      telegram_enabled: boolean;
-      invitations: boolean;
-      changes: boolean;
-      reminders: boolean;
-      telegram_connected: boolean;
+      category: NotificationCategory;
+      channel: NotificationChannelName;
+      enabled: boolean;
     }>(
       `
-        select
-          p.email_enabled,
-          p.telegram_enabled,
-          p.invitations,
-          p.changes,
-          p.reminders,
-          (t.user_id is not null) as telegram_connected
-        from notification_preferences p
-        left join telegram_connections t on t.user_id = p.user_id
-        where p.user_id = $1
+        select category, channel, enabled
+        from notification_subscriptions
+        where user_id = $1
+        order by category, channel
       `,
       [userId]
     );
-    const row = result.rows[0];
+    const telegram = await this.database.query<{ connected: boolean }>(
+      `
+        select exists (
+          select 1 from telegram_connections where user_id = $1
+        ) as connected
+      `,
+      [userId]
+    );
     return {
-      emailEnabled: row.email_enabled,
-      telegramEnabled: row.telegram_enabled,
-      invitations: row.invitations,
-      changes: row.changes,
-      reminders: row.reminders,
-      telegramConnected: row.telegram_connected,
+      subscriptions: result.rows,
+      telegramConnected: telegram.rows[0]?.connected ?? false,
       telegramAvailable: Boolean(this.botUsername)
     };
   }
@@ -155,24 +163,13 @@ export class NotificationsService {
   ) {
     await this.database.query(
       `
-        update notification_preferences
-        set
-          email_enabled = coalesce($2, email_enabled),
-          telegram_enabled = coalesce($3, telegram_enabled),
-          invitations = coalesce($4, invitations),
-          changes = coalesce($5, changes),
-          reminders = coalesce($6, reminders),
-          updated_at = now()
-        where user_id = $1
+        insert into notification_subscriptions
+          (user_id, category, channel, enabled)
+        values ($1, $2, $3, $4)
+        on conflict (user_id, category, channel)
+        do update set enabled = excluded.enabled, updated_at = now()
       `,
-      [
-        userId,
-        dto.emailEnabled ?? null,
-        dto.telegramEnabled ?? null,
-        dto.invitations ?? null,
-        dto.changes ?? null,
-        dto.reminders ?? null
-      ]
+      [userId, dto.category, dto.channel, dto.enabled]
     );
     return this.getPreferences(userId);
   }
@@ -208,9 +205,9 @@ export class NotificationsService {
       );
       await client.query(
         `
-          update notification_preferences
-          set telegram_enabled = false, updated_at = now()
-          where user_id = $1
+          update notification_subscriptions
+          set enabled = false, updated_at = now()
+          where user_id = $1 and channel = 'TELEGRAM'
         `,
         [userId]
       );
@@ -255,14 +252,6 @@ export class NotificationsService {
           do update set chat_id = excluded.chat_id, connected_at = now()
         `,
         [userId, chatId]
-      );
-      await client.query(
-        `
-          update notification_preferences
-          set telegram_enabled = true, updated_at = now()
-          where user_id = $1
-        `,
-        [userId]
       );
     });
     return { connected: true, chatId };

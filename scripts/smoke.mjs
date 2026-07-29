@@ -167,9 +167,40 @@ async function main() {
     headers: { cookie: userCookie }
   });
   check(
-    typeof preferences.body?.emailEnabled === "boolean",
+    Array.isArray(preferences.body?.subscriptions) &&
+      preferences.body.subscriptions.length === 12,
     "Notification preferences response is invalid"
   );
+  const invitationsByEmail = preferences.body.subscriptions.find(
+    (item) => item.category === "INVITATIONS" && item.channel === "EMAIL"
+  );
+  const updatedPreferences = await request("/api/notifications/preferences", {
+    method: "PATCH",
+    headers: { cookie: userCookie },
+    body: JSON.stringify({
+      category: "INVITATIONS",
+      channel: "EMAIL",
+      enabled: !invitationsByEmail.enabled
+    })
+  });
+  check(
+    updatedPreferences.body?.subscriptions?.some(
+      (item) =>
+        item.category === "INVITATIONS" &&
+        item.channel === "EMAIL" &&
+        item.enabled === !invitationsByEmail.enabled
+    ),
+    "Notification preference matrix update failed"
+  );
+  await request("/api/notifications/preferences", {
+    method: "PATCH",
+    headers: { cookie: userCookie },
+    body: JSON.stringify({
+      category: "INVITATIONS",
+      channel: "EMAIL",
+      enabled: invitationsByEmail.enabled
+    })
+  });
 
   const adminCookie = await login(adminCredentials);
   const users = await request("/api/admin/users", {

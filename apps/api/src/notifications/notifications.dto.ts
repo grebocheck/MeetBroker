@@ -1,25 +1,20 @@
-import { IsBoolean, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsIn, IsOptional, IsString } from "class-validator";
+import {
+  NOTIFICATION_CATEGORIES,
+  NOTIFICATION_CHANNELS,
+  NotificationCategory,
+  NotificationChannelName
+} from "./notification-channel";
 
 export class UpdateNotificationPreferencesDto {
-  @IsOptional()
-  @IsBoolean()
-  emailEnabled?: boolean;
+  @IsIn(NOTIFICATION_CATEGORIES)
+  category!: NotificationCategory;
 
-  @IsOptional()
-  @IsBoolean()
-  telegramEnabled?: boolean;
+  @IsIn(NOTIFICATION_CHANNELS)
+  channel!: NotificationChannelName;
 
-  @IsOptional()
   @IsBoolean()
-  invitations?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  changes?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  reminders?: boolean;
+  enabled!: boolean;
 }
 
 export class TelegramWebhookDto {
