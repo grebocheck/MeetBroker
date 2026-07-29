@@ -110,7 +110,7 @@ export function CancelBookingDialog({
             disabled={pending}
             autoFocus
           >
-            Залишити бронювання
+            <span>Залишити бронювання</span>
           </button>
           <button
             type="button"

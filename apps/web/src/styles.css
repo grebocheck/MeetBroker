@@ -633,8 +633,38 @@ hr {
   background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
 }
 
+.button--secondary.button--slanted {
+  position: relative;
+  border: 0;
+  background: var(--border);
+  isolation: isolate;
+}
+
+.button--secondary.button--slanted::before {
+  position: absolute;
+  z-index: -1;
+  background: var(--surface-raised);
+  clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+  content: "";
+  inset: 1px;
+  transition: background-color 180ms ease;
+}
+
+.button--secondary.button--slanted > span {
+  position: relative;
+  z-index: 1;
+}
+
 .button--secondary:hover,
 .button--ghost:hover {
+  background: var(--surface-muted);
+}
+
+.button--secondary.button--slanted:hover {
+  background: var(--border);
+}
+
+.button--secondary.button--slanted:hover::before {
   background: var(--surface-muted);
 }
 
