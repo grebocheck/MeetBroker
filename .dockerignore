@@ -1,0 +1,10 @@
+.git
+.codebase-memory
+node_modules
+**/node_modules
+**/dist
+coverage
+.env
+storage/uploads/*
+docs
+assets/design-concepts
