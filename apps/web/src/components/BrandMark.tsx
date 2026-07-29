@@ -1,20 +1,22 @@
 export function BrandMark() {
   return (
     <span className="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 32 32" fill="none">
+      <svg viewBox="0 0 40 40" fill="none">
         <path
-          d="M16 27V8m0 8-6-5m6 9 7-6m-7-2 5-4"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.2"
+          className="brand-mark__field"
+          d="M8 4h28l-4 32H4L8 4Z"
+          fill="currentColor"
+          opacity=".16"
         />
         <path
-          d="M12 26c-4.8 0-8-2.8-8-6.8 0-2.4 1.2-4.4 3.2-5.6A6.6 6.6 0 0 1 7 11.9C7 8.1 10.1 5 14 5c.7 0 1.4.1 2 .3A7 7 0 0 1 28 10c0 1.2-.3 2.4-.9 3.4a6.9 6.9 0 0 1-1 12.8H12Z"
+          d="M8 29 13.5 10 20 23l8-13 4 19"
           stroke="currentColor"
+          strokeLinecap="square"
           strokeLinejoin="round"
-          strokeWidth="2.2"
+          strokeWidth="3.4"
         />
+        <path className="brand-mark__current" d="M6 32h28" stroke="currentColor" strokeWidth="2" />
+        <circle className="brand-mark__signal" cx="31" cy="8" r="3" fill="currentColor" />
       </svg>
     </span>
   );

@@ -236,8 +236,14 @@ hr {
 }
 
 .brand-mark svg {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
+  overflow: visible;
+}
+
+.brand-mark__signal {
+  color: var(--accent);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 55%, transparent));
 }
 
 .nav-caption {
@@ -319,6 +325,77 @@ hr {
   width: 17px;
   height: 17px;
   flex: 0 0 auto;
+}
+
+.language-control {
+  position: relative;
+  min-width: 0;
+}
+
+.language-control summary {
+  width: 100%;
+  cursor: pointer;
+  list-style: none;
+}
+
+.language-control summary::-webkit-details-marker {
+  display: none;
+}
+
+.language-control[open] > .utility-control {
+  border-color: rgba(194, 232, 255, 0.7);
+  background: rgba(114, 202, 255, 0.24);
+}
+
+.language-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 9px);
+  left: auto;
+  z-index: 50;
+  display: flex;
+  width: 205px;
+  padding: 8px;
+  border: 1px solid rgba(185, 226, 255, 0.34);
+  border-radius: 4px 16px 4px 16px;
+  background: color-mix(in srgb, var(--surface-sidebar) 96%, transparent);
+  box-shadow: 0 18px 44px rgba(0, 10, 35, 0.35);
+  flex-direction: column;
+  gap: 4px;
+}
+
+.language-menu > span {
+  padding: 5px 8px 8px;
+  color: rgba(220, 244, 255, 0.65);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.language-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 3px 10px 3px 10px;
+  background: transparent;
+  color: #eaf7ff;
+  font-weight: 650;
+  text-align: left;
+}
+
+.language-menu button:hover,
+.language-menu button.is-active {
+  background: #f6fbff;
+  color: #0759bd;
+}
+
+.language-menu button strong {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
 }
 
 .sidebar-profile {
@@ -1480,15 +1557,24 @@ hr {
 .avatar-picker button {
   display: grid;
   place-items: center;
+  width: 64px;
+  height: 64px;
+  justify-self: center;
   aspect-ratio: 1;
-  padding: 4px;
+  padding: 2px;
   border: 2px solid transparent;
   border-radius: 50%;
   background: transparent;
 }
 
+.avatar-picker .avatar {
+  width: 100%;
+  height: 100%;
+}
+
 .avatar-picker button.is-selected {
   border-color: var(--primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
 .upload-box {
@@ -1975,6 +2061,12 @@ hr {
     align-items: center;
     padding-right: 12px;
     padding-left: 12px;
+    overflow: visible;
+  }
+
+  .sidebar::before,
+  .sidebar::after {
+    display: none;
   }
 
   .brand > span:last-child,
@@ -2005,6 +2097,22 @@ hr {
 
   .utility-control span {
     display: none;
+  }
+
+  .language-control {
+    width: 42px;
+  }
+
+  .language-menu {
+    right: auto;
+    bottom: 0;
+    left: calc(100% + 8px);
+    transform: none;
+  }
+
+  .language-menu > span,
+  .language-menu button strong {
+    display: block;
   }
 
   .sidebar-profile {
@@ -2077,6 +2185,18 @@ hr {
 
   .utility-control span {
     display: block;
+  }
+
+  .language-control {
+    width: auto;
+  }
+
+  .language-menu {
+    top: calc(100% + 9px);
+    right: 0;
+    bottom: auto;
+    left: auto;
+    transform: none;
   }
 
   .main-nav {

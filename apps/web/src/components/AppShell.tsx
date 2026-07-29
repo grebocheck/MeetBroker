@@ -131,20 +131,46 @@ export function AppShell({ user, path }: { user: User; path: string }) {
             {darkTheme ? <SunIcon /> : <MoonIcon />}
             <span>{darkTheme ? "Світла" : "Темна"}</span>
           </button>
-          <button
-            className="utility-control"
-            disabled={quickSettings.isPending}
-            onClick={() =>
-              quickSettings.mutate({ locale: locale === "uk" ? "en" : "uk" })
-            }
-            title={locale === "uk" ? "Switch to English" : "Перейти українською"}
-            aria-label={
-              locale === "uk" ? "Switch to English" : "Перейти українською"
-            }
-          >
-            <GlobeIcon />
-            <span>{locale === "uk" ? "EN" : "UA"}</span>
-          </button>
+          <details className="language-control">
+            <summary
+              className="utility-control"
+              title={locale === "uk" ? "Вибрати мову" : "Choose language"}
+            >
+              <GlobeIcon />
+              <span>{locale === "uk" ? "UA" : "EN"}</span>
+            </summary>
+            <div className="language-menu" role="menu">
+              <span>{locale === "uk" ? "Вибір мови" : "Choose language"}</span>
+              <button
+                className={locale === "uk" ? "is-active" : ""}
+                disabled={quickSettings.isPending}
+                onClick={() => {
+                  if (locale === "uk") return;
+                  quickSettings.mutate(
+                    { locale: "uk" },
+                    { onSuccess: () => window.location.reload() }
+                  );
+                }}
+                role="menuitem"
+              >
+                Українська <strong>UA</strong>
+              </button>
+              <button
+                className={locale === "en" ? "is-active" : ""}
+                disabled={quickSettings.isPending}
+                onClick={() => {
+                  if (locale === "en") return;
+                  quickSettings.mutate(
+                    { locale: "en" },
+                    { onSuccess: () => window.location.reload() }
+                  );
+                }}
+                role="menuitem"
+              >
+                English <strong>EN</strong>
+              </button>
+            </div>
+          </details>
         </div>
 
         <div className="sidebar-profile">
