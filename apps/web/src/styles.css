@@ -1455,8 +1455,11 @@ hr {
   font-size: 0.75rem;
 }
 
-.drawer__action {
+.drawer__actions {
+  display: flex;
   margin-top: 34px;
+  flex-direction: column;
+  gap: 9px;
 }
 
 .avatar {

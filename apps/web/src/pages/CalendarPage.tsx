@@ -39,6 +39,7 @@ export function CalendarPage({ user }: { user: User }) {
   );
   const [draft, setDraft] = useState<BookingDraft | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const rooms = useQuery({
     queryKey: ["rooms"],
     queryFn: () => api<{ rooms: Room[] }>("/api/rooms")
@@ -359,12 +360,28 @@ export function CalendarPage({ user }: { user: User }) {
 
       {draft && room && (
         <BookingDialog
+          key={`create-${draft.startsAt.toISOString()}`}
           room={room}
           draft={draft}
           onClose={() => setDraft(null)}
-          onCreated={() => {
+          onSaved={() => {
             setDraft(null);
             queryClient.invalidateQueries({ queryKey: ["schedule"] });
+            queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+          }}
+        />
+      )}
+      {editingBooking && room && (
+        <BookingDialog
+          key={`edit-${editingBooking.id}`}
+          room={room}
+          booking={editingBooking}
+          onClose={() => setEditingBooking(null)}
+          onSaved={() => {
+            setEditingBooking(null);
+            queryClient.invalidateQueries({ queryKey: ["schedule"] });
+            queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+            queryClient.invalidateQueries({ queryKey: ["open-events"] });
           }}
         />
       )}
@@ -373,6 +390,10 @@ export function CalendarPage({ user }: { user: User }) {
           booking={selectedBooking}
           currentUserId={user.id}
           onClose={() => setSelectedBooking(null)}
+          onEdit={() => {
+            setEditingBooking(selectedBooking);
+            setSelectedBooking(null);
+          }}
           onCancel={() => {
             if (window.confirm("Скасувати це бронювання?")) {
               cancel.mutate(selectedBooking.id);
@@ -502,12 +523,14 @@ function BookingDrawer({
   booking,
   currentUserId,
   onClose,
+  onEdit,
   onCancel,
   cancelling
 }: {
   booking: Booking;
   currentUserId: string;
   onClose: () => void;
+  onEdit: () => void;
   onCancel: () => void;
   cancelling: boolean;
 }) {
@@ -568,13 +591,21 @@ function BookingDrawer({
           </>
         )}
         {booking.organizer.id === currentUserId && (
-          <button
-            className="button button--danger button--wide drawer__action"
-            onClick={onCancel}
-            disabled={cancelling}
-          >
-            {cancelling ? "Скасовуємо…" : "Скасувати бронювання"}
-          </button>
+          <div className="drawer__actions">
+            <button
+              className="button button--primary button--wide"
+              onClick={onEdit}
+            >
+              Редагувати
+            </button>
+            <button
+              className="button button--danger button--wide"
+              onClick={onCancel}
+              disabled={cancelling}
+            >
+              {cancelling ? "Скасовуємо…" : "Скасувати бронювання"}
+            </button>
+          </div>
         )}
       </aside>
     </div>

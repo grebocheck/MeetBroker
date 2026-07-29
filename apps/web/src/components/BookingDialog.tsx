@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { toDateTimeLocal } from "../lib/date";
-import type { Person, Room } from "../types";
+import type { Booking, Person, Room } from "../types";
 import { Avatar } from "./Avatar";
 
 export interface BookingDraft {
@@ -13,19 +13,32 @@ export interface BookingDraft {
 export function BookingDialog({
   room,
   draft,
+  booking,
   onClose,
-  onCreated
+  onSaved
 }: {
   room: Room;
-  draft: BookingDraft;
+  draft?: BookingDraft;
+  booking?: Booking;
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [startsAt, setStartsAt] = useState(toDateTimeLocal(draft.startsAt));
-  const [endsAt, setEndsAt] = useState(toDateTimeLocal(draft.endsAt));
-  const [mode, setMode] = useState<"INVITE_ONLY" | "OPEN">("INVITE_ONLY");
-  const [participantIds, setParticipantIds] = useState<string[]>([]);
+  const initialStartsAt = booking
+    ? new Date(booking.startsAt)
+    : (draft?.startsAt ?? new Date());
+  const initialEndsAt = booking
+    ? new Date(booking.endsAt)
+    : (draft?.endsAt ?? new Date(Date.now() + 3_600_000));
+  const editing = Boolean(booking);
+  const [title, setTitle] = useState(booking?.title ?? "");
+  const [startsAt, setStartsAt] = useState(toDateTimeLocal(initialStartsAt));
+  const [endsAt, setEndsAt] = useState(toDateTimeLocal(initialEndsAt));
+  const [mode, setMode] = useState<"INVITE_ONLY" | "OPEN">(
+    booking?.participationMode ?? "INVITE_ONLY"
+  );
+  const [participantIds, setParticipantIds] = useState<string[]>(
+    booking?.participants.map((participant) => participant.id) ?? []
+  );
   const colleagues = useQuery({
     queryKey: ["colleagues"],
     queryFn: () => api<{ users: Person[] }>("/api/users/colleagues")
@@ -37,25 +50,28 @@ export function BookingDialog({
   const selected = colleagueUsers.filter((user) =>
     participantIds.includes(user.id)
   );
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: () =>
-      api<{ id: string }>("/api/bookings", {
-        method: "POST",
-        body: JSON.stringify({
-          roomId: room.id,
-          title,
-          startsAt: new Date(startsAt).toISOString(),
-          endsAt: new Date(endsAt).toISOString(),
-          participationMode: mode,
-          participantIds
-        })
-      }),
-    onSuccess: onCreated
+      api<void | { id: string }>(
+        booking ? `/api/bookings/${booking.id}` : "/api/bookings",
+        {
+          method: booking ? "PATCH" : "POST",
+          body: JSON.stringify({
+            ...(booking ? {} : { roomId: room.id }),
+            title,
+            startsAt: new Date(startsAt).toISOString(),
+            endsAt: new Date(endsAt).toISOString(),
+            participationMode: mode,
+            participantIds
+          })
+        }
+      ),
+    onSuccess: onSaved
   });
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    create.mutate();
+    save.mutate();
   };
 
   return (
@@ -70,7 +86,9 @@ export function BookingDialog({
         <div className="modal__header">
           <div>
             <span className="eyebrow">{room.name}</span>
-            <h2 id="booking-dialog-title">Нове бронювання</h2>
+            <h2 id="booking-dialog-title">
+              {editing ? "Редагувати бронювання" : "Нове бронювання"}
+            </h2>
           </div>
           <button className="icon-button" onClick={onClose} aria-label="Закрити">
             ×
@@ -178,11 +196,13 @@ export function BookingDialog({
               </div>
             )}
           </div>
-          {create.error && (
+          {save.error && (
             <div className="form-error" role="alert">
-              {create.error instanceof ApiError
-                ? create.error.message
-                : "Не вдалося створити бронювання"}
+              {save.error instanceof ApiError
+                ? save.error.message
+                : editing
+                  ? "Не вдалося оновити бронювання"
+                  : "Не вдалося створити бронювання"}
             </div>
           )}
           <div className="modal__actions">
@@ -191,9 +211,15 @@ export function BookingDialog({
             </button>
             <button
               className="button button--primary"
-              disabled={create.isPending}
+              disabled={save.isPending}
             >
-              {create.isPending ? "Бронюємо…" : "Забронювати"}
+              {save.isPending
+                ? editing
+                  ? "Зберігаємо…"
+                  : "Бронюємо…"
+                : editing
+                  ? "Зберегти зміни"
+                  : "Забронювати"}
             </button>
           </div>
         </form>
