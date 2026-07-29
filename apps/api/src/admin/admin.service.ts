@@ -390,7 +390,7 @@ export class AdminService {
     await this.database.query(
       `
         update rooms
-        set image_path = $2, updated_at = now()
+        set image_path = $2, image_url = null, updated_at = now()
         where id = $1
       `,
       [roomId, filename]
@@ -418,7 +418,11 @@ export class AdminService {
     }
 
     await this.database.query(
-      "update rooms set image_path = null, updated_at = now() where id = $1",
+      `
+        update rooms
+        set image_path = null, image_url = null, updated_at = now()
+        where id = $1
+      `,
       [roomId]
     );
     if (room.rows[0].image_path) {

@@ -14,6 +14,7 @@ export class RoomsService {
       work_start: string;
       work_end: string;
       image_path: string | null;
+      image_url: string | null;
     }>(
       `
         select
@@ -23,7 +24,8 @@ export class RoomsService {
           capacity,
           work_start::text,
           work_end::text,
-          image_path
+          image_path,
+          image_url
         from rooms
         where active = true
           and ($1::integer is null or capacity >= $1)
@@ -39,7 +41,9 @@ export class RoomsService {
       capacity: room.capacity,
       workStart: room.work_start.slice(0, 5),
       workEnd: room.work_end.slice(0, 5),
-      imageUrl: room.image_path ? `/uploads/${room.image_path}` : null
+      imageUrl: room.image_path
+        ? `/uploads/${room.image_path}`
+        : room.image_url
     }));
   }
 }

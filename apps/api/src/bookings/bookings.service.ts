@@ -25,6 +25,7 @@ interface RoomRow {
   work_start: string;
   work_end: string;
   image_path: string | null;
+  image_url: string | null;
   active: boolean;
 }
 
@@ -74,6 +75,7 @@ export class BookingsService {
           work_start::text,
           work_end::text,
           image_path,
+          image_url,
           active
         from rooms where id = $1
       `,
@@ -166,7 +168,7 @@ export class BookingsService {
         workEnd: room.rows[0].work_end.slice(0, 5),
         imageUrl: room.rows[0].image_path
           ? `/uploads/${room.rows[0].image_path}`
-          : null
+          : room.rows[0].image_url
       },
       bookings: bookings.rows.map((booking) => ({
         id: booking.id,

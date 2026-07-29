@@ -265,6 +265,10 @@ async function main() {
   });
   check(users.body?.users?.length >= 3, "Expected seeded users in admin response");
 
+  const placeholderRoom = roomsResult.body.rooms.find(
+    (room) => room.imageUrl === null
+  );
+  check(placeholderRoom, "Expected one demo room to keep the placeholder");
   const roomImageForm = new FormData();
   roomImageForm.set(
     "image",
@@ -278,7 +282,7 @@ async function main() {
     "smoke-room.svg"
   );
   const imageUpload = await fetch(
-    `${baseUrl}/api/admin/rooms/${roomsResult.body.rooms[0].id}/image`,
+    `${baseUrl}/api/admin/rooms/${placeholderRoom.id}/image`,
     {
       method: "POST",
       headers: { cookie: adminCookie },
@@ -294,11 +298,12 @@ async function main() {
     headers: { cookie: adminCookie }
   });
   check(
-    roomsWithImage.body.rooms[0].imageUrl === imageUploadBody.imageUrl,
+    roomsWithImage.body.rooms.find((room) => room.id === placeholderRoom.id)
+      ?.imageUrl === imageUploadBody.imageUrl,
     "Uploaded room image was not returned by the rooms API"
   );
   await request(
-    `/api/admin/rooms/${roomsResult.body.rooms[0].id}/image`,
+    `/api/admin/rooms/${placeholderRoom.id}/image`,
     {
       method: "DELETE",
       headers: { cookie: adminCookie }
@@ -308,7 +313,8 @@ async function main() {
     headers: { cookie: adminCookie }
   });
   check(
-    roomsWithoutImage.body.rooms[0].imageUrl === null,
+    roomsWithoutImage.body.rooms.find((room) => room.id === placeholderRoom.id)
+      ?.imageUrl === null,
     "Room image removal did not restore the placeholder state"
   );
 
