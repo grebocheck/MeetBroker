@@ -1421,7 +1421,6 @@ hr {
 }
 
 .notification-matrix {
-  overflow-x: auto;
   margin: 8px 0 16px;
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -1430,9 +1429,8 @@ hr {
 .notification-matrix__header,
 .notification-matrix__row {
   display: grid;
-  grid-template-columns: minmax(170px, 1fr) repeat(3, minmax(88px, 0.55fr));
+  grid-template-columns: minmax(130px, 1fr) repeat(3, minmax(66px, 0.55fr));
   align-items: center;
-  min-width: 510px;
 }
 
 .notification-matrix__header {
@@ -1462,6 +1460,10 @@ hr {
 .notification-matrix__row label {
   display: flex;
   justify-content: center;
+}
+
+.notification-channel-label {
+  display: none;
 }
 
 .switch {
@@ -2022,6 +2024,33 @@ hr {
 
   .avatar-picker {
     grid-template-columns: repeat(4, 1fr);
+  }
+
+  .notification-matrix__header {
+    display: none;
+  }
+
+  .notification-matrix__row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 12px 6px;
+  }
+
+  .notification-matrix__row > strong {
+    padding: 2px 8px 12px;
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  .notification-matrix__row label {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .notification-channel-label {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    font-weight: 600;
   }
 
   .admin-user-row {

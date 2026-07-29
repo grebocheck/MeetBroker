@@ -334,6 +334,13 @@ export function ProfilePage({ user }: { user: User }) {
                               : `${label}: ${channel}`
                           }
                         >
+                          <span className="notification-channel-label">
+                            {channel === "IN_APP"
+                              ? "У застосунку"
+                              : channel === "EMAIL"
+                                ? "Email"
+                                : "Telegram"}
+                          </span>
                           <input
                             className="switch"
                             type="checkbox"
