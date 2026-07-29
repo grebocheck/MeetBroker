@@ -9,4 +9,7 @@
 - [Конкурсне технічне завдання](spec-uk.pdf)
 - [План розробки](docs/PROJECT_PLAN.md)
 - [Продуктова модель доступу та профілів](docs/decisions/0001-product-access-and-profiles.md)
+- [Карта екранів](docs/design/SCREEN_MAP.md)
+- [Візуальні напрями](docs/design/DESIGN_DIRECTIONS.md)
+- [Маніфест дизайн-концептів](docs/design/ASSET_MANIFEST.md)
 - [Журнал промптів](docs/prompt-journal/README.md)
