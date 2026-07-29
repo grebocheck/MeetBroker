@@ -188,25 +188,40 @@ hr {
 .sidebar::before,
 .sidebar::after {
   position: absolute;
-  border: 1px solid rgba(104, 222, 255, 0.24);
-  border-radius: 50%;
   content: "";
   pointer-events: none;
 }
 
 .sidebar::before {
-  top: -110px;
-  left: -80px;
-  width: 270px;
-  height: 270px;
-  box-shadow: 0 0 80px rgba(64, 207, 255, 0.12);
+  top: -55px;
+  left: -95px;
+  width: 300px;
+  height: 230px;
+  background:
+    linear-gradient(135deg, rgba(85, 217, 255, 0.14), transparent 58%),
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 34px,
+      rgba(169, 235, 255, 0.13) 35px 36px,
+      transparent 37px 58px
+    );
+  clip-path: polygon(0 0, 100% 0, 74% 100%, 18% 76%);
 }
 
 .sidebar::after {
-  right: -150px;
-  bottom: 70px;
-  width: 310px;
-  height: 310px;
+  right: -95px;
+  bottom: 40px;
+  width: 290px;
+  height: 250px;
+  background:
+    linear-gradient(145deg, transparent 20%, rgba(64, 188, 255, 0.11) 20.4% 48%, transparent 48.4%),
+    repeating-linear-gradient(
+      145deg,
+      transparent 0 42px,
+      rgba(136, 222, 255, 0.11) 43px 44px,
+      transparent 45px 72px
+    );
+  clip-path: polygon(26% 0, 100% 18%, 100% 100%, 0 78%);
 }
 
 .sidebar > * {
@@ -440,16 +455,33 @@ hr {
 
 .app-main::before {
   position: fixed;
-  top: -18vw;
-  right: -14vw;
+  top: -7rem;
+  right: -6rem;
   z-index: -1;
-  width: 48vw;
-  height: 48vw;
-  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
-  border-radius: 50%;
+  width: min(58vw, 900px);
+  height: min(56vh, 620px);
   background:
-    radial-gradient(circle at 35% 38%, color-mix(in srgb, var(--cyan) 20%, transparent), transparent 7%),
-    repeating-radial-gradient(circle, transparent 0 36px, color-mix(in srgb, var(--primary) 7%, transparent) 37px 38px);
+    linear-gradient(
+      143deg,
+      transparent 0 27%,
+      color-mix(in srgb, var(--cyan) 15%, transparent) 27.2% 38%,
+      transparent 38.2% 48%,
+      color-mix(in srgb, var(--primary) 9%, transparent) 48.2% 59%,
+      transparent 59.2%
+    ),
+    repeating-linear-gradient(
+      143deg,
+      transparent 0 54px,
+      color-mix(in srgb, var(--primary) 9%, transparent) 55px 56px,
+      transparent 57px 92px
+    ),
+    linear-gradient(
+      118deg,
+      color-mix(in srgb, var(--cyan) 18%, transparent),
+      color-mix(in srgb, var(--primary) 5%, transparent) 58%,
+      transparent 72%
+    );
+  clip-path: polygon(22% 0, 100% 0, 100% 72%, 74% 100%, 13% 70%, 0 26%);
   content: "";
   pointer-events: none;
 }
