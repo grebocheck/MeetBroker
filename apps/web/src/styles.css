@@ -1,62 +1,66 @@
 :root {
   color-scheme: light;
-  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-family: "Manrope Variable", "Segoe UI", system-ui, sans-serif;
   font-synthesis: none;
-  --surface: #f8f5ed;
-  --surface-raised: #fffdf8;
-  --surface-muted: #efece3;
-  --surface-strong: #e4e1d7;
-  --surface-sidebar: #fbfaf5;
-  --text: #20251f;
-  --text-muted: #6d726a;
-  --border: #dedbd1;
-  --primary: #15563d;
-  --primary-hover: #0e4631;
-  --primary-contrast: #fffef9;
-  --booking-own: #dceadf;
-  --booking-own-border: #2f7257;
-  --booking-other: #fff0cf;
-  --booking-other-border: #d9a742;
-  --booking-open: #f6ded1;
-  --booking-open-border: #cf7756;
-  --room-block: #ece9e1;
-  --danger: #b74638;
-  --danger-soft: #f8e4df;
-  --warning: #b47a20;
-  --success: #2d7553;
-  --shadow-sm: 0 1px 2px rgba(34, 41, 32, 0.05);
-  --shadow-md: 0 14px 40px rgba(34, 41, 32, 0.11);
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
+  --surface: #eaf4ff;
+  --surface-raised: #fafdff;
+  --surface-muted: #dcecff;
+  --surface-strong: #c6ddfa;
+  --surface-sidebar: #061b46;
+  --text: #071a3a;
+  --text-muted: #58708f;
+  --border: #b8d2ef;
+  --primary: #0878f9;
+  --primary-hover: #0062d5;
+  --primary-contrast: #ffffff;
+  --accent: #ff4f91;
+  --cyan: #55d9ff;
+  --booking-own: #c9eeff;
+  --booking-own-border: #0878f9;
+  --booking-other: #dfe5ff;
+  --booking-other-border: #596fe3;
+  --booking-open: #ffe0ed;
+  --booking-open-border: #ec4b8e;
+  --room-block: #d8e4f2;
+  --danger: #d83d68;
+  --danger-soft: #ffe1ea;
+  --warning: #c26d00;
+  --success: #0878a5;
+  --shadow-sm: 0 6px 18px rgba(10, 68, 136, 0.1);
+  --shadow-md: 0 24px 60px rgba(5, 52, 111, 0.17);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 18px;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface: #151a17;
-  --surface-raised: #1d231f;
-  --surface-muted: #252c27;
-  --surface-strong: #303832;
-  --surface-sidebar: #19201b;
-  --text: #f0eee7;
-  --text-muted: #a9b0a8;
-  --border: #353d37;
-  --primary: #79b994;
-  --primary-hover: #91c8a8;
-  --primary-contrast: #102017;
-  --booking-own: #254535;
-  --booking-own-border: #72ad89;
-  --booking-other: #4c3b1e;
-  --booking-other-border: #c9a153;
-  --booking-open: #4b3028;
-  --booking-open-border: #ce8166;
-  --room-block: #2a302c;
-  --danger: #ee8f80;
-  --danger-soft: #452a25;
-  --warning: #dfb667;
-  --success: #7fc39d;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --surface: #030d22;
+  --surface-raised: #092149;
+  --surface-muted: #0d2f64;
+  --surface-strong: #16437e;
+  --surface-sidebar: #020a1b;
+  --text: #eff8ff;
+  --text-muted: #9ebce0;
+  --border: #1d4c82;
+  --primary: #52bdff;
+  --primary-hover: #79ceff;
+  --primary-contrast: #03142e;
+  --accent: #ff6da5;
+  --cyan: #58ddff;
+  --booking-own: #0b4775;
+  --booking-own-border: #55c9ff;
+  --booking-other: #233b83;
+  --booking-other-border: #8596ff;
+  --booking-open: #692b55;
+  --booking-open-border: #ff7ab1;
+  --room-block: #16345a;
+  --danger: #ff82a5;
+  --danger-soft: #54213b;
+  --warning: #ffc46b;
+  --success: #67d9e9;
+  --shadow-sm: 0 8px 22px rgba(0, 0, 0, 0.26);
+  --shadow-md: 0 26px 70px rgba(0, 0, 0, 0.42);
 }
 
 * {
@@ -71,7 +75,10 @@ body,
 }
 
 body {
-  background: var(--surface);
+  background:
+    radial-gradient(circle at 86% 8%, color-mix(in srgb, var(--cyan) 24%, transparent), transparent 24rem),
+    radial-gradient(circle at 24% 94%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 34rem),
+    var(--surface);
   color: var(--text);
 }
 
@@ -111,20 +118,24 @@ p {
 
 h1,
 h2 {
-  font-family: "Source Serif 4", Georgia, serif;
+  font-family: "Unbounded Variable", "Arial Black", sans-serif;
+  font-style: italic;
+  font-weight: 760;
+  text-transform: uppercase;
 }
 
 h1 {
   margin-bottom: 8px;
-  font-size: clamp(2rem, 3vw, 3rem);
-  line-height: 1.05;
-  letter-spacing: -0.035em;
+  font-size: clamp(2rem, 3vw, 3.35rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
 }
 
 h2 {
   margin-bottom: 8px;
-  font-size: 1.55rem;
-  line-height: 1.15;
+  font-size: 1.28rem;
+  line-height: 1.18;
+  letter-spacing: -0.04em;
 }
 
 p {
@@ -161,12 +172,46 @@ hr {
   position: sticky;
   top: 0;
   display: flex;
+  overflow: hidden;
   flex-direction: column;
   height: 100vh;
   padding: 28px 18px 18px;
-  border-right: 1px solid var(--border);
-  background: var(--surface-sidebar);
+  border-right: 0;
+  background:
+    linear-gradient(158deg, rgba(19, 112, 235, 0.72), transparent 47%),
+    linear-gradient(195deg, #0b67d5 0%, var(--surface-sidebar) 62%);
+  color: #f7fbff;
+  box-shadow: 10px 0 36px rgba(2, 28, 73, 0.15);
   z-index: 30;
+}
+
+.sidebar::before,
+.sidebar::after {
+  position: absolute;
+  border: 1px solid rgba(104, 222, 255, 0.24);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.sidebar::before {
+  top: -110px;
+  left: -80px;
+  width: 270px;
+  height: 270px;
+  box-shadow: 0 0 80px rgba(64, 207, 255, 0.12);
+}
+
+.sidebar::after {
+  right: -150px;
+  bottom: 70px;
+  width: 310px;
+  height: 310px;
+}
+
+.sidebar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .brand {
@@ -174,9 +219,11 @@ hr {
   align-items: center;
   gap: 11px;
   padding: 0 8px;
-  font-weight: 700;
+  color: #fff;
+  font-family: "Unbounded Variable", sans-serif;
+  font-weight: 760;
   font-size: 1.24rem;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.06em;
 }
 
 .brand-mark {
@@ -184,7 +231,8 @@ hr {
   place-items: center;
   width: 38px;
   height: 38px;
-  color: var(--primary);
+  color: var(--cyan);
+  filter: drop-shadow(0 0 12px rgba(85, 217, 255, 0.32));
 }
 
 .brand-mark svg {
@@ -195,7 +243,8 @@ hr {
 .nav-caption {
   display: block;
   margin: 48px 12px 10px;
-  color: var(--text-muted);
+  color: rgba(220, 244, 255, 0.7);
+  font-family: "Unbounded Variable", sans-serif;
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -215,11 +264,11 @@ hr {
   gap: 12px;
   min-height: 48px;
   padding: 0 12px;
-  border-radius: 10px;
-  color: var(--text-muted);
+  border-radius: 3px;
+  color: rgba(232, 246, 255, 0.76);
   font-size: 0.9rem;
   font-weight: 600;
-  transition: background 150ms ease, color 150ms ease;
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
 .nav-item svg {
@@ -229,8 +278,10 @@ hr {
 
 .nav-item:hover,
 .nav-item--active {
-  background: color-mix(in srgb, var(--booking-own) 86%, var(--surface-sidebar));
-  color: var(--primary);
+  background: #f6fbff;
+  color: #0759bd;
+  clip-path: polygon(0 0, 94% 0, 100% 50%, 94% 100%, 0 100%, 4% 50%);
+  transform: translateX(4px);
 }
 
 .sidebar-profile {
@@ -239,7 +290,8 @@ hr {
   gap: 10px;
   margin-top: auto;
   padding: 14px 8px 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(203, 235, 255, 0.24);
+  color: #fff;
 }
 
 .sidebar-profile__copy {
@@ -262,12 +314,30 @@ hr {
 
 .sidebar-profile__copy span {
   margin-top: 2px;
-  color: var(--text-muted);
+  color: rgba(224, 243, 255, 0.65);
   font-size: 0.7rem;
 }
 
 .app-main {
+  position: relative;
   min-width: 0;
+  isolation: isolate;
+}
+
+.app-main::before {
+  position: fixed;
+  top: -18vw;
+  right: -14vw;
+  z-index: -1;
+  width: 48vw;
+  height: 48vw;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 38%, color-mix(in srgb, var(--cyan) 20%, transparent), transparent 7%),
+    repeating-radial-gradient(circle, transparent 0 36px, color-mix(in srgb, var(--primary) 7%, transparent) 37px 38px);
+  content: "";
+  pointer-events: none;
 }
 
 .page {
@@ -298,9 +368,10 @@ hr {
   display: block;
   margin-bottom: 9px;
   color: var(--primary);
+  font-family: "Unbounded Variable", sans-serif;
   font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 720;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -332,17 +403,19 @@ hr {
   min-height: 42px;
   padding: 0 17px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 4px;
   background: transparent;
   font-size: 0.82rem;
-  font-weight: 700;
-  transition: 150ms ease;
+  font-weight: 760;
+  letter-spacing: 0.01em;
+  transition: 180ms ease;
 }
 
 .button--primary {
-  background: var(--primary);
+  background: linear-gradient(120deg, var(--primary), #19a8ff);
   color: var(--primary-contrast);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--primary) 28%, transparent);
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
 
 .button--primary:hover {
@@ -352,7 +425,7 @@ hr {
 
 .button--secondary {
   border-color: var(--border);
-  background: var(--surface-raised);
+  background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
 }
 
 .button--secondary:hover,
@@ -432,13 +505,13 @@ hr {
 .field select {
   min-height: 44px;
   padding: 0 13px;
-  border-radius: 9px;
+  border-radius: 4px;
 }
 
 .field textarea {
   padding: 11px 13px;
   resize: vertical;
-  border-radius: 9px;
+  border-radius: 4px;
 }
 
 .field input:focus,
@@ -520,15 +593,16 @@ hr {
   height: 58px;
   flex: 0 0 auto;
   border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
-  border-radius: 11px;
+  border-radius: 3px 18px 3px 18px;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.16), transparent 42%),
+    radial-gradient(circle at 72% 25%, rgba(104, 224, 255, 0.9), transparent 15%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.28), transparent 42%),
     repeating-linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--primary) 78%, #111) 0 9px,
-      color-mix(in srgb, var(--primary) 58%, var(--surface-raised)) 9px 19px
+      112deg,
+      #0a75f5 0 9px,
+      #064ea9 9px 19px
     );
-  box-shadow: inset 0 -18px 24px rgba(17, 37, 27, 0.2);
+  box-shadow: 0 12px 30px rgba(5, 83, 175, 0.24);
 }
 
 .room-identity__visual::after {
@@ -546,7 +620,8 @@ hr {
   position: relative;
   z-index: 1;
   color: #fffdf7;
-  font-family: "Source Serif 4", Georgia, serif;
+  font-family: "Unbounded Variable", sans-serif;
+  font-style: italic;
   font-size: 1.45rem;
   font-weight: 700;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
@@ -564,9 +639,10 @@ hr {
 .calendar-card {
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-sm);
+  border-radius: 5px 24px 5px 24px;
+  background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(16px);
 }
 
 .calendar-card__toolbar {
@@ -576,6 +652,8 @@ hr {
   min-height: 68px;
   padding: 10px 20px;
   border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(105deg, color-mix(in srgb, var(--primary) 10%, var(--surface-raised)), transparent 55%);
 }
 
 .week-nav {
@@ -586,8 +664,9 @@ hr {
 
 .week-nav strong {
   margin-left: 12px;
-  font-family: "Source Serif 4", serif;
-  font-size: 1rem;
+  font-family: "Unbounded Variable", sans-serif;
+  font-size: 0.78rem;
+  font-style: italic;
 }
 
 .timezone-note {
@@ -615,7 +694,7 @@ hr {
   top: 0;
   z-index: 5;
   border-bottom: 1px solid var(--border);
-  background: var(--surface-raised);
+  background: color-mix(in srgb, var(--surface-raised) 94%, var(--surface-muted));
 }
 
 .day-heading {
@@ -629,6 +708,7 @@ hr {
 }
 
 .day-heading span {
+  font-family: "Unbounded Variable", sans-serif;
   font-size: 0.67rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -643,9 +723,10 @@ hr {
   place-items: center;
   min-width: 37px;
   height: 26px;
-  border-radius: 20px;
-  background: var(--primary);
-  color: var(--primary-contrast);
+  border-radius: 2px 10px 2px 10px;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 34%, transparent);
 }
 
 .time-column {
@@ -764,7 +845,7 @@ hr {
   left: 68px;
   z-index: 4;
   height: 1px;
-  background: #df624d;
+  background: var(--accent);
   pointer-events: none;
 }
 
@@ -775,7 +856,7 @@ hr {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #df624d;
+  background: var(--accent);
   content: "";
 }
 
@@ -786,7 +867,7 @@ hr {
   width: 48px;
   padding: 2px 4px;
   border-radius: 6px;
-  background: #df624d;
+  background: var(--accent);
   color: white;
   font-size: 0.6rem;
   font-weight: 700;
@@ -1154,7 +1235,8 @@ hr {
 }
 
 .date-tile strong {
-  font-family: "Source Serif 4", serif;
+  font-family: "Unbounded Variable", sans-serif;
+  font-style: italic;
   font-size: 1.3rem;
 }
 
@@ -1230,8 +1312,10 @@ hr {
   min-height: 300px;
   padding: 24px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-raised);
+  border-radius: 4px 24px 4px 24px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--booking-open) 35%, var(--surface-raised)), var(--surface-raised) 46%);
+  box-shadow: var(--shadow-sm);
 }
 
 .event-card__accent {
@@ -1239,8 +1323,11 @@ hr {
   top: 0;
   right: 0;
   left: 0;
-  height: 5px;
-  background: var(--booking-open-border);
+  width: 46%;
+  height: 6px;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  transform: skewX(-28deg);
+  transform-origin: left;
 }
 
 .event-card__date {
@@ -1280,8 +1367,9 @@ hr {
   gap: 13px;
   padding: 18px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  border-radius: 3px 16px 3px 16px;
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  box-shadow: var(--shadow-sm);
   text-align: left;
 }
 
@@ -1331,8 +1419,10 @@ hr {
 .admin-card {
   padding: 26px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-raised);
+  border-radius: 4px 24px 4px 24px;
+  background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(14px);
 }
 
 .settings-card__heading {
@@ -1581,7 +1671,8 @@ hr {
   border-radius: 10px;
   background: var(--booking-own);
   color: var(--primary);
-  font-family: "Source Serif 4", serif;
+  font-family: "Unbounded Variable", sans-serif;
+  font-style: italic;
   font-weight: 700;
 }
 
@@ -1634,8 +1725,11 @@ hr {
   overflow: hidden;
   padding: 36px clamp(34px, 6vw, 90px);
   flex-direction: column;
-  background: #174f3a;
-  color: #fffdf7;
+  background:
+    radial-gradient(circle at 18% 82%, rgba(82, 218, 255, 0.42), transparent 20%),
+    repeating-radial-gradient(circle at 112% 8%, transparent 0 58px, rgba(116, 221, 255, 0.1) 59px 61px),
+    linear-gradient(150deg, #0b79f4 0%, #063d99 47%, #03142f 100%);
+  color: #f7fbff;
 }
 
 .brand--auth {
@@ -1643,9 +1737,9 @@ hr {
 }
 
 .brand--auth .brand-mark {
-  border-radius: 12px 12px 12px 4px;
-  background: #f4e4b8;
-  color: #174f3a;
+  border-radius: 4px 14px 4px 14px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #0878f9;
 }
 
 .auth-story__content {
@@ -1656,16 +1750,17 @@ hr {
 }
 
 .auth-story__content .eyebrow {
-  color: #d4e7d9;
+  color: var(--cyan);
 }
 
 .auth-story__content h1 {
-  font-size: clamp(3rem, 5vw, 5.6rem);
+  max-width: 620px;
+  font-size: clamp(2.8rem, 4.2vw, 4.7rem);
 }
 
 .auth-story__content p {
   max-width: 520px;
-  color: #d6e3da;
+  color: #cfeaff;
   font-size: 1rem;
 }
 
@@ -1677,9 +1772,10 @@ hr {
   height: 270px;
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 24px 0 0 0;
-  background: rgba(255, 255, 255, 0.1);
-  transform: rotate(-4deg);
+  border-radius: 4px 34px 4px 34px;
+  background: rgba(93, 198, 255, 0.13);
+  box-shadow: 0 24px 80px rgba(0, 8, 32, 0.28);
+  transform: rotate(-6deg) skewX(-3deg);
 }
 
 .auth-preview__head {
