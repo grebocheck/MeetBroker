@@ -31,6 +31,8 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 18px;
+  --shape-action: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  --shape-nav: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 8px 50%);
 }
 
 :root[data-theme="dark"] {
@@ -320,12 +322,15 @@ hr {
   align-items: center;
   gap: 12px;
   min-height: 48px;
-  padding: 0 12px;
-  border-radius: 3px;
+  padding: 0 24px 0 20px;
+  background-color: transparent;
   color: rgba(232, 246, 255, 0.76);
+  clip-path: var(--shape-nav);
   font-size: 0.9rem;
   font-weight: 600;
-  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+  isolation: isolate;
+  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+  will-change: transform;
 }
 
 .nav-item svg {
@@ -335,9 +340,8 @@ hr {
 
 .nav-item:hover,
 .nav-item--active {
-  background: #f6fbff;
+  background-color: #f6fbff;
   color: #0759bd;
-  clip-path: polygon(0 0, 94% 0, 100% 50%, 94% 100%, 0 100%, 4% 50%);
   transform: translateX(4px);
 }
 
@@ -597,7 +601,7 @@ hr {
   background: linear-gradient(120deg, var(--primary), #19a8ff);
   color: var(--primary-contrast);
   box-shadow: 0 10px 28px color-mix(in srgb, var(--primary) 28%, transparent);
-  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  clip-path: var(--shape-action);
 }
 
 .button--primary:hover {
@@ -616,9 +620,22 @@ hr {
 }
 
 .button--danger {
-  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
-  background: var(--danger-soft);
+  border-color: transparent;
+  border-radius: 0;
+  background:
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--danger) 18%, var(--danger-soft)),
+      var(--danger-soft)
+    );
   color: var(--danger);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 34%, transparent);
+  clip-path: var(--shape-action);
+}
+
+.button--danger:hover {
+  background: color-mix(in srgb, var(--danger) 24%, var(--danger-soft));
+  transform: translateY(-1px);
 }
 
 .button--wide {
