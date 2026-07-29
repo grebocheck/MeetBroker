@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { navigate } from "../lib/router";
 import type { User } from "../types";
+import { CancelBookingDialog } from "../components/CancelBookingDialog";
 
 interface MyBooking {
   id: string;
@@ -17,6 +18,8 @@ interface MyBooking {
 
 export function BookingListPage({ user }: { user: User }) {
   const [section, setSection] = useState<"future" | "past">("future");
+  const [cancellingBooking, setCancellingBooking] =
+    useState<MyBooking | null>(null);
   const queryClient = useQueryClient();
   const bookings = useQuery({
     queryKey: ["my-bookings", section],
@@ -31,8 +34,10 @@ export function BookingListPage({ user }: { user: User }) {
         method: "DELETE",
         body: JSON.stringify({})
       }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["my-bookings"] })
+    onSuccess: () => {
+      setCancellingBooking(null);
+      queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+    }
   });
   const respond = useMutation({
     mutationFn: ({
@@ -169,11 +174,7 @@ export function BookingListPage({ user }: { user: User }) {
                       <button
                         className="button button--ghost button--small"
                         disabled={cancel.isPending}
-                        onClick={() => {
-                          if (window.confirm("Скасувати бронювання?")) {
-                            cancel.mutate(booking.id);
-                          }
-                        }}
+                        onClick={() => setCancellingBooking(booking)}
                       >
                         Скасувати
                       </button>
@@ -208,6 +209,23 @@ export function BookingListPage({ user }: { user: User }) {
             );
           })}
         </div>
+      )}
+      {cancellingBooking && (
+        <CancelBookingDialog
+          booking={{
+            title: cancellingBooking.title,
+            roomName: cancellingBooking.room.name,
+            startsAt: cancellingBooking.startsAt,
+            endsAt: cancellingBooking.endsAt
+          }}
+          pending={cancel.isPending}
+          error={cancel.error}
+          onClose={() => {
+            cancel.reset();
+            setCancellingBooking(null);
+          }}
+          onConfirm={() => cancel.mutate(cancellingBooking.id)}
+        />
       )}
     </div>
   );

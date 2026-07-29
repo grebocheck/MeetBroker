@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { toDateTimeLocal } from "../lib/date";
 import type { Booking, Person, Room } from "../types";
-import { Avatar } from "./Avatar";
+import { ParticipantPicker } from "./ParticipantPicker";
 
 export interface BookingDraft {
   startsAt: Date;
@@ -163,37 +163,12 @@ export function BookingDialog({
                 без запрошень.
               </div>
             ) : (
-              <div className="people-picker">
-                {colleagueUsers.map((person) => {
-                  const checked = participantIds.includes(person.id);
-                  return (
-                    <label
-                      className={`person-option${checked ? " is-selected" : ""}`}
-                      key={person.id}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={!checked && selected.length >= availableSeats}
-                        onChange={() =>
-                          setParticipantIds((current) =>
-                            checked
-                              ? current.filter((id) => id !== person.id)
-                              : [...current, person.id]
-                          )
-                        }
-                      />
-                      <Avatar
-                        name={person.name}
-                        preset={person.avatarPreset}
-                        url={person.avatarUrl}
-                        size="sm"
-                      />
-                      <span>{person.name}</span>
-                    </label>
-                  );
-                })}
-              </div>
+              <ParticipantPicker
+                people={colleagueUsers}
+                selectedIds={participantIds}
+                maxSelected={availableSeats}
+                onChange={setParticipantIds}
+              />
             )}
           </div>
           {save.error && (

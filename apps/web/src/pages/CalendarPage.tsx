@@ -16,6 +16,7 @@ import {
   BookingDialog,
   type BookingDraft
 } from "../components/BookingDialog";
+import { CancelBookingDialog } from "../components/CancelBookingDialog";
 
 const SLOT_HEIGHT = 32;
 const DEFAULT_TIME_ZONE = "Europe/Kyiv";
@@ -40,6 +41,7 @@ export function CalendarPage({ user }: { user: User }) {
   const [draft, setDraft] = useState<BookingDraft | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
   const rooms = useQuery({
     queryKey: ["rooms"],
     queryFn: () => api<{ rooms: Room[] }>("/api/rooms")
@@ -89,6 +91,7 @@ export function CalendarPage({ user }: { user: User }) {
       }),
     onSuccess: () => {
       setSelectedBooking(null);
+      setCancellingBooking(null);
       queryClient.invalidateQueries({ queryKey: ["schedule"] });
       queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
     }
@@ -395,11 +398,28 @@ export function CalendarPage({ user }: { user: User }) {
             setSelectedBooking(null);
           }}
           onCancel={() => {
-            if (window.confirm("Скасувати це бронювання?")) {
-              cancel.mutate(selectedBooking.id);
-            }
+            setCancellingBooking(selectedBooking);
+            setSelectedBooking(null);
           }}
           cancelling={cancel.isPending}
+        />
+      )}
+      {cancellingBooking && room && (
+        <CancelBookingDialog
+          booking={{
+            title: cancellingBooking.title,
+            roomName: room.name,
+            startsAt: cancellingBooking.startsAt,
+            endsAt: cancellingBooking.endsAt,
+            participantCount: cancellingBooking.participants.length
+          }}
+          pending={cancel.isPending}
+          error={cancel.error}
+          onClose={() => {
+            cancel.reset();
+            setCancellingBooking(null);
+          }}
+          onConfirm={() => cancel.mutate(cancellingBooking.id)}
         />
       )}
     </div>
