@@ -10,12 +10,9 @@ import type {
   CancelBookingDto,
   CreateBookingDto,
   RespondToInvitationDto,
-  UpdateBookingDto
+  UpdateBookingDto,
 } from "./bookings.dto";
-import {
-  BookingRuleError,
-  validateBookingRules
-} from "./booking-rules";
+import { BookingRuleError, validateBookingRules } from "./booking-rules";
 
 interface RoomRow {
   id: string;
@@ -43,7 +40,7 @@ export class BookingsService {
   constructor(
     private readonly database: DatabaseService,
     private readonly notifications: NotificationsService,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.officeTimeZone =
       config.get<string>("OFFICE_TIMEZONE") ?? "Europe/Kyiv";
@@ -61,7 +58,7 @@ export class BookingsService {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "INVALID_RANGE",
-        "Schedule range is invalid"
+        "Schedule range is invalid",
       );
     }
 
@@ -79,13 +76,13 @@ export class BookingsService {
           active
         from rooms where id = $1
       `,
-      [roomId]
+      [roomId],
     );
     if (!room.rows[0] || !room.rows[0].active) {
       throw apiError(
         HttpStatus.NOT_FOUND,
         "ROOM_NOT_FOUND",
-        "Room was not found"
+        "Room was not found",
       );
     }
 
@@ -136,7 +133,7 @@ export class BookingsService {
         group by b.id, u.id
         order by b.starts_at
       `,
-      [roomId, from, to]
+      [roomId, from, to],
     );
 
     const blocks = await this.database.query<{
@@ -144,17 +141,26 @@ export class BookingsService {
       title: string;
       starts_at: Date;
       ends_at: Date;
+      series_id: string | null;
+      frequency: "DAILY" | "WEEKLY" | null;
     }>(
       `
-        select id, title, starts_at, ends_at
-        from room_blocks
-        where room_id = $1
-          and cancelled_at is null
-          and starts_at < $3
-          and ends_at > $2
-        order by starts_at
+        select
+          rb.id,
+          rb.title,
+          rb.starts_at,
+          rb.ends_at,
+          rb.series_id,
+          s.frequency
+        from room_blocks rb
+        left join room_block_series s on s.id = rb.series_id
+        where rb.room_id = $1
+          and rb.cancelled_at is null
+          and rb.starts_at < $3
+          and rb.ends_at > $2
+        order by rb.starts_at
       `,
-      [roomId, from, to]
+      [roomId, from, to],
     );
 
     return {
@@ -168,7 +174,7 @@ export class BookingsService {
         workEnd: room.rows[0].work_end.slice(0, 5),
         imageUrl: room.rows[0].image_path
           ? `/uploads/${room.rows[0].image_path}`
-          : room.rows[0].image_url
+          : room.rows[0].image_url,
       },
       bookings: bookings.rows.map((booking) => ({
         id: booking.id,
@@ -182,16 +188,18 @@ export class BookingsService {
           avatarPreset: booking.organizer_avatar_preset,
           avatarUrl: booking.organizer_avatar_path
             ? `/uploads/${booking.organizer_avatar_path}`
-            : null
+            : null,
         },
-        participants: booking.participants
+        participants: booking.participants,
       })),
       blocks: blocks.rows.map((block) => ({
         id: block.id,
         title: block.title,
         startsAt: block.starts_at,
-        endsAt: block.ends_at
-      }))
+        endsAt: block.ends_at,
+        seriesId: block.series_id,
+        recurrence: block.frequency,
+      })),
     };
   }
 
@@ -201,32 +209,32 @@ export class BookingsService {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "TITLE_REQUIRED",
-        "Booking title is required"
+        "Booking title is required",
       );
     }
     const startsAt = new Date(dto.startsAt);
     const endsAt = new Date(dto.endsAt);
     const participantIds = [
-      ...new Set((dto.participantIds ?? []).filter((id) => id !== user.id))
+      ...new Set((dto.participantIds ?? []).filter((id) => id !== user.id)),
     ];
 
     return this.database.transaction(async (client) => {
       await client.query("select pg_advisory_xact_lock(hashtext($1))", [
-        dto.roomId
+        dto.roomId,
       ]);
       const roomResult = await client.query<RoomRow>(
         `
           select id, name, floor, capacity, work_start::text, work_end::text, active
           from rooms where id = $1
         `,
-        [dto.roomId]
+        [dto.roomId],
       );
       const room = roomResult.rows[0];
       if (!room || !room.active) {
         throw apiError(
           HttpStatus.NOT_FOUND,
           "ROOM_NOT_FOUND",
-          "Room was not found"
+          "Room was not found",
         );
       }
 
@@ -237,7 +245,7 @@ export class BookingsService {
         now: new Date(),
         officeTimeZone: this.officeTimeZone,
         workStart: room.work_start,
-        workEnd: room.work_end
+        workEnd: room.work_end,
       });
       const overrideReason = dto.overrideReason?.trim();
       if (
@@ -261,16 +269,13 @@ export class BookingsService {
             and ends_at > $2
           limit 1
         `,
-        [room.id, startsAt, endsAt]
+        [room.id, startsAt, endsAt],
       );
-      if (
-        block.rowCount &&
-        !(user.role === "ADMIN" && overrideReason)
-      ) {
+      if (block.rowCount && !(user.role === "ADMIN" && overrideReason)) {
         throw apiError(
           HttpStatus.CONFLICT,
           "ROOM_UNAVAILABLE",
-          "Room is unavailable during this time"
+          "Room is unavailable during this time",
         );
       }
 
@@ -278,18 +283,15 @@ export class BookingsService {
         throw apiError(
           HttpStatus.BAD_REQUEST,
           "ROOM_CAPACITY_EXCEEDED",
-          "Number of participants exceeds room capacity"
+          "Number of participants exceeds room capacity",
         );
       }
-      const participants = await this.loadParticipants(
-        client,
-        participantIds
-      );
+      const participants = await this.loadParticipants(client, participantIds);
       if (participants.length !== participantIds.length) {
         throw apiError(
           HttpStatus.BAD_REQUEST,
           "INVALID_PARTICIPANT",
-          "One or more participants are unavailable"
+          "One or more participants are unavailable",
         );
       }
 
@@ -311,8 +313,8 @@ export class BookingsService {
             startsAt,
             endsAt,
             dto.participationMode ?? "INVITE_ONLY",
-            overrideReason || null
-          ]
+            overrideReason || null,
+          ],
         );
       } catch (error) {
         if (
@@ -323,7 +325,7 @@ export class BookingsService {
           throw apiError(
             HttpStatus.CONFLICT,
             "SLOT_TAKEN",
-            "This time slot is already booked"
+            "This time slot is already booked",
           );
         }
         throw error;
@@ -335,14 +337,14 @@ export class BookingsService {
             insert into booking_participants (booking_id, user_id, status)
             values ($1, $2, 'INVITED')
           `,
-          [bookingId, participant.id]
+          [bookingId, participant.id],
         );
         const invitation = this.invitationCopy(
           user.name,
           title,
           room.name,
           startsAt,
-          participant
+          participant,
         );
         await this.notifications.enqueue(client, {
           eventKey: `booking:${bookingId}:invite:${participant.id}`,
@@ -351,7 +353,7 @@ export class BookingsService {
           category: "INVITATIONS",
           title: invitation.title,
           body: invitation.body,
-          bookingId
+          bookingId,
         });
       }
 
@@ -366,8 +368,8 @@ export class BookingsService {
             randomUUID(),
             user.id,
             bookingId,
-            JSON.stringify({ reason: overrideReason })
-          ]
+            JSON.stringify({ reason: overrideReason }),
+          ],
         );
       }
 
@@ -383,8 +385,8 @@ export class BookingsService {
           startsAt,
           endsAt,
           participationMode: dto.participationMode ?? "INVITE_ONLY",
-          participantCount: participants.length
-        }
+          participantCount: participants.length,
+        },
       );
 
       return { id: bookingId };
@@ -394,14 +396,14 @@ export class BookingsService {
   async update(
     user: CurrentUser,
     bookingId: string,
-    dto: UpdateBookingDto
+    dto: UpdateBookingDto,
   ): Promise<void> {
     const title = dto.title.trim();
     if (!title) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "TITLE_REQUIRED",
-        "Booking title is required"
+        "Booking title is required",
       );
     }
     const startsAt = new Date(dto.startsAt);
@@ -444,14 +446,14 @@ export class BookingsService {
           where b.id = $1
           for update of b
         `,
-        [bookingId]
+        [bookingId],
       );
       const booking = bookingResult.rows[0];
       if (!booking || booking.cancelled_at || !booking.active) {
         throw apiError(
           HttpStatus.NOT_FOUND,
           "BOOKING_NOT_FOUND",
-          "Booking was not found"
+          "Booking was not found",
         );
       }
       const adminReason = dto.adminReason?.trim();
@@ -461,7 +463,7 @@ export class BookingsService {
         throw apiError(
           HttpStatus.FORBIDDEN,
           "NOT_BOOKING_OWNER",
-          "Only the organizer can edit this booking"
+          "Only the organizer can edit this booking",
         );
       }
       if (
@@ -471,15 +473,15 @@ export class BookingsService {
         throw apiError(
           HttpStatus.BAD_REQUEST,
           "ADMIN_EDIT_REASON_REQUIRED",
-          "Administrator must provide an edit reason of at least 3 characters"
+          "Administrator must provide an edit reason of at least 3 characters",
         );
       }
       const participantIds = requestedParticipantIds.filter(
-        (id) => id !== booking.organizer_id
+        (id) => id !== booking.organizer_id,
       );
 
       await client.query("select pg_advisory_xact_lock(hashtext($1))", [
-        booking.room_id
+        booking.room_id,
       ]);
       const ruleError = validateBookingRules({
         startsAt,
@@ -487,7 +489,7 @@ export class BookingsService {
         now: new Date(),
         officeTimeZone: this.officeTimeZone,
         workStart: booking.work_start,
-        workEnd: booking.work_end
+        workEnd: booking.work_end,
       });
       if (ruleError) throw this.ruleException(ruleError);
 
@@ -501,20 +503,20 @@ export class BookingsService {
             and ends_at > $2
           limit 1
         `,
-        [booking.room_id, startsAt, endsAt]
+        [booking.room_id, startsAt, endsAt],
       );
       if (block.rowCount) {
         throw apiError(
           HttpStatus.CONFLICT,
           "ROOM_UNAVAILABLE",
-          "Room is unavailable during this time"
+          "Room is unavailable during this time",
         );
       }
       if (participantIds.length + 1 > booking.capacity) {
         throw apiError(
           HttpStatus.BAD_REQUEST,
           "ROOM_CAPACITY_EXCEEDED",
-          "Number of participants exceeds room capacity"
+          "Number of participants exceeds room capacity",
         );
       }
 
@@ -523,7 +525,7 @@ export class BookingsService {
         throw apiError(
           HttpStatus.BAD_REQUEST,
           "INVALID_PARTICIPANT",
-          "One or more participants are unavailable"
+          "One or more participants are unavailable",
         );
       }
       const currentParticipants = await client.query<
@@ -535,20 +537,20 @@ export class BookingsService {
           join users u on u.id = bp.user_id
           where bp.booking_id = $1
         `,
-        [bookingId]
+        [bookingId],
       );
       const currentIds = new Set(
-        currentParticipants.rows.map((participant) => participant.id)
+        currentParticipants.rows.map((participant) => participant.id),
       );
       const nextIds = new Set(participantIds);
       const added = participants.filter(
-        (participant) => !currentIds.has(participant.id)
+        (participant) => !currentIds.has(participant.id),
       );
       const retained = participants.filter((participant) =>
-        currentIds.has(participant.id)
+        currentIds.has(participant.id),
       );
       const removed = currentParticipants.rows.filter(
-        (participant) => !nextIds.has(participant.id)
+        (participant) => !nextIds.has(participant.id),
       );
       const detailsChanged =
         booking.title !== title ||
@@ -569,7 +571,7 @@ export class BookingsService {
               updated_at = now()
             where id = $1
           `,
-          [bookingId, title, startsAt, endsAt, dto.participationMode]
+          [bookingId, title, startsAt, endsAt, dto.participationMode],
         );
       } catch (error) {
         if (
@@ -580,7 +582,7 @@ export class BookingsService {
           throw apiError(
             HttpStatus.CONFLICT,
             "SLOT_TAKEN",
-            "This time slot is already booked"
+            "This time slot is already booked",
           );
         }
         throw error;
@@ -592,7 +594,7 @@ export class BookingsService {
             delete from booking_participants
             where booking_id = $1 and user_id = any($2::uuid[])
           `,
-          [bookingId, removed.map((participant) => participant.id)]
+          [bookingId, removed.map((participant) => participant.id)],
         );
       }
       for (const participant of added) {
@@ -601,7 +603,7 @@ export class BookingsService {
             insert into booking_participants (booking_id, user_id, status)
             values ($1, $2, 'INVITED')
           `,
-          [bookingId, participant.id]
+          [bookingId, participant.id],
         );
       }
 
@@ -611,7 +613,7 @@ export class BookingsService {
           title,
           booking.room_name,
           startsAt,
-          participant
+          participant,
         );
         await this.notifications.enqueue(client, {
           eventKey: `booking:${bookingId}:update:${editId}:${participant.id}`,
@@ -624,7 +626,7 @@ export class BookingsService {
           body: isAdministrativeUpdate
             ? `Адміністратор ${user.name} змінив зустріч «${title}». Причина: ${adminReason}. ${copy.body}`
             : copy.body,
-          bookingId
+          bookingId,
         });
       }
       for (const participant of removed) {
@@ -640,7 +642,7 @@ export class BookingsService {
           body: isAdministrativeUpdate
             ? `Адміністратор ${user.name} видалив вас із зустрічі «${title}». Причина: ${adminReason}.`
             : copy.body,
-          bookingId
+          bookingId,
         });
       }
       for (const participant of added) {
@@ -649,7 +651,7 @@ export class BookingsService {
           title,
           booking.room_name,
           startsAt,
-          participant
+          participant,
         );
         await this.notifications.enqueue(client, {
           eventKey: `booking:${bookingId}:invite:${editId}:${participant.id}`,
@@ -662,7 +664,7 @@ export class BookingsService {
           body: isAdministrativeUpdate
             ? `Адміністратор ${user.name} запросив вас на зустріч «${title}» у кімнаті ${booking.room_name}. Причина зміни: ${adminReason}.`
             : copy.body,
-          bookingId
+          bookingId,
         });
       }
       if (isAdministrativeUpdate && booking.organizer_id !== user.id) {
@@ -673,15 +675,13 @@ export class BookingsService {
           category: "CHANGES",
           title: "Адміністратор змінив вашу зустріч",
           body: `Адміністратор ${user.name} змінив зустріч «${title}». Причина: ${adminReason}.`,
-          bookingId
+          bookingId,
         });
       }
       await this.recordActivity(
         client,
         user.id,
-        isAdministrativeUpdate
-          ? "BOOKING_UPDATED_BY_ADMIN"
-          : "BOOKING_UPDATED",
+        isAdministrativeUpdate ? "BOOKING_UPDATED_BY_ADMIN" : "BOOKING_UPDATED",
         "BOOKING",
         bookingId,
         {
@@ -691,8 +691,8 @@ export class BookingsService {
           endsAt,
           addedParticipants: added.length,
           removedParticipants: removed.length,
-          ...(isAdministrativeUpdate ? { reason: adminReason } : {})
-        }
+          ...(isAdministrativeUpdate ? { reason: adminReason } : {}),
+        },
       );
     });
   }
@@ -734,7 +734,7 @@ export class BookingsService {
         order by b.starts_at ${direction}
         limit $3 offset $2
       `,
-      [userId, safeOffset, pageSize + 1]
+      [userId, safeOffset, pageSize + 1],
     );
     const hasMore = result.rows.length > pageSize;
     const bookings = result.rows.slice(0, pageSize).map((row) => ({
@@ -745,12 +745,12 @@ export class BookingsService {
       room: { id: row.room_id, name: row.room_name },
       organizerId: row.organizer_id,
       participationMode: row.participation_mode,
-      participantStatus: row.participant_status
+      participantStatus: row.participant_status,
     }));
     return {
       bookings,
       hasMore,
-      nextOffset: hasMore ? safeOffset + pageSize : null
+      nextOffset: hasMore ? safeOffset + pageSize : null,
     };
   }
 
@@ -793,7 +793,7 @@ export class BookingsService {
         order by b.starts_at
         limit 100
       `,
-      [userId]
+      [userId],
     );
     return result.rows.map((row) => ({
       id: row.id,
@@ -803,18 +803,18 @@ export class BookingsService {
       room: {
         id: row.room_id,
         name: row.room_name,
-        capacity: row.capacity
+        capacity: row.capacity,
       },
       organizer: { id: row.organizer_id, name: row.organizer_name },
       participantCount: Number(row.participant_count) + 1,
-      myStatus: row.my_status
+      myStatus: row.my_status,
     }));
   }
 
   async respond(
     userId: string,
     bookingId: string,
-    dto: RespondToInvitationDto
+    dto: RespondToInvitationDto,
   ): Promise<void> {
     await this.database.transaction(async (client) => {
       const result = await client.query(
@@ -829,13 +829,13 @@ export class BookingsService {
             and b.starts_at > now()
             and bp.status = 'INVITED'
         `,
-        [bookingId, userId, dto.status]
+        [bookingId, userId, dto.status],
       );
       if (!result.rowCount) {
         throw apiError(
           HttpStatus.NOT_FOUND,
           "INVITATION_NOT_FOUND",
-          "Active invitation was not found"
+          "Active invitation was not found",
         );
       }
       await this.recordActivity(
@@ -845,7 +845,7 @@ export class BookingsService {
           ? "BOOKING_INVITATION_ACCEPTED"
           : "BOOKING_INVITATION_DECLINED",
         "BOOKING",
-        bookingId
+        bookingId,
       );
     });
   }
@@ -853,7 +853,7 @@ export class BookingsService {
   async joinOpenEvent(userId: string, bookingId: string): Promise<void> {
     await this.database.transaction(async (client) => {
       await client.query("select pg_advisory_xact_lock(hashtext($1))", [
-        bookingId
+        bookingId,
       ]);
       const result = await client.query<{
         capacity: number;
@@ -875,23 +875,19 @@ export class BookingsService {
             and b.starts_at > now()
           group by b.id, r.id
         `,
-        [bookingId]
+        [bookingId],
       );
       const event = result.rows[0];
       if (!event) {
         throw apiError(
           HttpStatus.NOT_FOUND,
           "OPEN_EVENT_NOT_FOUND",
-          "Open event was not found"
+          "Open event was not found",
         );
       }
       if (event.organizer_id === userId) return;
       if (Number(event.participant_count) + 1 >= event.capacity) {
-        throw apiError(
-          HttpStatus.CONFLICT,
-          "EVENT_FULL",
-          "This event is full"
-        );
+        throw apiError(HttpStatus.CONFLICT, "EVENT_FULL", "This event is full");
       }
       await client.query(
         `
@@ -901,14 +897,14 @@ export class BookingsService {
           on conflict (booking_id, user_id)
           do update set status = 'ACCEPTED', responded_at = now()
         `,
-        [bookingId, userId]
+        [bookingId, userId],
       );
       await this.recordActivity(
         client,
         userId,
         "OPEN_EVENT_JOINED",
         "BOOKING",
-        bookingId
+        bookingId,
       );
     });
   }
@@ -924,7 +920,7 @@ export class BookingsService {
             and b.id = bp.booking_id
             and b.participation_mode = 'OPEN'
         `,
-        [bookingId, userId]
+        [bookingId, userId],
       );
       if (result.rowCount) {
         await this.recordActivity(
@@ -932,7 +928,7 @@ export class BookingsService {
           userId,
           "OPEN_EVENT_LEFT",
           "BOOKING",
-          bookingId
+          bookingId,
         );
       }
     });
@@ -941,7 +937,7 @@ export class BookingsService {
   async cancel(
     user: CurrentUser,
     bookingId: string,
-    dto: CancelBookingDto
+    dto: CancelBookingDto,
   ): Promise<void> {
     await this.database.transaction(async (client) => {
       const bookingResult = await client.query<{
@@ -951,21 +947,21 @@ export class BookingsService {
         cancelled_at: Date | null;
       }>(
         "select id, title, organizer_id, cancelled_at from bookings where id = $1 for update",
-        [bookingId]
+        [bookingId],
       );
       const booking = bookingResult.rows[0];
       if (!booking || booking.cancelled_at) {
         throw apiError(
           HttpStatus.NOT_FOUND,
           "BOOKING_NOT_FOUND",
-          "Booking was not found"
+          "Booking was not found",
         );
       }
       if (booking.organizer_id !== user.id && user.role !== "ADMIN") {
         throw apiError(
           HttpStatus.FORBIDDEN,
           "NOT_BOOKING_OWNER",
-          "Only the organizer can cancel this booking"
+          "Only the organizer can cancel this booking",
         );
       }
       const isAdministrativeCancellation =
@@ -977,7 +973,7 @@ export class BookingsService {
           throw apiError(
             HttpStatus.BAD_REQUEST,
             "CANCELLATION_REASON_REQUIRED",
-            "Administrator must provide a cancellation reason of at least 3 characters"
+            "Administrator must provide a cancellation reason of at least 3 characters",
           );
         }
         await client.query(
@@ -986,12 +982,7 @@ export class BookingsService {
               (id, actor_id, action, target_type, target_id, details)
             values ($1, $2, 'BOOKING_CANCELLED_BY_ADMIN', 'BOOKING', $3, $4)
           `,
-          [
-            randomUUID(),
-            user.id,
-            bookingId,
-            JSON.stringify({ reason })
-          ]
+          [randomUUID(), user.id, bookingId, JSON.stringify({ reason })],
         );
       }
       await client.query(
@@ -1000,15 +991,15 @@ export class BookingsService {
           set cancelled_at = now(), cancelled_by = $2, updated_at = now()
           where id = $1
         `,
-        [bookingId, user.id]
+        [bookingId, user.id],
       );
 
       const participants = await client.query<{ user_id: string }>(
         "select user_id from booking_participants where booking_id = $1",
-        [bookingId]
+        [bookingId],
       );
       const recipientIds = new Set(
-        participants.rows.map((participant) => participant.user_id)
+        participants.rows.map((participant) => participant.user_id),
       );
       if (isAdministrativeCancellation) {
         recipientIds.add(booking.organizer_id);
@@ -1023,7 +1014,7 @@ export class BookingsService {
           body: cancellationReason
             ? `Зустріч «${booking.title}» було скасовано. Причина: ${cancellationReason}.`
             : `Зустріч «${booking.title}» було скасовано.`,
-          bookingId
+          bookingId,
         });
       }
       if (!isAdministrativeCancellation) {
@@ -1033,7 +1024,7 @@ export class BookingsService {
           "BOOKING_CANCELLED",
           "BOOKING",
           bookingId,
-          { title: booking.title }
+          { title: booking.title },
         );
       }
     });
@@ -1042,7 +1033,7 @@ export class BookingsService {
   private async assertCanCreate(
     client: PoolClient,
     userId: string,
-    roomId: string
+    roomId: string,
   ): Promise<void> {
     const restriction = await client.query(
       `
@@ -1056,20 +1047,20 @@ export class BookingsService {
           and (room_id is null or room_id = $2)
         limit 1
       `,
-      [userId, roomId]
+      [userId, roomId],
     );
     if (restriction.rowCount) {
       throw apiError(
         HttpStatus.FORBIDDEN,
         "BOOKING_CREATE_RESTRICTED",
-        "Creating bookings is temporarily restricted"
+        "Creating bookings is temporarily restricted",
       );
     }
   }
 
   private async loadParticipants(
     client: PoolClient,
-    ids: string[]
+    ids: string[],
   ): Promise<ParticipantRow[]> {
     if (!ids.length) return [];
     const result = await client.query<ParticipantRow>(
@@ -1081,7 +1072,7 @@ export class BookingsService {
           and approved_at is not null
           and access_revoked_at is null
       `,
-      [ids]
+      [ids],
     );
     return result.rows;
   }
@@ -1092,7 +1083,7 @@ export class BookingsService {
     action: string,
     targetType: string,
     targetId: string,
-    details: Record<string, unknown> = {}
+    details: Record<string, unknown> = {},
   ): Promise<void> {
     await client.query(
       `
@@ -1106,8 +1097,8 @@ export class BookingsService {
         action,
         targetType,
         targetId,
-        JSON.stringify(details)
-      ]
+        JSON.stringify(details),
+      ],
     );
   }
 
@@ -1115,39 +1106,39 @@ export class BookingsService {
     bookingTitle: string,
     roomName: string,
     startsAt: Date,
-    participant: ParticipantRow
+    participant: ParticipantRow,
   ): { title: string; body: string } {
     const locale = participant.locale === "en" ? "en-GB" : "uk-UA";
     const date = new Intl.DateTimeFormat(locale, {
       dateStyle: "full",
       timeStyle: "short",
-      timeZone: participant.timezone ?? this.officeTimeZone
+      timeZone: participant.timezone ?? this.officeTimeZone,
     }).format(startsAt);
     if (participant.locale === "en") {
       return {
         title: "Meeting details changed",
-        body: `“${bookingTitle}” is now scheduled in “${roomName}” on ${date}.`
+        body: `“${bookingTitle}” is now scheduled in “${roomName}” on ${date}.`,
       };
     }
     return {
       title: "Деталі зустрічі змінено",
-      body: `Зустріч «${bookingTitle}» тепер запланована в кімнаті «${roomName}»: ${date}.`
+      body: `Зустріч «${bookingTitle}» тепер запланована в кімнаті «${roomName}»: ${date}.`,
     };
   }
 
   private removalCopy(
     bookingTitle: string,
-    participant: ParticipantRow
+    participant: ParticipantRow,
   ): { title: string; body: string } {
     if (participant.locale === "en") {
       return {
         title: "Meeting participation changed",
-        body: `You are no longer a participant of “${bookingTitle}”.`
+        body: `You are no longer a participant of “${bookingTitle}”.`,
       };
     }
     return {
       title: "Участь у зустрічі змінено",
-      body: `Вас більше немає серед учасників зустрічі «${bookingTitle}».`
+      body: `Вас більше немає серед учасників зустрічі «${bookingTitle}».`,
     };
   }
 
@@ -1156,23 +1147,23 @@ export class BookingsService {
     bookingTitle: string,
     roomName: string,
     startsAt: Date,
-    participant: ParticipantRow
+    participant: ParticipantRow,
   ): { title: string; body: string } {
     const locale = participant.locale === "en" ? "en-GB" : "uk-UA";
     const date = new Intl.DateTimeFormat(locale, {
       dateStyle: "full",
       timeStyle: "short",
-      timeZone: participant.timezone ?? this.officeTimeZone
+      timeZone: participant.timezone ?? this.officeTimeZone,
     }).format(startsAt);
     if (participant.locale === "en") {
       return {
         title: "New meeting invitation",
-        body: `${organizer} invited you to “${bookingTitle}” in “${roomName}” on ${date}.`
+        body: `${organizer} invited you to “${bookingTitle}” in “${roomName}” on ${date}.`,
       };
     }
     return {
       title: "Нове запрошення",
-      body: `${organizer} запрошує вас на зустріч «${bookingTitle}» у кімнаті «${roomName}»: ${date}.`
+      body: `${organizer} запрошує вас на зустріч «${bookingTitle}» у кімнаті «${roomName}»: ${date}.`,
     };
   }
 
@@ -1182,7 +1173,7 @@ export class BookingsService {
       SLOT_ALIGNMENT: "Time must align to a 30-minute slot",
       DURATION: "Booking duration must be between 30 minutes and 4 hours",
       PAST: "Booking must start in the future",
-      OUTSIDE_WORKING_HOURS: "Booking is outside room working hours"
+      OUTSIDE_WORKING_HOURS: "Booking is outside room working hours",
     };
     return apiError(HttpStatus.BAD_REQUEST, code, messages[code]);
   }

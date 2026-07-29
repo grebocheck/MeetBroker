@@ -1,4 +1,7 @@
 import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
   IsDateString,
   IsEmail,
   IsIn,
@@ -9,7 +12,7 @@ import {
   Max,
   MaxLength,
   Min,
-  MinLength
+  MinLength,
 } from "class-validator";
 import { Type } from "class-transformer";
 
@@ -19,7 +22,7 @@ export class RestrictUserDto {
     "BOOKING_CREATE",
     "BOOKING_CANCEL_OWN",
     "SCHEDULE_VIEW",
-    "ACCOUNT_LOGIN"
+    "ACCOUNT_LOGIN",
   ])
   capability!: string;
 
@@ -129,4 +132,28 @@ export class CreateRoomBlockDto {
 
   @IsDateString()
   endsAt!: string;
+
+  @IsOptional()
+  @IsIn(["NONE", "DAILY", "WEEKLY"])
+  recurrence?: "NONE" | "DAILY" | "WEEKLY";
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(30)
+  recurrenceInterval?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  weekdays?: number[];
+
+  @IsOptional()
+  @IsDateString()
+  recurrenceUntil?: string;
 }
