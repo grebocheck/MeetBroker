@@ -105,7 +105,7 @@ export function CancelBookingDialog({
         <div className="modal__actions">
           <button
             type="button"
-            className="button button--secondary"
+            className="button button--secondary button--slanted"
             onClick={onClose}
             disabled={pending}
             autoFocus

@@ -186,7 +186,7 @@ export function BookingListPage({ user }: { user: User }) {
                   {section === "future" &&
                     (organizer ? (
                       <button
-                        className="button button--ghost button--small"
+                        className="button button--danger button--small"
                         disabled={cancel.isPending}
                         onClick={() => setCancellingBooking(booking)}
                       >
