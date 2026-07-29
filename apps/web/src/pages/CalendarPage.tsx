@@ -98,20 +98,46 @@ export function CalendarPage({ user }: { user: User }) {
   );
   const localTimeZone =
     user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const now = new Date();
+  const officeNow = toZonedTime(now, officeTimeZone);
+  const nowMinutes = officeNow.getHours() * 60 + officeNow.getMinutes();
+  const currentDayVisible = weekDays.some(
+    (day) =>
+      dateKeyInZone(
+        officeLocalToInstant(day, 12, 0, officeTimeZone),
+        officeTimeZone
+      ) === dateKeyInZone(now, officeTimeZone)
+  );
+  const showCurrentTime =
+    currentDayVisible && nowMinutes >= startMinutes && nowMinutes <= endMinutes;
+  const currentTimeLabel = new Intl.DateTimeFormat(
+    locale === "uk" ? "uk-UA" : "en-GB",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: officeTimeZone
+    }
+  ).format(now);
 
   return (
     <div className="page calendar-page">
       <header className="page-header calendar-toolbar">
-        <div>
-          <span className="eyebrow">{t("calendar")}</span>
-          <h1>{room?.name ?? "Переговорні"}</h1>
-          {room && (
-            <div className="room-meta">
-              <span>{room.floor} {t("floor")}</span>
-              <span>•</span>
-              <span>{room.capacity} {t("capacity")}</span>
-            </div>
-          )}
+        <div className="room-identity">
+          <div className="room-identity__visual" aria-hidden="true">
+            <span>{room?.name?.slice(0, 1) ?? "M"}</span>
+          </div>
+          <div>
+            <span className="eyebrow">{t("calendar")}</span>
+            <h1>{room?.name ?? "Переговорні"}</h1>
+            {room && (
+              <div className="room-meta">
+                <span>{room.floor} {t("floor")}</span>
+                <span>•</span>
+                <span>{room.capacity} {t("capacity")}</span>
+              </div>
+            )}
+          </div>
         </div>
         <div className="toolbar-actions">
           <label className="compact-select">
@@ -214,13 +240,14 @@ export function CalendarPage({ user }: { user: User }) {
         ) : !room || schedule.isLoading ? (
           <CalendarSkeleton />
         ) : (
-          <div className="calendar-scroll">
-            <div
-              className="week-grid"
-              style={{
-                "--calendar-height": `${slots.length * SLOT_HEIGHT}px`
-              } as React.CSSProperties}
-            >
+          <>
+            <div className="calendar-scroll">
+              <div
+                className="week-grid"
+                style={{
+                  "--calendar-height": `${slots.length * SLOT_HEIGHT}px`
+                } as React.CSSProperties}
+              >
               <div className="week-grid__corner" />
               {weekDays.map((day) => {
                 const instant = officeLocalToInstant(
@@ -291,8 +318,38 @@ export function CalendarPage({ user }: { user: User }) {
                   onBooking={setSelectedBooking}
                 />
               ))}
+                {showCurrentTime && (
+                  <div
+                    className="current-time-line"
+                    style={{
+                      top:
+                        58 +
+                        ((nowMinutes - startMinutes) / 30) * SLOT_HEIGHT
+                    }}
+                  >
+                    <span>{currentTimeLabel}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+            <div className="calendar-legend">
+              <div>
+                <span className="legend-swatch legend-swatch--own" />
+                Ваші бронювання
+              </div>
+              <div>
+                <span className="legend-swatch legend-swatch--other" />
+                Інші зустрічі
+              </div>
+              <div>
+                <span className="legend-swatch legend-swatch--open" />
+                Відкриті події
+              </div>
+              <span className="calendar-legend__hint">
+                Натисніть на вільний час, щоб забронювати
+              </span>
+            </div>
+          </>
         )}
       </section>
 

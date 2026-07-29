@@ -11,6 +11,7 @@ import { EventsPage } from "../pages/EventsPage";
 import { NotificationsPage } from "../pages/NotificationsPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { Avatar } from "./Avatar";
+import { BrandMark } from "./BrandMark";
 import {
   BellIcon,
   CalendarIcon,
@@ -74,10 +75,11 @@ export function AppShell({ user, path }: { user: User; path: string }) {
     <div className="app-layout">
       <aside className="sidebar">
         <Link className="brand" href="/calendar">
-          <span className="brand-mark">M</span>
+          <BrandMark />
           <span>MeetBroker</span>
         </Link>
 
+        <span className="nav-caption">Робочий простір</span>
         <nav className="main-nav" aria-label="Основна навігація">
           {items
             .filter((item) => !item.admin || user.role === "ADMIN")

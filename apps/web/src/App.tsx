@@ -7,6 +7,7 @@ import type { User } from "./types";
 import { AppShell } from "./components/AppShell";
 import { AuthPage } from "./pages/AuthPage";
 import { PendingApprovalPage } from "./pages/PendingApprovalPage";
+import { BrandMark } from "./components/BrandMark";
 
 export function App() {
   const path = usePath();
@@ -27,7 +28,7 @@ export function App() {
   if (auth.isLoading) {
     return (
       <div className="splash">
-        <div className="brand-mark">M</div>
+        <BrandMark />
         <div>
           <strong>MeetBroker</strong>
           <span>Готуємо ваш робочий простір…</span>

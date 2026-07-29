@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { Link, navigate } from "../lib/router";
 import type { User } from "../types";
+import { BrandMark } from "../components/BrandMark";
 
 export function AuthPage({ path }: { path: string }) {
   if (path.startsWith("/register")) return <Register />;
@@ -23,7 +24,7 @@ function AuthFrame({
     <div className="auth-layout">
       <section className="auth-story">
         <div className="brand brand--auth">
-          <span className="brand-mark">M</span>
+          <BrandMark />
           <span>MeetBroker</span>
         </div>
         <div className="auth-story__content">
