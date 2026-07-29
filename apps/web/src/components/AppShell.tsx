@@ -15,10 +15,13 @@ import { BrandMark } from "./BrandMark";
 import {
   BellIcon,
   CalendarIcon,
+  GlobeIcon,
   ListIcon,
   LogOutIcon,
+  MoonIcon,
   SettingsIcon,
   ShieldIcon,
+  SunIcon,
   UsersIcon
 } from "./Icons";
 
@@ -34,7 +37,7 @@ function currentRoute(path: string): string {
 }
 
 export function AppShell({ user, path }: { user: User; path: string }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const queryClient = useQueryClient();
   const logout = useMutation({
     mutationFn: () => api<void>("/api/auth/logout", { method: "POST" }),
@@ -43,6 +46,18 @@ export function AppShell({ user, path }: { user: User; path: string }) {
       navigate("/login", true);
     }
   });
+  const quickSettings = useMutation({
+    mutationFn: (next: Partial<Pick<User, "locale" | "theme">>) =>
+      api<{ user: User }>("/api/users/me", {
+        method: "PATCH",
+        body: JSON.stringify(next)
+      }),
+    onSuccess: (data) => queryClient.setQueryData(["me"], data)
+  });
+  const darkTheme =
+    user.theme === "DARK" ||
+    (user.theme === "SYSTEM" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
   const route = currentRoute(path);
   const items: NavItem[] = [
     { href: "/calendar", label: t("calendar"), icon: CalendarIcon },
@@ -100,6 +115,37 @@ export function AppShell({ user, path }: { user: User; path: string }) {
               );
             })}
         </nav>
+
+        <div className="sidebar-utilities" aria-label="Швидкі налаштування">
+          <button
+            className="utility-control"
+            disabled={quickSettings.isPending}
+            onClick={() =>
+              quickSettings.mutate({ theme: darkTheme ? "LIGHT" : "DARK" })
+            }
+            title={darkTheme ? "Увімкнути світлу тему" : "Увімкнути темну тему"}
+            aria-label={
+              darkTheme ? "Увімкнути світлу тему" : "Увімкнути темну тему"
+            }
+          >
+            {darkTheme ? <SunIcon /> : <MoonIcon />}
+            <span>{darkTheme ? "Світла" : "Темна"}</span>
+          </button>
+          <button
+            className="utility-control"
+            disabled={quickSettings.isPending}
+            onClick={() =>
+              quickSettings.mutate({ locale: locale === "uk" ? "en" : "uk" })
+            }
+            title={locale === "uk" ? "Switch to English" : "Перейти українською"}
+            aria-label={
+              locale === "uk" ? "Switch to English" : "Перейти українською"
+            }
+          >
+            <GlobeIcon />
+            <span>{locale === "uk" ? "EN" : "UA"}</span>
+          </button>
+        </div>
 
         <div className="sidebar-profile">
           <Avatar

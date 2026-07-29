@@ -61,3 +61,20 @@ export const LogOutIcon = (props: SVGProps<SVGSVGElement>) => (
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
   </IconBase>
 );
+export const SunIcon = (props: SVGProps<SVGSVGElement>) => (
+  <IconBase {...props}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41" />
+  </IconBase>
+);
+export const MoonIcon = (props: SVGProps<SVGSVGElement>) => (
+  <IconBase {...props}>
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+  </IconBase>
+);
+export const GlobeIcon = (props: SVGProps<SVGSVGElement>) => (
+  <IconBase {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+  </IconBase>
+);

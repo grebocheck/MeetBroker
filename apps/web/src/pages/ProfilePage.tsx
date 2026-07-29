@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import type { Theme, User } from "../types";
@@ -35,6 +35,13 @@ export function ProfilePage({ user }: { user: User }) {
     timezone:
       user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
   });
+  useEffect(() => {
+    setProfile((current) => ({
+      ...current,
+      locale: user.locale,
+      theme: user.theme
+    }));
+  }, [user.locale, user.theme]);
   const preferences = useQuery({
     queryKey: ["notification-preferences"],
     queryFn: () => api<Preferences>("/api/notifications/preferences")
