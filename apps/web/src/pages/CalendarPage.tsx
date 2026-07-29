@@ -27,8 +27,15 @@ function clockMinutes(value: string): number {
 export function CalendarPage({ user }: { user: User }) {
   const { locale, t } = useI18n();
   const queryClient = useQueryClient();
-  const [reference, setReference] = useState(new Date());
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const initialParams = new URLSearchParams(window.location.search);
+  const initialDate = initialParams.get("date");
+  const [reference, setReference] = useState(() => {
+    const parsed = initialDate ? new Date(initialDate) : new Date();
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  });
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(
+    initialParams.get("roomId")
+  );
   const [draft, setDraft] = useState<BookingDraft | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const rooms = useQuery({
@@ -124,18 +131,27 @@ export function CalendarPage({ user }: { user: User }) {
             className="button button--primary"
             onClick={() => {
               if (!room) return;
-              const next = officeLocalToInstant(
-                weekDays[0],
-                startMinutes / 60,
-                startMinutes % 60,
-                officeTimeZone
+              const candidates = weekDays.flatMap((day) =>
+                slots.map((minutes) =>
+                  officeLocalToInstant(
+                    day,
+                    Math.floor(minutes / 60),
+                    minutes % 60,
+                    officeTimeZone
+                  )
+                )
               );
+              const next =
+                candidates.find((candidate) => candidate > new Date()) ??
+                officeLocalToInstant(
+                  addDays(weekDays[6], 1),
+                  Math.floor(startMinutes / 60),
+                  startMinutes % 60,
+                  officeTimeZone
+                );
               setDraft({
-                startsAt: next > new Date() ? next : new Date(Date.now() + 3_600_000),
-                endsAt:
-                  next > new Date()
-                    ? new Date(next.getTime() + 3_600_000)
-                    : new Date(Date.now() + 7_200_000)
+                startsAt: next,
+                endsAt: new Date(next.getTime() + 3_600_000)
               });
             }}
           >
