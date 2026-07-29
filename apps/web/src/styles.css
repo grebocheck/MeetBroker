@@ -635,6 +635,114 @@ hr {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
 }
 
+.search-select {
+  position: relative;
+}
+
+.search-select__control {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-raised);
+  transition: 160ms ease;
+}
+
+.search-select__control:focus-within,
+.search-select__control.is-open {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.search-select__control input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.search-select__control input:focus {
+  border: 0;
+  box-shadow: none;
+}
+
+.search-select__control > button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  flex: 0 0 auto;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-muted) 55%, transparent);
+  color: var(--text-muted);
+}
+
+.search-select__control > button span {
+  font-size: 1.1rem;
+  transform: translateY(-2px);
+}
+
+.search-select__menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  left: 0;
+  z-index: 60;
+  overflow-y: auto;
+  max-height: 286px;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 4px 16px 4px 16px;
+  background: color-mix(in srgb, var(--surface-raised) 97%, transparent);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px);
+}
+
+.search-select__menu > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 3px 10px 3px 10px;
+  background: transparent;
+  color: var(--text);
+  gap: 12px;
+  text-align: left;
+}
+
+.search-select__menu > button:hover,
+.search-select__menu > button.is-highlighted {
+  background: var(--surface-muted);
+}
+
+.search-select__menu > button.is-selected {
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface-raised));
+  color: var(--primary);
+}
+
+.search-select__menu > button strong {
+  color: var(--primary);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.search-select__empty {
+  display: block;
+  padding: 18px 12px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
 .field {
   display: flex;
   flex-direction: column;

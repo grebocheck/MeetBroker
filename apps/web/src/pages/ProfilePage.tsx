@@ -1,8 +1,12 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
-import type { Theme, User } from "../types";
+import type { User } from "../types";
 import { Avatar } from "../components/Avatar";
+import {
+  SearchSelect,
+  type SearchSelectOption
+} from "../components/SearchSelect";
 
 type NotificationCategory =
   | "INVITATIONS"
@@ -10,6 +14,27 @@ type NotificationCategory =
   | "REMINDERS"
   | "ACCESS";
 type NotificationChannel = "IN_APP" | "EMAIL" | "TELEGRAM";
+
+const fallbackTimeZones = [
+  "Europe/Kyiv",
+  "Europe/London",
+  "Europe/Berlin",
+  "Europe/Warsaw",
+  "America/New_York",
+  "America/Chicago",
+  "America/Los_Angeles",
+  "Asia/Tokyo",
+  "Asia/Singapore",
+  "Australia/Sydney",
+  "UTC"
+];
+
+function supportedTimeZones(): string[] {
+  const intl = Intl as typeof Intl & {
+    supportedValuesOf?: (key: "timeZone") => string[];
+  };
+  return intl.supportedValuesOf?.("timeZone") ?? fallbackTimeZones;
+}
 
 interface NotificationSubscription {
   category: NotificationCategory;
@@ -30,18 +55,19 @@ export function ProfilePage({ user }: { user: User }) {
     name: user.name,
     bio: user.bio ?? "",
     avatarPreset: user.avatarPreset,
-    locale: user.locale,
-    theme: user.theme,
     timezone:
       user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
   });
-  useEffect(() => {
-    setProfile((current) => ({
-      ...current,
-      locale: user.locale,
-      theme: user.theme
+  const timeZoneOptions = useMemo<SearchSelectOption[]>(() => {
+    const zones = supportedTimeZones();
+    if (profile.timezone && !zones.includes(profile.timezone)) {
+      zones.unshift(profile.timezone);
+    }
+    return zones.map((zone) => ({
+      value: zone,
+      label: zone.replaceAll("_", " ")
     }));
-  }, [user.locale, user.theme]);
+  }, [profile.timezone]);
   const preferences = useQuery({
     queryKey: ["notification-preferences"],
     queryFn: () => api<Preferences>("/api/notifications/preferences")
@@ -200,48 +226,18 @@ export function ProfilePage({ user }: { user: User }) {
               />
               <em>{upload.isPending ? "Обробляємо…" : "Обрати файл"}</em>
             </label>
-            <div className="form-grid">
-              <label className="field">
-                <span>Мова</span>
-                <select
-                  value={profile.locale}
-                  onChange={(event) =>
-                    setProfile({
-                      ...profile,
-                      locale: event.target.value as "uk" | "en"
-                    })
-                  }
-                >
-                  <option value="uk">Українська</option>
-                  <option value="en">English</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Тема</span>
-                <select
-                  value={profile.theme}
-                  onChange={(event) =>
-                    setProfile({
-                      ...profile,
-                      theme: event.target.value as Theme
-                    })
-                  }
-                >
-                  <option value="SYSTEM">Як у системі</option>
-                  <option value="LIGHT">Світла</option>
-                  <option value="DARK">Темна</option>
-                </select>
-              </label>
-            </div>
-            <label className="field">
+            <div className="field">
               <span>Часовий пояс</span>
-              <input
+              <SearchSelect
                 value={profile.timezone}
-                onChange={(event) =>
-                  setProfile({ ...profile, timezone: event.target.value })
+                options={timeZoneOptions}
+                searchPlaceholder="Пошук міста або часового поясу…"
+                emptyText="Часовий пояс не знайдено"
+                onChange={(timezone) =>
+                  setProfile({ ...profile, timezone })
                 }
               />
-            </label>
+            </div>
             {(save.error || upload.error) && (
               <div className="form-error">
                 {[save.error, upload.error]
