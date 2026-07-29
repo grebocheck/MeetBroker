@@ -729,6 +729,8 @@ function UsersAdmin() {
 
 function RoomsAdmin() {
   const queryClient = useQueryClient();
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [editor, setEditor] = useState<"room" | "block" | null>(null);
   const rooms = useQuery({
     queryKey: ["rooms"],
     queryFn: () => api<{ rooms: Room[] }>("/api/rooms"),
@@ -772,7 +774,7 @@ function RoomsAdmin() {
       }
       return created;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       setRoomForm({
         name: "",
         floor: 1,
@@ -781,6 +783,8 @@ function RoomsAdmin() {
         workEnd: "19:00",
       });
       setRoomImage(null);
+      setSelectedRoomId(created.id);
+      setEditor(null);
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
     },
   });
@@ -835,6 +839,7 @@ function RoomsAdmin() {
       queryClient.invalidateQueries({ queryKey: ["schedule"] });
       queryClient.invalidateQueries({ queryKey: ["admin-room-blocks"] });
       queryClient.invalidateQueries({ queryKey: ["audit"] });
+      setEditor(null);
     },
   });
   const cancelBlock = useMutation({
@@ -851,407 +856,529 @@ function RoomsAdmin() {
       queryClient.invalidateQueries({ queryKey: ["audit"] });
     },
   });
+  const roomList = rooms.data?.rooms ?? [];
+  const selectedRoom =
+    roomList.find((room) => room.id === selectedRoomId) ?? roomList[0] ?? null;
+  const selectedBlocks =
+    blocks.data?.blocks.filter((block) => block.roomId === selectedRoom?.id) ??
+    [];
 
   return (
-    <div className="admin-columns">
-      <section className="admin-card">
-        <h2>Переговорні</h2>
-        <div className="room-admin-list">
-          {rooms.data?.rooms.map((room) => (
-            <div className="room-admin-row" key={room.id}>
-              <RoomVisual room={room} size="compact" />
-              <div className="room-admin-row__copy">
-                <strong>{room.name}</strong>
-                <span>
-                  {room.floor} поверх · {room.capacity} місць
-                </span>
-              </div>
-              <RoomHoursEditor room={room} />
-              <div className="room-image-actions">
-                <label className="button button--secondary button--slanted button--small room-image-action">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file)
-                        uploadRoomImage.mutate({ roomId: room.id, file });
-                      event.target.value = "";
-                    }}
-                  />
-                  <span>
-                    {uploadRoomImage.isPending &&
-                    uploadRoomImage.variables?.roomId === room.id
-                      ? "Обробляємо…"
-                      : room.imageUrl
-                        ? "Замінити фото"
-                        : "Додати фото"}
-                  </span>
-                </label>
-                {room.imageUrl && (
-                  <Button
-                    variant="ghost"
-                    size="small"
-                    disabled={
-                      removeRoomImage.isPending &&
-                      removeRoomImage.variables === room.id
-                    }
-                    onClick={() => removeRoomImage.mutate(room.id)}
-                  >
-                    Прибрати
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
+    <div className="room-management">
+      <div className="room-management__bar">
+        <div>
+          <span className="eyebrow">Простори компанії</span>
+          <h2>Переговорні</h2>
+          <p>{roomList.length} кімнат · графіки, фото та недоступності</p>
         </div>
-        <form
-          className="form-stack admin-form"
-          onSubmit={(event: FormEvent) => {
-            event.preventDefault();
-            createRoom.mutate();
-          }}
+        <Button
+          size="small"
+          onClick={() => setEditor(editor === "room" ? null : "room")}
         >
-          <h3>Додати кімнату</h3>
-          <label className="field">
-            <span>Назва</span>
-            <input
-              value={roomForm.name}
-              onChange={(event) =>
-                setRoomForm({ ...roomForm, name: event.target.value })
-              }
-              required
-            />
-          </label>
-          <div className="form-grid">
-            <label className="field">
-              <span>Поверх</span>
-              <input
-                type="number"
-                min={0}
-                value={roomForm.floor}
-                onChange={(event) =>
-                  setRoomForm({
-                    ...roomForm,
-                    floor: Number(event.target.value),
-                  })
-                }
-              />
-            </label>
-            <label className="field">
-              <span>Місткість</span>
-              <input
-                type="number"
-                min={1}
-                value={roomForm.capacity}
-                onChange={(event) =>
-                  setRoomForm({
-                    ...roomForm,
-                    capacity: Number(event.target.value),
-                  })
-                }
-              />
-            </label>
-          </div>
-          <div className="form-grid">
-            <label className="field">
-              <span>Працює з</span>
-              <input
-                type="time"
-                step={1800}
-                value={roomForm.workStart}
-                onChange={(event) =>
-                  setRoomForm({ ...roomForm, workStart: event.target.value })
-                }
-                required
-              />
-            </label>
-            <label className="field">
-              <span>Працює до</span>
-              <input
-                type="time"
-                step={1800}
-                value={roomForm.workEnd}
-                onChange={(event) =>
-                  setRoomForm({ ...roomForm, workEnd: event.target.value })
-                }
-                required
-              />
-            </label>
-          </div>
-          <label className="upload-box">
-            <span>
-              <strong>Фото кімнати</strong>
-              <small>
-                JPG, PNG чи WebP — автоматично кадруємо до широкого формату
-              </small>
-            </span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(event) =>
-                setRoomImage(event.target.files?.[0] ?? null)
-              }
-            />
-            <em>{roomImage ? roomImage.name : "Обрати файл"}</em>
-          </label>
-          {(createRoom.error ||
-            uploadRoomImage.error ||
-            removeRoomImage.error) && (
-            <div className="form-error">
-              {createRoom.error instanceof ApiError
-                ? createRoom.error.message
-                : uploadRoomImage.error instanceof ApiError
-                  ? uploadRoomImage.error.message
-                  : removeRoomImage.error instanceof ApiError
-                    ? removeRoomImage.error.message
-                    : "Не вдалося зберегти фото кімнати"}
-            </div>
-          )}
-          <Button type="submit">Додати</Button>
-        </form>
-      </section>
+          {editor === "room" ? "Закрити форму" : "+ Додати кімнату"}
+        </Button>
+      </div>
 
-      <section className="admin-card">
-        <span className="eyebrow">Винятки з графіка</span>
-        <h2>Недоступність кімнати</h2>
-        <p>
-          Разова проблема або серія прибирань, ремонтів та інших регулярних
-          робіт. Робочі години налаштовуються окремо біля кожної кімнати.
-        </p>
-        <div className="room-block-list">
-          {blocks.isLoading ? (
-            <div className="subtle-box">Завантажуємо правила…</div>
-          ) : blocks.data?.blocks.length === 0 ? (
-            <div className="empty-inline">
-              Активних винятків із графіка немає.
-            </div>
-          ) : (
-            blocks.data?.blocks.map((block) => (
-              <article className="room-block-row" key={block.id}>
-                <div>
-                  <span
-                    className={`status-badge ${
-                      block.kind === "SERIES" ? "status-badge--warning" : ""
-                    }`}
-                  >
-                    {block.kind === "SERIES" ? "Серія" : "Разово"}
+      <div className="room-management__workspace">
+        <aside className="admin-card room-catalog" aria-label="Переговорні">
+          <div className="room-catalog__heading">
+            <strong>Усі кімнати</strong>
+            <span>{roomList.length}</span>
+          </div>
+          <div className="room-catalog__list">
+            {roomList.map((room) => {
+              const roomBlockCount =
+                blocks.data?.blocks.filter((block) => block.roomId === room.id)
+                  .length ?? 0;
+              return (
+                <button
+                  type="button"
+                  className={`room-catalog__item ${
+                    selectedRoom?.id === room.id ? "is-active" : ""
+                  }`}
+                  key={room.id}
+                  onClick={() => {
+                    setSelectedRoomId(room.id);
+                    setBlockForm({ ...blockForm, roomId: room.id });
+                    setEditor(null);
+                  }}
+                >
+                  <RoomVisual room={room} size="compact" />
+                  <span className="room-catalog__copy">
+                    <strong>{room.name}</strong>
+                    <small>
+                      {room.floor} поверх · {room.capacity} місць
+                    </small>
                   </span>
-                  <strong>{block.title}</strong>
-                  <small>
-                    {block.roomName} · {formatRoomBlockRule(block)}
-                  </small>
+                  <span className="room-catalog__meta">
+                    {roomBlockCount > 0 && <em>{roomBlockCount}</em>}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section className="admin-card room-workspace">
+          {editor === "room" ? (
+            <form
+              className="form-stack room-workspace__form"
+              onSubmit={(event: FormEvent) => {
+                event.preventDefault();
+                createRoom.mutate();
+              }}
+            >
+              <div className="room-workspace__form-heading">
+                <div>
+                  <span className="eyebrow">Новий простір</span>
+                  <h2>Додати кімнату</h2>
                 </div>
                 <Button
                   variant="ghost"
                   size="small"
-                  disabled={
-                    cancelBlock.isPending &&
-                    cancelBlock.variables?.id === block.id
-                  }
-                  onClick={() => cancelBlock.mutate(block)}
+                  onClick={() => setEditor(null)}
                 >
-                  {block.kind === "SERIES" ? "Скасувати серію" : "Прибрати"}
+                  Скасувати
                 </Button>
-              </article>
-            ))
-          )}
-        </div>
-        <form
-          className="form-stack admin-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            createBlock.mutate();
-          }}
-        >
-          <label className="field">
-            <span>Кімната</span>
-            <select
-              value={blockForm.roomId}
-              onChange={(event) =>
-                setBlockForm({ ...blockForm, roomId: event.target.value })
-              }
-              required
-            >
-              <option value="">Оберіть кімнату</option>
-              {rooms.data?.rooms.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Публічна назва</span>
-            <input
-              value={blockForm.title}
-              onChange={(event) =>
-                setBlockForm({ ...blockForm, title: event.target.value })
-              }
-              required
-            />
-          </label>
-          <label className="field">
-            <span>Внутрішня примітка</span>
-            <textarea
-              value={blockForm.privateNote}
-              onChange={(event) =>
-                setBlockForm({
-                  ...blockForm,
-                  privateNote: event.target.value,
-                })
-              }
-              maxLength={300}
-              placeholder="Не показується користувачам"
-            />
-          </label>
-          <label className="field">
-            <span>Початок</span>
-            <input
-              type="datetime-local"
-              value={blockForm.startsAt}
-              onChange={(event) =>
-                setBlockForm({ ...blockForm, startsAt: event.target.value })
-              }
-              required
-            />
-          </label>
-          <label className="field">
-            <span>Завершення</span>
-            <input
-              type="datetime-local"
-              value={blockForm.endsAt}
-              onChange={(event) =>
-                setBlockForm({ ...blockForm, endsAt: event.target.value })
-              }
-              required
-            />
-          </label>
-          <fieldset className="segmented-field">
-            <legend>Повторення</legend>
-            <div className="segmented recurrence-segmented">
-              {[
-                ["NONE", "Не повторюється"],
-                ["DAILY", "Кожні N днів"],
-                ["WEEKLY", "За днями тижня"],
-              ].map(([value, label]) => (
-                <button
-                  type="button"
-                  key={value}
-                  className={blockForm.recurrence === value ? "is-active" : ""}
-                  onClick={() =>
-                    setBlockForm({
-                      ...blockForm,
-                      recurrence: value as "NONE" | "DAILY" | "WEEKLY",
-                      weekdays: value === "WEEKLY" ? blockForm.weekdays : [],
-                    })
+              </div>
+              <label className="field">
+                <span>Назва</span>
+                <input
+                  value={roomForm.name}
+                  onChange={(event) =>
+                    setRoomForm({ ...roomForm, name: event.target.value })
                   }
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-          {blockForm.recurrence !== "NONE" && (
-            <>
+                  required
+                />
+              </label>
               <div className="form-grid">
                 <label className="field">
-                  <span>
-                    Інтервал у{" "}
-                    {blockForm.recurrence === "DAILY" ? "днях" : "тижнях"}
-                  </span>
+                  <span>Поверх</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={roomForm.floor}
+                    onChange={(event) =>
+                      setRoomForm({
+                        ...roomForm,
+                        floor: Number(event.target.value),
+                      })
+                    }
+                  />
+                </label>
+                <label className="field">
+                  <span>Місткість</span>
                   <input
                     type="number"
                     min={1}
-                    max={30}
-                    value={blockForm.recurrenceInterval}
+                    value={roomForm.capacity}
                     onChange={(event) =>
-                      setBlockForm({
-                        ...blockForm,
-                        recurrenceInterval: Number(event.target.value),
+                      setRoomForm({
+                        ...roomForm,
+                        capacity: Number(event.target.value),
                       })
+                    }
+                  />
+                </label>
+              </div>
+              <div className="form-grid">
+                <label className="field">
+                  <span>Працює з</span>
+                  <input
+                    type="time"
+                    step={1800}
+                    value={roomForm.workStart}
+                    onChange={(event) =>
+                      setRoomForm({ ...roomForm, workStart: event.target.value })
                     }
                     required
                   />
                 </label>
                 <label className="field">
-                  <span>Повторювати до</span>
+                  <span>Працює до</span>
                   <input
-                    type="date"
-                    value={blockForm.recurrenceUntil}
+                    type="time"
+                    step={1800}
+                    value={roomForm.workEnd}
                     onChange={(event) =>
-                      setBlockForm({
-                        ...blockForm,
-                        recurrenceUntil: event.target.value,
-                      })
+                      setRoomForm({ ...roomForm, workEnd: event.target.value })
                     }
                     required
                   />
                 </label>
               </div>
-              {blockForm.recurrence === "WEEKLY" && (
-                <fieldset className="weekday-picker">
-                  <legend>Дні тижня</legend>
-                  {[
-                    [1, "Пн"],
-                    [2, "Вт"],
-                    [3, "Ср"],
-                    [4, "Чт"],
-                    [5, "Пт"],
-                    [6, "Сб"],
-                    [0, "Нд"],
-                  ].map(([value, label]) => {
-                    const day = Number(value);
-                    const checked = blockForm.weekdays.includes(day);
-                    return (
-                      <button
-                        type="button"
-                        key={value}
-                        className={checked ? "is-active" : ""}
-                        aria-pressed={checked}
-                        onClick={() =>
+              <label className="upload-box">
+                <span>
+                  <strong>Фото кімнати</strong>
+                  <small>JPG, PNG чи WebP — автоматично кадруємо</small>
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) =>
+                    setRoomImage(event.target.files?.[0] ?? null)
+                  }
+                />
+                <em>{roomImage ? roomImage.name : "Обрати файл"}</em>
+              </label>
+              {createRoom.error && (
+                <div className="form-error">
+                  {createRoom.error instanceof ApiError
+                    ? createRoom.error.message
+                    : "Не вдалося додати кімнату"}
+                </div>
+              )}
+              <Button type="submit" disabled={createRoom.isPending}>
+                {createRoom.isPending ? "Додаємо…" : "Додати кімнату"}
+              </Button>
+            </form>
+          ) : selectedRoom ? (
+            <>
+              <header className="room-workspace__hero">
+                <RoomVisual room={selectedRoom} />
+                <div>
+                  <span className="eyebrow">Вибрана кімната</span>
+                  <h2>{selectedRoom.name}</h2>
+                  <p>
+                    {selectedRoom.floor} поверх · {selectedRoom.capacity} місць
+                  </p>
+                </div>
+                <div className="room-image-actions">
+                  <label className="button button--secondary button--slanted button--small room-image-action">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file)
+                          uploadRoomImage.mutate({
+                            roomId: selectedRoom.id,
+                            file,
+                          });
+                        event.target.value = "";
+                      }}
+                    />
+                    <span>
+                      {uploadRoomImage.isPending
+                        ? "Обробляємо…"
+                        : selectedRoom.imageUrl
+                          ? "Замінити фото"
+                          : "Додати фото"}
+                    </span>
+                  </label>
+                  {selectedRoom.imageUrl && (
+                    <Button
+                      variant="ghost"
+                      size="small"
+                      disabled={removeRoomImage.isPending}
+                      onClick={() => removeRoomImage.mutate(selectedRoom.id)}
+                    >
+                      Прибрати
+                    </Button>
+                  )}
+                </div>
+              </header>
+
+              {(uploadRoomImage.error || removeRoomImage.error) && (
+                <div className="form-error">
+                  {uploadRoomImage.error instanceof ApiError
+                    ? uploadRoomImage.error.message
+                    : removeRoomImage.error instanceof ApiError
+                      ? removeRoomImage.error.message
+                      : "Не вдалося змінити фото"}
+                </div>
+              )}
+
+              <div className="room-workspace__settings">
+                <div>
+                  <span className="eyebrow">Доступність</span>
+                  <h3>Робочі години</h3>
+                  <p>Регулярний час, коли кімнату можна бронювати.</p>
+                </div>
+                <RoomHoursEditor room={selectedRoom} />
+              </div>
+
+              <div className="room-workspace__blocks">
+                <div className="room-workspace__section-heading">
+                  <div>
+                    <span className="eyebrow">Винятки з графіка</span>
+                    <h3>Недоступність</h3>
+                  </div>
+                  <Button
+                    size="small"
+                    variant="secondary"
+                    onClick={() => {
+                      setBlockForm({
+                        ...blockForm,
+                        roomId: selectedRoom.id,
+                      });
+                      setEditor("block");
+                    }}
+                  >
+                    + Додати виняток
+                  </Button>
+                </div>
+                {blocks.isLoading ? (
+                  <div className="subtle-box">Завантажуємо правила…</div>
+                ) : selectedBlocks.length === 0 ? (
+                  <div className="empty-inline">
+                    Для цієї кімнати активних винятків немає.
+                  </div>
+                ) : (
+                  <div className="room-block-list">
+                    {selectedBlocks.map((block) => (
+                      <article className="room-block-row" key={block.id}>
+                        <div>
+                          <span
+                            className={`status-badge ${
+                              block.kind === "SERIES"
+                                ? "status-badge--warning"
+                                : ""
+                            }`}
+                          >
+                            {block.kind === "SERIES" ? "Серія" : "Разово"}
+                          </span>
+                          <strong>{block.title}</strong>
+                          <small>{formatRoomBlockRule(block)}</small>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="small"
+                          disabled={
+                            cancelBlock.isPending &&
+                            cancelBlock.variables?.id === block.id
+                          }
+                          onClick={() => cancelBlock.mutate(block)}
+                        >
+                          {block.kind === "SERIES"
+                            ? "Скасувати серію"
+                            : "Прибрати"}
+                        </Button>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {editor === "block" && (
+                <form
+                  className="form-stack room-block-editor"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    createBlock.mutate();
+                  }}
+                >
+                  <div className="room-workspace__form-heading">
+                    <div>
+                      <span className="eyebrow">Новий виняток</span>
+                      <h3>Обмежити доступність</h3>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="small"
+                      onClick={() => setEditor(null)}
+                    >
+                      Закрити
+                    </Button>
+                  </div>
+                  <p className="room-block-editor__room">
+                    Кімната: <strong>{selectedRoom.name}</strong>
+                  </p>
+                  <label className="field">
+                    <span>Публічна назва</span>
+                    <input
+                      value={blockForm.title}
+                      onChange={(event) =>
+                        setBlockForm({
+                          ...blockForm,
+                          title: event.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Внутрішня примітка</span>
+                    <textarea
+                      value={blockForm.privateNote}
+                      onChange={(event) =>
+                        setBlockForm({
+                          ...blockForm,
+                          privateNote: event.target.value,
+                        })
+                      }
+                      maxLength={300}
+                      placeholder="Не показується користувачам"
+                    />
+                  </label>
+                  <div className="form-grid">
+                    <label className="field">
+                      <span>Початок</span>
+                      <input
+                        type="datetime-local"
+                        value={blockForm.startsAt}
+                        onChange={(event) =>
                           setBlockForm({
                             ...blockForm,
-                            weekdays: checked
-                              ? blockForm.weekdays.filter(
-                                  (candidate) => candidate !== day,
-                                )
-                              : [...blockForm.weekdays, day],
+                            startsAt: event.target.value,
                           })
                         }
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </fieldset>
+                        required
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Завершення</span>
+                      <input
+                        type="datetime-local"
+                        value={blockForm.endsAt}
+                        onChange={(event) =>
+                          setBlockForm({
+                            ...blockForm,
+                            endsAt: event.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </label>
+                  </div>
+                  <fieldset className="segmented-field">
+                    <legend>Повторення</legend>
+                    <div className="segmented recurrence-segmented">
+                      {[
+                        ["NONE", "Не повторюється"],
+                        ["DAILY", "Кожні N днів"],
+                        ["WEEKLY", "За днями тижня"],
+                      ].map(([value, label]) => (
+                        <button
+                          type="button"
+                          key={value}
+                          className={
+                            blockForm.recurrence === value ? "is-active" : ""
+                          }
+                          onClick={() =>
+                            setBlockForm({
+                              ...blockForm,
+                              recurrence: value as
+                                | "NONE"
+                                | "DAILY"
+                                | "WEEKLY",
+                              weekdays:
+                                value === "WEEKLY" ? blockForm.weekdays : [],
+                            })
+                          }
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+                  {blockForm.recurrence !== "NONE" && (
+                    <>
+                      <div className="form-grid">
+                        <label className="field">
+                          <span>
+                            Інтервал у{" "}
+                            {blockForm.recurrence === "DAILY"
+                              ? "днях"
+                              : "тижнях"}
+                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={30}
+                            value={blockForm.recurrenceInterval}
+                            onChange={(event) =>
+                              setBlockForm({
+                                ...blockForm,
+                                recurrenceInterval: Number(event.target.value),
+                              })
+                            }
+                            required
+                          />
+                        </label>
+                        <label className="field">
+                          <span>Повторювати до</span>
+                          <input
+                            type="date"
+                            value={blockForm.recurrenceUntil}
+                            onChange={(event) =>
+                              setBlockForm({
+                                ...blockForm,
+                                recurrenceUntil: event.target.value,
+                              })
+                            }
+                            required
+                          />
+                        </label>
+                      </div>
+                      {blockForm.recurrence === "WEEKLY" && (
+                        <fieldset className="weekday-picker">
+                          <legend>Дні тижня</legend>
+                          {[
+                            [1, "Пн"],
+                            [2, "Вт"],
+                            [3, "Ср"],
+                            [4, "Чт"],
+                            [5, "Пт"],
+                            [6, "Сб"],
+                            [0, "Нд"],
+                          ].map(([value, label]) => {
+                            const day = Number(value);
+                            const checked = blockForm.weekdays.includes(day);
+                            return (
+                              <button
+                                type="button"
+                                key={value}
+                                className={checked ? "is-active" : ""}
+                                aria-pressed={checked}
+                                onClick={() =>
+                                  setBlockForm({
+                                    ...blockForm,
+                                    weekdays: checked
+                                      ? blockForm.weekdays.filter(
+                                          (candidate) => candidate !== day,
+                                        )
+                                      : [...blockForm.weekdays, day],
+                                  })
+                                }
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </fieldset>
+                      )}
+                    </>
+                  )}
+                  {createBlock.error && (
+                    <div className="form-error">
+                      {createBlock.error instanceof ApiError
+                        ? createBlock.error.message
+                        : "Не вдалося створити блокування"}
+                    </div>
+                  )}
+                  <Button
+                    type="submit"
+                    disabled={
+                      createBlock.isPending ||
+                      (blockForm.recurrence === "WEEKLY" &&
+                        blockForm.weekdays.length === 0)
+                    }
+                  >
+                    {createBlock.isPending
+                      ? "Зберігаємо…"
+                      : blockForm.recurrence === "NONE"
+                        ? "Додати виняток"
+                        : "Створити серію"}
+                  </Button>
+                </form>
               )}
             </>
+          ) : (
+            <div className="empty-inline">Додайте першу переговорну.</div>
           )}
-          {createBlock.error && (
-            <div className="form-error">
-              {createBlock.error instanceof ApiError
-                ? createBlock.error.message
-                : "Не вдалося створити блокування"}
-            </div>
-          )}
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={
-              createBlock.isPending ||
-              (blockForm.recurrence === "WEEKLY" &&
-                blockForm.weekdays.length === 0)
-            }
-          >
-            {createBlock.isPending
-              ? "Зберігаємо…"
-              : blockForm.recurrence === "NONE"
-                ? "Додати разовий виняток"
-                : "Створити серію"}
-          </Button>
-        </form>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
@@ -1280,19 +1407,6 @@ function RoomHoursEditor({ room }: { room: Room }) {
 
   return (
     <div className="room-hours-editor">
-      <div className="room-hours-editor__heading">
-        <div>
-          <strong>Робочі години</strong>
-          <small>Бронювання поза цим часом недоступне</small>
-        </div>
-        <Button
-          size="small"
-          disabled={!changed || !validHours || update.isPending}
-          onClick={() => update.mutate()}
-        >
-          {update.isPending ? "…" : "Зберегти"}
-        </Button>
-      </div>
       <div className="room-hours-editor__controls">
         <label>
           <span className="sr-only">Початок роботи {room.name}</span>
@@ -1326,6 +1440,13 @@ function RoomHoursEditor({ room }: { room: Room }) {
           />
         </label>
       </div>
+      <Button
+        size="small"
+        disabled={!changed || !validHours || update.isPending}
+        onClick={() => update.mutate()}
+      >
+        {update.isPending ? "…" : "Зберегти"}
+      </Button>
       {changed && !validHours && (
         <small className="field-error">
           Вкажіть час у форматі 09:00–19:00; завершення має бути пізніше.
