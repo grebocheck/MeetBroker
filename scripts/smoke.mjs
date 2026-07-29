@@ -10,6 +10,10 @@ const adminCredentials = {
   email: process.env.SMOKE_ADMIN_EMAIL ?? "admin@meetbroker.local",
   password: process.env.SMOKE_ADMIN_PASSWORD ?? "Admin123!",
 };
+const securityCredentials = {
+  email: "anna@meetbroker.local",
+  password: "User12345!",
+};
 
 function check(condition, message) {
   if (!condition) {
@@ -219,6 +223,91 @@ async function verifyRoomAvailabilityRules(adminCookie, room) {
     }),
   });
   return created.body.id;
+}
+
+async function verifyAccountCredentials() {
+  const cookie = await login(securityCredentials);
+  const temporaryEmail = `anna.smoke.${Date.now()}@meetbroker.local`;
+  const unauthorizedEmailChange = await fetch(
+    `${baseUrl}/api/users/me/email-change`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie,
+      },
+      body: JSON.stringify({
+        email: temporaryEmail,
+        currentPassword: "incorrect-password",
+      }),
+    },
+  );
+  const unauthorizedBody = await unauthorizedEmailChange.json();
+  check(
+    unauthorizedEmailChange.status === 401 &&
+      unauthorizedBody?.error?.code === "CURRENT_PASSWORD_INCORRECT",
+    "Email change must require the current password",
+  );
+  const emailChange = await request("/api/users/me/email-change", {
+    method: "POST",
+    headers: { cookie },
+    body: JSON.stringify({
+      email: temporaryEmail,
+      currentPassword: securityCredentials.password,
+    }),
+  });
+  check(
+    emailChange.body?.pendingEmail === temporaryEmail &&
+      emailChange.body?.verificationToken,
+    "Email change did not create a pending verified address",
+  );
+  await request("/api/auth/verify-email", {
+    method: "POST",
+    body: JSON.stringify({ token: emailChange.body.verificationToken }),
+  });
+  const changedAccount = await request("/api/auth/me", {
+    headers: { cookie },
+  });
+  check(
+    changedAccount.body?.user?.email === temporaryEmail &&
+      changedAccount.body?.user?.pendingEmail === null,
+    "Verified email change was not applied to the active account",
+  );
+
+  const restoreEmail = await request("/api/users/me/email-change", {
+    method: "POST",
+    headers: { cookie },
+    body: JSON.stringify({
+      email: securityCredentials.email,
+      currentPassword: securityCredentials.password,
+    }),
+  });
+  await request("/api/auth/verify-email", {
+    method: "POST",
+    body: JSON.stringify({ token: restoreEmail.body.verificationToken }),
+  });
+
+  const temporaryPassword = `Smoke${Date.now()}!`;
+  await request("/api/users/me/password-change", {
+    method: "POST",
+    headers: { cookie },
+    body: JSON.stringify({
+      currentPassword: securityCredentials.password,
+      newPassword: temporaryPassword,
+    }),
+  });
+  await request("/api/users/me/password-change", {
+    method: "POST",
+    headers: { cookie },
+    body: JSON.stringify({
+      currentPassword: temporaryPassword,
+      newPassword: securityCredentials.password,
+    }),
+  });
+  check(
+    await login(securityCredentials),
+    "Restored password cannot create a new session",
+  );
 }
 
 async function createUpdateAndCancelBooking(
@@ -456,6 +545,7 @@ async function main() {
     adminCookie,
     roomsResult.body.rooms[0],
   );
+  await verifyAccountCredentials();
 
   const placeholderRoom = roomsResult.body.rooms.find(
     (room) => room.imageUrl === null,
@@ -541,7 +631,7 @@ async function main() {
   console.log(
     `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/update/cancel, ` +
       "colleagues, events, preferences, booking management, room image lifecycle " +
-      "working hours, recurring unavailability and administration",
+      "working hours, recurring unavailability, account credentials and administration",
   );
 }
 
