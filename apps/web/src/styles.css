@@ -891,6 +891,15 @@ hr {
   margin-bottom: 20px;
 }
 
+.calendar-toolbar .toolbar-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.capacity-filter select {
+  min-width: 156px;
+}
+
 .room-identity {
   display: flex;
   align-items: center;
@@ -1740,6 +1749,12 @@ hr {
   background: var(--surface-raised);
   box-shadow: var(--shadow-sm);
   text-align: center;
+}
+
+.calendar-empty-state {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .state-panel span,

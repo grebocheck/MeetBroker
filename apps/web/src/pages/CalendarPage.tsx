@@ -38,15 +38,25 @@ export function CalendarPage({ user }: { user: User }) {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(
     initialParams.get("roomId")
   );
+  const [minCapacity, setMinCapacity] = useState(0);
   const [draft, setDraft] = useState<BookingDraft | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
   const rooms = useQuery({
-    queryKey: ["rooms"],
-    queryFn: () => api<{ rooms: Room[] }>("/api/rooms")
+    queryKey: ["rooms", minCapacity],
+    queryFn: () =>
+      api<{ rooms: Room[] }>(
+        minCapacity > 0
+          ? `/api/rooms?minCapacity=${minCapacity}`
+          : "/api/rooms"
+      )
   });
-  const roomId = selectedRoomId ?? rooms.data?.rooms[0]?.id ?? null;
+  const roomOptions = rooms.data?.rooms ?? [];
+  const roomId =
+    roomOptions.some((candidate) => candidate.id === selectedRoomId)
+      ? selectedRoomId
+      : (roomOptions[0]?.id ?? null);
   const officeTimeZone = DEFAULT_TIME_ZONE;
   const weekDays = useMemo(
     () => officeWeek(reference, officeTimeZone),
@@ -148,13 +158,31 @@ export function CalendarPage({ user }: { user: User }) {
           </div>
         </div>
         <div className="toolbar-actions">
+          <label className="compact-select capacity-filter">
+            <span className="sr-only">Мінімальна місткість</span>
+            <select
+              value={minCapacity}
+              onChange={(event) => {
+                setMinCapacity(Number(event.target.value));
+                setSelectedRoomId(null);
+              }}
+            >
+              <option value={0}>Будь-яка місткість</option>
+              <option value={4}>Від 4 місць</option>
+              <option value={6}>Від 6 місць</option>
+              <option value={8}>Від 8 місць</option>
+              <option value={10}>Від 10 місць</option>
+              <option value={12}>Від 12 місць</option>
+            </select>
+          </label>
           <label className="compact-select">
             <span className="sr-only">Кімната</span>
             <select
               value={roomId ?? ""}
               onChange={(event) => setSelectedRoomId(event.target.value)}
+              disabled={rooms.isLoading || roomOptions.length === 0}
             >
-              {rooms.data?.rooms.map((item) => (
+              {roomOptions.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name} · {item.capacity}
                 </option>
@@ -163,6 +191,7 @@ export function CalendarPage({ user }: { user: User }) {
           </label>
           <button
             className="button button--primary"
+            disabled={!room}
             onClick={() => {
               if (!room) return;
               const candidates = weekDays.flatMap((day) =>
@@ -230,7 +259,36 @@ export function CalendarPage({ user }: { user: User }) {
           </div>
         </div>
 
-        {schedule.isError ? (
+        {rooms.isError ? (
+          <div className="state-panel state-panel--error">
+            <strong>Не вдалося завантажити кімнати</strong>
+            <span>
+              {rooms.error instanceof ApiError
+                ? rooms.error.message
+                : "Сервер тимчасово недоступний"}
+            </span>
+            <button
+              className="button button--secondary"
+              onClick={() => rooms.refetch()}
+            >
+              {t("retry")}
+            </button>
+          </div>
+        ) : !rooms.isLoading && roomOptions.length === 0 ? (
+          <div className="empty-state calendar-empty-state">
+            <span className="empty-state__icon">○</span>
+            <h2>Немає кімнати потрібної місткості</h2>
+            <p>
+              Зменште кількість місць або перегляньте всі доступні кімнати.
+            </p>
+            <button
+              className="button button--secondary"
+              onClick={() => setMinCapacity(0)}
+            >
+              Скинути фільтр
+            </button>
+          </div>
+        ) : schedule.isError ? (
           <div className="state-panel state-panel--error">
             <strong>Не вдалося завантажити розклад</strong>
             <span>
