@@ -10,7 +10,12 @@ export interface BookingDraft {
   endsAt: Date;
 }
 
-type BookingErrorTarget = "title" | "time" | "participants" | "form";
+type BookingErrorTarget =
+  | "title"
+  | "time"
+  | "participants"
+  | "adminReason"
+  | "form";
 
 function bookingError(error: unknown): {
   target: BookingErrorTarget;
@@ -57,6 +62,10 @@ function bookingError(error: unknown): {
     BOOKING_CREATE_RESTRICTED: {
       target: "form",
       message: "Створення бронювань для вашого профілю тимчасово обмежене."
+    },
+    ADMIN_EDIT_REASON_REQUIRED: {
+      target: "adminReason",
+      message: "Вкажіть змістовну причину адміністративної зміни."
     }
   };
   return (
@@ -71,12 +80,14 @@ export function BookingDialog({
   room,
   draft,
   booking,
+  administrative = false,
   onClose,
   onSaved
 }: {
   room: Room;
   draft?: BookingDraft;
   booking?: Booking;
+  administrative?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -96,8 +107,9 @@ export function BookingDialog({
   const [participantIds, setParticipantIds] = useState<string[]>(
     booking?.participants.map((participant) => participant.id) ?? []
   );
+  const [adminReason, setAdminReason] = useState("");
   const [localError, setLocalError] = useState<{
-    target: "title" | "time";
+    target: "title" | "time" | "adminReason";
     message: string;
   } | null>(null);
   const colleagues = useQuery({
@@ -123,7 +135,8 @@ export function BookingDialog({
             startsAt: new Date(startsAt).toISOString(),
             endsAt: new Date(endsAt).toISOString(),
             participationMode: mode,
-            participantIds
+            participantIds,
+            ...(administrative ? { adminReason: adminReason.trim() } : {})
           })
         }
       ),
@@ -152,6 +165,13 @@ export function BookingDialog({
       });
       return;
     }
+    if (administrative && adminReason.trim().length < 3) {
+      setLocalError({
+        target: "adminReason",
+        message: "Вкажіть причину адміністративної зміни."
+      });
+      return;
+    }
     setLocalError(null);
     save.mutate();
   };
@@ -170,7 +190,11 @@ export function BookingDialog({
           <div>
             <span className="eyebrow">{room.name}</span>
             <h2 id="booking-dialog-title">
-              {editing ? "Редагувати бронювання" : "Нове бронювання"}
+              {administrative
+                ? "Адміністративна зміна"
+                : editing
+                  ? "Редагувати бронювання"
+                  : "Нове бронювання"}
             </h2>
           </div>
           <button className="icon-button" onClick={onClose} aria-label="Закрити">
@@ -178,6 +202,36 @@ export function BookingDialog({
           </button>
         </div>
         <form className="form-stack" onSubmit={submit} noValidate>
+          {administrative && (
+            <label className="field">
+              <span>Причина адміністративної зміни</span>
+              <textarea
+                value={adminReason}
+                onChange={(event) => {
+                  setAdminReason(event.target.value);
+                  setLocalError(null);
+                  save.reset();
+                }}
+                minLength={3}
+                maxLength={300}
+                placeholder="Що сталося і чому потрібно змінити чуже бронювання"
+                autoFocus
+                required
+              />
+              <small>
+                Організатор і учасники побачать, що зміни зробив
+                адміністратор, та отримають цю причину.
+              </small>
+              {(localError?.target === "adminReason" ||
+                serverError?.target === "adminReason") && (
+                <small className="field-error" role="alert">
+                  {localError?.target === "adminReason"
+                    ? localError.message
+                    : serverError?.message}
+                </small>
+              )}
+            </label>
+          )}
           <label className="field">
             <span>Назва зустрічі</span>
             <input
@@ -190,7 +244,7 @@ export function BookingDialog({
               minLength={1}
               maxLength={100}
               placeholder="Наприклад, планування спринту"
-              autoFocus
+              autoFocus={!administrative}
               required
             />
             {(localError?.target === "title" ||

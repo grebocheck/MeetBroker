@@ -604,34 +604,72 @@ export class AdminService {
     return { id };
   }
 
-  async auditLogs() {
+  async auditLogs(category?: string, search?: string) {
+    const normalizedCategory = ["booking", "access", "room"].includes(
+      category ?? ""
+    )
+      ? category
+      : "";
     const result = await this.database.query<{
       id: string;
       action: string;
       target_type: string;
       target_id: string | null;
+      target_name: string | null;
       details: unknown;
       created_at: Date;
       actor_name: string | null;
+      actor_email: string | null;
     }>(
       `
         select
           a.id, a.action, a.target_type, a.target_id, a.details,
-          a.created_at, u.name as actor_name
+          a.created_at, actor.name as actor_name, actor.email as actor_email,
+          case
+            when a.target_type = 'BOOKING' then target_booking.title
+            when a.target_type = 'ROOM' then target_room.name
+            when a.target_type = 'USER' then target_user.name
+            else null
+          end as target_name
         from audit_logs a
-        left join users u on u.id = a.actor_id
+        left join users actor on actor.id = a.actor_id
+        left join bookings target_booking
+          on a.target_type = 'BOOKING' and target_booking.id = a.target_id
+        left join rooms target_room
+          on a.target_type = 'ROOM' and target_room.id = a.target_id
+        left join users target_user
+          on a.target_type = 'USER' and target_user.id = a.target_id
+        where
+          (
+            $1 = ''
+            or ($1 = 'booking' and a.target_type = 'BOOKING')
+            or ($1 = 'access' and a.target_type = 'USER')
+            or ($1 = 'room' and a.target_type = 'ROOM')
+          )
+          and (
+            $2 = ''
+            or a.action ilike '%' || $2 || '%'
+            or actor.name ilike '%' || $2 || '%'
+            or actor.email ilike '%' || $2 || '%'
+            or target_booking.title ilike '%' || $2 || '%'
+            or target_room.name ilike '%' || $2 || '%'
+            or target_user.name ilike '%' || $2 || '%'
+          )
         order by a.created_at desc
-        limit 100
-      `
+        limit 200
+      `,
+      [normalizedCategory, search?.trim() ?? ""]
     );
     return result.rows.map((row) => ({
       id: row.id,
       action: row.action,
       targetType: row.target_type,
       targetId: row.target_id,
+      targetName: row.target_name,
       details: row.details,
       createdAt: row.created_at,
-      actorName: row.actor_name
+      actorName: row.actor_name,
+      actorEmail: row.actor_email
     }));
   }
 

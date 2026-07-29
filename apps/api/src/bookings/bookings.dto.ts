@@ -60,6 +60,12 @@ export class UpdateBookingDto {
   @ArrayMaxSize(50)
   @IsUUID("4", { each: true })
   participantIds!: string[];
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(300)
+  adminReason?: string;
 }
 
 export class RespondToInvitationDto {

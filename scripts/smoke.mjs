@@ -170,10 +170,58 @@ async function createUpdateAndCancelBooking(
       "Booking update notification was not created"
     );
 
+    const administrativeTitle = `Admin adjusted MVP smoke ${Date.now()}`;
+    const administrativeReason = "Room operations verification";
+    const missingReason = await fetch(`${baseUrl}/api/bookings/${body.id}`, {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        cookie: notificationRecipientCookie
+      },
+      body: JSON.stringify({
+        title: administrativeTitle,
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
+        participationMode: "INVITE_ONLY",
+        participantIds: [notificationRecipientId]
+      })
+    });
+    const missingReasonBody = await missingReason.json();
+    check(
+      missingReason.status === 400 &&
+        missingReasonBody?.error?.code === "ADMIN_EDIT_REASON_REQUIRED",
+      "Editing another user's booking must require an administrative reason"
+    );
+    await request(`/api/bookings/${body.id}`, {
+      method: "PATCH",
+      headers: { cookie: notificationRecipientCookie },
+      body: JSON.stringify({
+        title: administrativeTitle,
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
+        participationMode: "INVITE_ONLY",
+        participantIds: [notificationRecipientId],
+        adminReason: administrativeReason
+      })
+    });
+    const organizerNotifications = await request("/api/notifications", {
+      headers: { cookie }
+    });
+    check(
+      organizerNotifications.body?.notifications?.some(
+        (notification) =>
+          notification.bookingId === body.id &&
+          notification.type === "BOOKING_UPDATED" &&
+          notification.body.includes("Адміністратор") &&
+          notification.body.includes(administrativeReason)
+      ),
+      "Administrative update was not attributed in organizer notification"
+    );
+
     await request(`/api/bookings/${body.id}`, {
       method: "DELETE",
-      headers: { cookie },
-      body: JSON.stringify({ reason: "Automated smoke verification" })
+      headers: { cookie: notificationRecipientCookie },
+      body: JSON.stringify({ reason: "Administrative smoke cancellation" })
     });
     return { id: body.id, startsAt };
   }
@@ -266,7 +314,7 @@ async function main() {
   check(users.body?.users?.length >= 3, "Expected seeded users in admin response");
 
   const managedBookings = await request(
-    "/api/admin/bookings?status=cancelled&search=Updated%20MVP%20smoke",
+    "/api/admin/bookings?status=cancelled&search=Admin%20adjusted%20MVP%20smoke",
     { headers: { cookie: adminCookie } }
   );
   const managedBooking = managedBookings.body?.bookings?.find(
@@ -280,6 +328,10 @@ async function main() {
   check(
     Array.isArray(managedBooking.participants),
     "Admin booking participants must be resolved"
+  );
+  check(
+    managedBooking.cancellationReason === "Administrative smoke cancellation",
+    "Admin cancellation reason is missing from booking details"
   );
 
   const placeholderRoom = roomsResult.body.rooms.find(
@@ -335,10 +387,24 @@ async function main() {
     "Room image removal did not restore the placeholder state"
   );
 
-  const audit = await request("/api/admin/audit", {
-    headers: { cookie: adminCookie }
-  });
+  const audit = await request(
+    "/api/admin/audit?category=booking&search=Admin%20adjusted",
+    { headers: { cookie: adminCookie } }
+  );
   check(Array.isArray(audit.body?.logs), "Admin audit response is invalid");
+  check(
+    audit.body.logs.every((entry) => entry.targetType === "BOOKING"),
+    "Event log category filter returned a non-booking event"
+  );
+  check(
+    audit.body.logs.some(
+      (entry) =>
+        entry.targetId === booking.id &&
+        entry.action === "BOOKING_UPDATED_BY_ADMIN" &&
+        entry.details?.reason === "Room operations verification"
+    ),
+    "Administrative booking update is missing from event log"
+  );
 
   console.log(
     `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/update/cancel, ` +

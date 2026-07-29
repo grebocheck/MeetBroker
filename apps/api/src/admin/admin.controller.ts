@@ -166,7 +166,10 @@ export class AdminController {
   }
 
   @Get("audit")
-  async auditLogs() {
-    return { logs: await this.admin.auditLogs() };
+  async auditLogs(
+    @Query("category") category?: string,
+    @Query("search") search?: string
+  ) {
+    return { logs: await this.admin.auditLogs(category, search) };
   }
 }

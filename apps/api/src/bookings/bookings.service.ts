@@ -371,6 +371,22 @@ export class BookingsService {
         );
       }
 
+      await this.recordActivity(
+        client,
+        user.id,
+        "BOOKING_CREATED",
+        "BOOKING",
+        bookingId,
+        {
+          title,
+          roomName: room.name,
+          startsAt,
+          endsAt,
+          participationMode: dto.participationMode ?? "INVITE_ONLY",
+          participantCount: participants.length
+        }
+      );
+
       return { id: bookingId };
     });
   }
@@ -390,9 +406,7 @@ export class BookingsService {
     }
     const startsAt = new Date(dto.startsAt);
     const endsAt = new Date(dto.endsAt);
-    const participantIds = [
-      ...new Set(dto.participantIds.filter((id) => id !== user.id))
-    ];
+    const requestedParticipantIds = [...new Set(dto.participantIds)];
 
     await this.database.transaction(async (client) => {
       const bookingResult = await client.query<{
@@ -440,13 +454,29 @@ export class BookingsService {
           "Booking was not found"
         );
       }
-      if (booking.organizer_id !== user.id) {
+      const adminReason = dto.adminReason?.trim();
+      const isAdministrativeUpdate =
+        user.role === "ADMIN" && Boolean(adminReason);
+      if (booking.organizer_id !== user.id && user.role !== "ADMIN") {
         throw apiError(
           HttpStatus.FORBIDDEN,
           "NOT_BOOKING_OWNER",
           "Only the organizer can edit this booking"
         );
       }
+      if (
+        booking.organizer_id !== user.id &&
+        (!adminReason || adminReason.length < 3)
+      ) {
+        throw apiError(
+          HttpStatus.BAD_REQUEST,
+          "ADMIN_EDIT_REASON_REQUIRED",
+          "Administrator must provide an edit reason of at least 3 characters"
+        );
+      }
+      const participantIds = requestedParticipantIds.filter(
+        (id) => id !== booking.organizer_id
+      );
 
       await client.query("select pg_advisory_xact_lock(hashtext($1))", [
         booking.room_id
@@ -588,8 +618,12 @@ export class BookingsService {
           userId: participant.id,
           type: "BOOKING_UPDATED",
           category: "CHANGES",
-          title: copy.title,
-          body: copy.body,
+          title: isAdministrativeUpdate
+            ? "Адміністратор змінив зустріч"
+            : copy.title,
+          body: isAdministrativeUpdate
+            ? `Адміністратор ${user.name} змінив зустріч «${title}». Причина: ${adminReason}. ${copy.body}`
+            : copy.body,
           bookingId
         });
       }
@@ -600,8 +634,12 @@ export class BookingsService {
           userId: participant.id,
           type: "BOOKING_PARTICIPANT_REMOVED",
           category: "CHANGES",
-          title: copy.title,
-          body: copy.body,
+          title: isAdministrativeUpdate
+            ? "Адміністратор змінив склад зустрічі"
+            : copy.title,
+          body: isAdministrativeUpdate
+            ? `Адміністратор ${user.name} видалив вас із зустрічі «${title}». Причина: ${adminReason}.`
+            : copy.body,
           bookingId
         });
       }
@@ -618,11 +656,44 @@ export class BookingsService {
           userId: participant.id,
           type: "BOOKING_INVITATION",
           category: "INVITATIONS",
-          title: copy.title,
-          body: copy.body,
+          title: isAdministrativeUpdate
+            ? "Адміністратор запросив вас на зустріч"
+            : copy.title,
+          body: isAdministrativeUpdate
+            ? `Адміністратор ${user.name} запросив вас на зустріч «${title}» у кімнаті ${booking.room_name}. Причина зміни: ${adminReason}.`
+            : copy.body,
           bookingId
         });
       }
+      if (isAdministrativeUpdate && booking.organizer_id !== user.id) {
+        await this.notifications.enqueue(client, {
+          eventKey: `booking:${bookingId}:admin-update:${editId}:${booking.organizer_id}`,
+          userId: booking.organizer_id,
+          type: "BOOKING_UPDATED",
+          category: "CHANGES",
+          title: "Адміністратор змінив вашу зустріч",
+          body: `Адміністратор ${user.name} змінив зустріч «${title}». Причина: ${adminReason}.`,
+          bookingId
+        });
+      }
+      await this.recordActivity(
+        client,
+        user.id,
+        isAdministrativeUpdate
+          ? "BOOKING_UPDATED_BY_ADMIN"
+          : "BOOKING_UPDATED",
+        "BOOKING",
+        bookingId,
+        {
+          title,
+          roomName: booking.room_name,
+          startsAt,
+          endsAt,
+          addedParticipants: added.length,
+          removedParticipants: removed.length,
+          ...(isAdministrativeUpdate ? { reason: adminReason } : {})
+        }
+      );
     });
   }
 
@@ -745,27 +816,38 @@ export class BookingsService {
     bookingId: string,
     dto: RespondToInvitationDto
   ): Promise<void> {
-    const result = await this.database.query(
-      `
-        update booking_participants bp
-        set status = $3, responded_at = now()
-        from bookings b
-        where bp.booking_id = $1
-          and bp.user_id = $2
-          and b.id = bp.booking_id
-          and b.cancelled_at is null
-          and b.starts_at > now()
-          and bp.status = 'INVITED'
-      `,
-      [bookingId, userId, dto.status]
-    );
-    if (!result.rowCount) {
-      throw apiError(
-        HttpStatus.NOT_FOUND,
-        "INVITATION_NOT_FOUND",
-        "Active invitation was not found"
+    await this.database.transaction(async (client) => {
+      const result = await client.query(
+        `
+          update booking_participants bp
+          set status = $3, responded_at = now()
+          from bookings b
+          where bp.booking_id = $1
+            and bp.user_id = $2
+            and b.id = bp.booking_id
+            and b.cancelled_at is null
+            and b.starts_at > now()
+            and bp.status = 'INVITED'
+        `,
+        [bookingId, userId, dto.status]
       );
-    }
+      if (!result.rowCount) {
+        throw apiError(
+          HttpStatus.NOT_FOUND,
+          "INVITATION_NOT_FOUND",
+          "Active invitation was not found"
+        );
+      }
+      await this.recordActivity(
+        client,
+        userId,
+        dto.status === "ACCEPTED"
+          ? "BOOKING_INVITATION_ACCEPTED"
+          : "BOOKING_INVITATION_DECLINED",
+        "BOOKING",
+        bookingId
+      );
+    });
   }
 
   async joinOpenEvent(userId: string, bookingId: string): Promise<void> {
@@ -821,21 +903,39 @@ export class BookingsService {
         `,
         [bookingId, userId]
       );
+      await this.recordActivity(
+        client,
+        userId,
+        "OPEN_EVENT_JOINED",
+        "BOOKING",
+        bookingId
+      );
     });
   }
 
   async leaveOpenEvent(userId: string, bookingId: string): Promise<void> {
-    await this.database.query(
-      `
-        delete from booking_participants bp
-        using bookings b
-        where bp.booking_id = $1
-          and bp.user_id = $2
-          and b.id = bp.booking_id
-          and b.participation_mode = 'OPEN'
-      `,
-      [bookingId, userId]
-    );
+    await this.database.transaction(async (client) => {
+      const result = await client.query(
+        `
+          delete from booking_participants bp
+          using bookings b
+          where bp.booking_id = $1
+            and bp.user_id = $2
+            and b.id = bp.booking_id
+            and b.participation_mode = 'OPEN'
+        `,
+        [bookingId, userId]
+      );
+      if (result.rowCount) {
+        await this.recordActivity(
+          client,
+          userId,
+          "OPEN_EVENT_LEFT",
+          "BOOKING",
+          bookingId
+        );
+      }
+    });
   }
 
   async cancel(
@@ -926,6 +1026,16 @@ export class BookingsService {
           bookingId
         });
       }
+      if (!isAdministrativeCancellation) {
+        await this.recordActivity(
+          client,
+          user.id,
+          "BOOKING_CANCELLED",
+          "BOOKING",
+          bookingId,
+          { title: booking.title }
+        );
+      }
     });
   }
 
@@ -974,6 +1084,31 @@ export class BookingsService {
       [ids]
     );
     return result.rows;
+  }
+
+  private async recordActivity(
+    client: PoolClient,
+    actorId: string,
+    action: string,
+    targetType: string,
+    targetId: string,
+    details: Record<string, unknown> = {}
+  ): Promise<void> {
+    await client.query(
+      `
+        insert into audit_logs
+          (id, actor_id, action, target_type, target_id, details)
+        values ($1, $2, $3, $4, $5, $6)
+      `,
+      [
+        randomUUID(),
+        actorId,
+        action,
+        targetType,
+        targetId,
+        JSON.stringify(details)
+      ]
+    );
   }
 
   private changeCopy(

@@ -1,8 +1,9 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
-import type { Room } from "../types";
+import type { Booking, Room } from "../types";
 import { Avatar } from "../components/Avatar";
+import { BookingDialog } from "../components/BookingDialog";
 import { RoomVisual } from "../components/RoomVisual";
 
 interface AdminUser {
@@ -30,9 +31,11 @@ interface AuditLog {
   action: string;
   targetType: string;
   targetId: string | null;
+  targetName: string | null;
   details: Record<string, unknown>;
   createdAt: string;
   actorName: string | null;
+  actorEmail: string | null;
 }
 
 interface AdminBookingPerson {
@@ -100,7 +103,7 @@ export function AdminPage() {
           className={section === "audit" ? "is-active" : ""}
           onClick={() => setSection("audit")}
         >
-          Аудит
+          Журнал подій
         </button>
       </div>
       {section === "users" && <UsersAdmin />}
@@ -117,6 +120,7 @@ function BookingsAdmin() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<AdminBooking | null>(null);
+  const [editing, setEditing] = useState<AdminBooking | null>(null);
   const [reason, setReason] = useState("");
   const query = new URLSearchParams({ status });
   if (search) query.set("search", search);
@@ -126,6 +130,10 @@ function BookingsAdmin() {
       api<{ bookings: AdminBooking[] }>(
         `/api/admin/bookings?${query.toString()}`
       )
+  });
+  const rooms = useQuery({
+    queryKey: ["rooms"],
+    queryFn: () => api<{ rooms: Room[] }>("/api/rooms")
   });
   const cancelBooking = useMutation({
     mutationFn: ({
@@ -293,6 +301,10 @@ function BookingsAdmin() {
               cancelBooking.reset();
             }
           }}
+          onEdit={() => {
+            setEditing(selected);
+            setSelected(null);
+          }}
           onCancel={() =>
             cancelBooking.mutate({
               id: selected.id,
@@ -301,6 +313,38 @@ function BookingsAdmin() {
           }
         />
       )}
+      {editing &&
+        rooms.data?.rooms.find((room) => room.id === editing.room.id) && (
+          <BookingDialog
+            room={
+              rooms.data.rooms.find((room) => room.id === editing.room.id)!
+            }
+            booking={
+              {
+                id: editing.id,
+                title: editing.title,
+                startsAt: editing.startsAt,
+                endsAt: editing.endsAt,
+                participationMode: editing.participationMode,
+                organizer: editing.organizer,
+                participants: editing.participants
+              } satisfies Booking
+            }
+            administrative
+            onClose={() => setEditing(null)}
+            onSaved={async () => {
+              setEditing(null);
+              await Promise.all([
+                queryClient.invalidateQueries({
+                  queryKey: ["admin-bookings"]
+                }),
+                queryClient.invalidateQueries({ queryKey: ["schedule"] }),
+                queryClient.invalidateQueries({ queryKey: ["bookings-mine"] }),
+                queryClient.invalidateQueries({ queryKey: ["audit"] })
+              ]);
+            }}
+          />
+        )}
     </>
   );
 }
@@ -312,6 +356,7 @@ function AdminBookingDialog({
   pending,
   error,
   onClose,
+  onEdit,
   onCancel
 }: {
   booking: AdminBooking;
@@ -320,6 +365,7 @@ function AdminBookingDialog({
   pending: boolean;
   error: unknown;
   onClose: () => void;
+  onEdit: () => void;
   onCancel: () => void;
 }) {
   const startsAt = new Date(booking.startsAt);
@@ -485,6 +531,16 @@ function AdminBookingDialog({
           >
             <span>Закрити</span>
           </button>
+          {canCancel && (
+            <button
+              type="button"
+              className="button button--secondary"
+              onClick={onEdit}
+              disabled={pending}
+            >
+              Змінити подію
+            </button>
+          )}
           {canCancel && (
             <button
               type="button"
@@ -943,27 +999,120 @@ function RoomsAdmin() {
 }
 
 function AuditAdmin() {
+  const [category, setCategory] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const query = new URLSearchParams({ category });
+  if (search) query.set("search", search);
   const logs = useQuery({
-    queryKey: ["audit"],
-    queryFn: () => api<{ logs: AuditLog[] }>("/api/admin/audit")
+    queryKey: ["audit", category, search],
+    queryFn: () =>
+      api<{ logs: AuditLog[] }>(`/api/admin/audit?${query.toString()}`)
   });
   return (
     <section className="admin-card">
-      <div className="audit-list">
-        {logs.data?.logs.map((log) => (
-          <article className="audit-row" key={log.id}>
-            <span className="audit-row__time">
-              {new Intl.DateTimeFormat("uk-UA", {
-                dateStyle: "short",
-                timeStyle: "short"
-              }).format(new Date(log.createdAt))}
-            </span>
-            <strong>{humanizeAction(log.action)}</strong>
-            <span>{log.actorName ?? "Система"}</span>
-            <code>{log.targetType}</code>
-          </article>
-        ))}
+      <div className="admin-card__toolbar activity-toolbar">
+        <div>
+          <span className="eyebrow">Хронологія системи</span>
+          <h2>Журнал подій</h2>
+          <p>
+            Бронювання, доступ і зміни кімнат із зазначенням виконавця.
+          </p>
+        </div>
+        <div className="segmented">
+          {[
+            ["", "Усі"],
+            ["booking", "Бронювання"],
+            ["access", "Доступ"],
+            ["room", "Кімнати"]
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              className={category === value ? "is-active" : ""}
+              onClick={() => setCategory(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <form
+          className="admin-booking-search"
+          role="search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSearch(searchInput.trim());
+          }}
+        >
+          <label className="field">
+            <span className="sr-only">Пошук у журналі подій</span>
+            <input
+              type="search"
+              placeholder="Подія, користувач або об’єкт"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+            />
+          </label>
+          <button className="button button--secondary button--small">
+            Знайти
+          </button>
+        </form>
       </div>
+
+      {logs.isLoading ? (
+        <div className="subtle-box">Завантажуємо журнал подій…</div>
+      ) : logs.error ? (
+        <div className="form-error">
+          {logs.error instanceof ApiError
+            ? logs.error.message
+            : "Не вдалося завантажити журнал подій"}
+        </div>
+      ) : logs.data?.logs.length === 0 ? (
+        <div className="empty-inline">Подій за цими умовами не знайдено.</div>
+      ) : (
+        <div className="activity-list">
+          {logs.data?.logs.map((log) => (
+            <article className="activity-row" key={log.id}>
+              <time dateTime={log.createdAt}>
+                {new Intl.DateTimeFormat("uk-UA", {
+                  dateStyle: "medium",
+                  timeStyle: "short"
+                }).format(new Date(log.createdAt))}
+              </time>
+              <div className="activity-row__main">
+                <strong>{humanizeAction(log.action)}</strong>
+                <span>
+                  {log.targetName ?? humanizeTarget(log.targetType)}
+                  {" · "}
+                  {log.actorName ?? "Система"}
+                  {log.actorEmail ? ` (${log.actorEmail})` : ""}
+                </span>
+              </div>
+              <span
+                className={`status-badge ${
+                  log.action.includes("ADMIN") ? "status-badge--warning" : ""
+                }`}
+              >
+                {log.action.includes("ADMIN")
+                  ? "Адміністратор"
+                  : humanizeTarget(log.targetType)}
+              </span>
+              {Object.keys(log.details ?? {}).length > 0 && (
+                <details className="activity-details">
+                  <summary>Деталі</summary>
+                  <dl>
+                    {Object.entries(log.details).map(([key, value]) => (
+                      <div key={key}>
+                        <dt>{humanizeDetailKey(key)}</dt>
+                        <dd>{formatActivityValue(value)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </details>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -977,9 +1126,68 @@ function humanizeAction(action: string): string {
     USER_ROLE_CHANGED: "Змінено роль",
     ROOM_CREATED: "Створено кімнату",
     ROOM_UPDATED: "Оновлено кімнату",
+    ROOM_IMAGE_UPDATED: "Оновлено фото кімнати",
+    ROOM_IMAGE_REMOVED: "Прибрано фото кімнати",
     ROOM_BLOCK_CREATED: "Заблоковано час кімнати",
+    BOOKING_CREATED: "Створено бронювання",
+    BOOKING_UPDATED: "Оновлено бронювання",
+    BOOKING_UPDATED_BY_ADMIN: "Адміністратор змінив бронювання",
+    BOOKING_CANCELLED: "Скасовано власне бронювання",
     BOOKING_CANCELLED_BY_ADMIN: "Скасовано бронювання",
-    BOOKING_AVAILABILITY_OVERRIDE: "Обійдено недоступність"
+    BOOKING_AVAILABILITY_OVERRIDE: "Обійдено недоступність",
+    BOOKING_INVITATION_ACCEPTED: "Прийнято запрошення",
+    BOOKING_INVITATION_DECLINED: "Відхилено запрошення",
+    OPEN_EVENT_JOINED: "Користувач долучився до відкритої події",
+    OPEN_EVENT_LEFT: "Користувач залишив відкриту подію"
   };
   return actions[action] ?? action;
+}
+
+function humanizeTarget(target: string): string {
+  return (
+    {
+      BOOKING: "Бронювання",
+      USER: "Користувач",
+      ROOM: "Кімната"
+    }[target] ?? target
+  );
+}
+
+function humanizeDetailKey(key: string): string {
+  const keys: Record<string, string> = {
+    reason: "Причина",
+    title: "Назва",
+    roomName: "Кімната",
+    startsAt: "Початок",
+    endsAt: "Завершення",
+    participationMode: "Формат",
+    participantCount: "Учасників",
+    addedParticipants: "Додано учасників",
+    removedParticipants: "Видалено учасників",
+    role: "Роль",
+    capability: "Обмеження",
+    expiresAt: "Діє до"
+  };
+  return keys[key] ?? key;
+}
+
+function formatActivityValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "string") {
+    const date = new Date(value);
+    if (
+      /^\d{4}-\d{2}-\d{2}T/.test(value) &&
+      !Number.isNaN(date.getTime())
+    ) {
+      return new Intl.DateTimeFormat("uk-UA", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(date);
+    }
+    if (value === "OPEN") return "Відкрита подія";
+    if (value === "INVITE_ONLY") return "За запрошенням";
+    return value;
+  }
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
 }
