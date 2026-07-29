@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Query,
   Req
@@ -14,7 +15,8 @@ import type { AuthenticatedRequest } from "../common/types";
 import {
   CancelBookingDto,
   CreateBookingDto,
-  RespondToInvitationDto
+  RespondToInvitationDto,
+  UpdateBookingDto
 } from "./bookings.dto";
 import { BookingsService } from "./bookings.service";
 
@@ -55,6 +57,16 @@ export class BookingsController {
         Number.isInteger(offset) ? offset : 0
       )
     };
+  }
+
+  @Patch(":id")
+  @HttpCode(204)
+  async update(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string,
+    @Body() dto: UpdateBookingDto
+  ): Promise<void> {
+    await this.bookings.update(request.user, id, dto);
   }
 
   @Get("open")

@@ -112,7 +112,12 @@ function bookingCandidates(timeZone) {
   return candidates;
 }
 
-async function createAndCancelBooking(cookie, room) {
+async function createUpdateAndCancelBooking(
+  cookie,
+  notificationRecipientCookie,
+  notificationRecipientId,
+  room
+) {
   for (const startsAt of bookingCandidates(
     process.env.OFFICE_TIME_ZONE ?? "Europe/Kyiv"
   )) {
@@ -128,7 +133,8 @@ async function createAndCancelBooking(cookie, room) {
         title: `MVP smoke ${Date.now()}`,
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
-        participationMode: "INVITE_ONLY"
+        participationMode: "INVITE_ONLY",
+        participantIds: [notificationRecipientId]
       })
     });
     const body = await response.json();
@@ -138,6 +144,31 @@ async function createAndCancelBooking(cookie, room) {
     }
     check(response.ok, `Booking creation failed: ${JSON.stringify(body)}`);
     check(body.id, "Booking creation did not return an id");
+
+    const updatedTitle = `Updated MVP smoke ${Date.now()}`;
+    await request(`/api/bookings/${body.id}`, {
+      method: "PATCH",
+      headers: { cookie },
+      body: JSON.stringify({
+        title: updatedTitle,
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
+        participationMode: "INVITE_ONLY",
+        participantIds: [notificationRecipientId]
+      })
+    });
+    const recipientNotifications = await request("/api/notifications", {
+      headers: { cookie: notificationRecipientCookie }
+    });
+    check(
+      recipientNotifications.body?.notifications?.some(
+        (notification) =>
+          notification.bookingId === body.id &&
+          notification.type === "BOOKING_UPDATED" &&
+          notification.body.includes(updatedTitle)
+      ),
+      "Booking update notification was not created"
+    );
 
     await request(`/api/bookings/${body.id}`, {
       method: "DELETE",
@@ -161,6 +192,10 @@ async function main() {
   );
 
   const userCookie = await login(userCredentials);
+  const adminCookie = await login(adminCredentials);
+  const adminMe = await request("/api/auth/me", {
+    headers: { cookie: adminCookie }
+  });
   const roomsResult = await request("/api/rooms", {
     headers: { cookie: userCookie }
   });
@@ -174,8 +209,10 @@ async function main() {
     "Colleagues response must contain a resolved users array"
   );
 
-  const booking = await createAndCancelBooking(
+  const booking = await createUpdateAndCancelBooking(
     userCookie,
+    adminCookie,
+    adminMe.body.user.id,
     roomsResult.body.rooms[1]
   );
 
@@ -223,7 +260,6 @@ async function main() {
     })
   });
 
-  const adminCookie = await login(adminCredentials);
   const users = await request("/api/admin/users", {
     headers: { cookie: adminCookie }
   });
@@ -282,7 +318,7 @@ async function main() {
   check(Array.isArray(audit.body?.logs), "Admin audit response is invalid");
 
   console.log(
-    `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/cancel, ` +
+    `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/update/cancel, ` +
       "colleagues, events, preferences, room image lifecycle and administration"
   );
 }

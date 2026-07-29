@@ -41,6 +41,27 @@ export class CreateBookingDto {
   overrideReason?: string;
 }
 
+export class UpdateBookingDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  title!: string;
+
+  @IsDateString()
+  startsAt!: string;
+
+  @IsDateString()
+  endsAt!: string;
+
+  @IsIn(["INVITE_ONLY", "OPEN"])
+  participationMode!: "INVITE_ONLY" | "OPEN";
+
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID("4", { each: true })
+  participantIds!: string[];
+}
+
 export class RespondToInvitationDto {
   @IsIn(["ACCEPTED", "DECLINED"])
   status!: "ACCEPTED" | "DECLINED";

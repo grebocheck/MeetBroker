@@ -9,7 +9,8 @@ import { NotificationsService } from "../notifications/notifications.service";
 import type {
   CancelBookingDto,
   CreateBookingDto,
-  RespondToInvitationDto
+  RespondToInvitationDto,
+  UpdateBookingDto
 } from "./bookings.dto";
 import {
   BookingRuleError,
@@ -372,6 +373,257 @@ export class BookingsService {
     });
   }
 
+  async update(
+    user: CurrentUser,
+    bookingId: string,
+    dto: UpdateBookingDto
+  ): Promise<void> {
+    const title = dto.title.trim();
+    if (!title) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "TITLE_REQUIRED",
+        "Booking title is required"
+      );
+    }
+    const startsAt = new Date(dto.startsAt);
+    const endsAt = new Date(dto.endsAt);
+    const participantIds = [
+      ...new Set(dto.participantIds.filter((id) => id !== user.id))
+    ];
+
+    await this.database.transaction(async (client) => {
+      const bookingResult = await client.query<{
+        id: string;
+        title: string;
+        starts_at: Date;
+        ends_at: Date;
+        participation_mode: "INVITE_ONLY" | "OPEN";
+        organizer_id: string;
+        cancelled_at: Date | null;
+        room_id: string;
+        room_name: string;
+        capacity: number;
+        work_start: string;
+        work_end: string;
+        active: boolean;
+      }>(
+        `
+          select
+            b.id,
+            b.title,
+            b.starts_at,
+            b.ends_at,
+            b.participation_mode,
+            b.organizer_id,
+            b.cancelled_at,
+            r.id as room_id,
+            r.name as room_name,
+            r.capacity,
+            r.work_start::text,
+            r.work_end::text,
+            r.active
+          from bookings b
+          join rooms r on r.id = b.room_id
+          where b.id = $1
+          for update of b
+        `,
+        [bookingId]
+      );
+      const booking = bookingResult.rows[0];
+      if (!booking || booking.cancelled_at || !booking.active) {
+        throw apiError(
+          HttpStatus.NOT_FOUND,
+          "BOOKING_NOT_FOUND",
+          "Booking was not found"
+        );
+      }
+      if (booking.organizer_id !== user.id) {
+        throw apiError(
+          HttpStatus.FORBIDDEN,
+          "NOT_BOOKING_OWNER",
+          "Only the organizer can edit this booking"
+        );
+      }
+
+      await client.query("select pg_advisory_xact_lock(hashtext($1))", [
+        booking.room_id
+      ]);
+      const ruleError = validateBookingRules({
+        startsAt,
+        endsAt,
+        now: new Date(),
+        officeTimeZone: this.officeTimeZone,
+        workStart: booking.work_start,
+        workEnd: booking.work_end
+      });
+      if (ruleError) throw this.ruleException(ruleError);
+
+      const block = await client.query(
+        `
+          select id
+          from room_blocks
+          where room_id = $1
+            and cancelled_at is null
+            and starts_at < $3
+            and ends_at > $2
+          limit 1
+        `,
+        [booking.room_id, startsAt, endsAt]
+      );
+      if (block.rowCount) {
+        throw apiError(
+          HttpStatus.CONFLICT,
+          "ROOM_UNAVAILABLE",
+          "Room is unavailable during this time"
+        );
+      }
+      if (participantIds.length + 1 > booking.capacity) {
+        throw apiError(
+          HttpStatus.BAD_REQUEST,
+          "ROOM_CAPACITY_EXCEEDED",
+          "Number of participants exceeds room capacity"
+        );
+      }
+
+      const participants = await this.loadParticipants(client, participantIds);
+      if (participants.length !== participantIds.length) {
+        throw apiError(
+          HttpStatus.BAD_REQUEST,
+          "INVALID_PARTICIPANT",
+          "One or more participants are unavailable"
+        );
+      }
+      const currentParticipants = await client.query<
+        ParticipantRow & { status: "INVITED" | "ACCEPTED" | "DECLINED" }
+      >(
+        `
+          select u.id, u.name, u.locale, u.timezone, bp.status
+          from booking_participants bp
+          join users u on u.id = bp.user_id
+          where bp.booking_id = $1
+        `,
+        [bookingId]
+      );
+      const currentIds = new Set(
+        currentParticipants.rows.map((participant) => participant.id)
+      );
+      const nextIds = new Set(participantIds);
+      const added = participants.filter(
+        (participant) => !currentIds.has(participant.id)
+      );
+      const retained = participants.filter((participant) =>
+        currentIds.has(participant.id)
+      );
+      const removed = currentParticipants.rows.filter(
+        (participant) => !nextIds.has(participant.id)
+      );
+      const detailsChanged =
+        booking.title !== title ||
+        booking.starts_at.getTime() !== startsAt.getTime() ||
+        booking.ends_at.getTime() !== endsAt.getTime() ||
+        booking.participation_mode !== dto.participationMode;
+      if (!detailsChanged && !added.length && !removed.length) return;
+
+      try {
+        await client.query(
+          `
+            update bookings
+            set
+              title = $2,
+              starts_at = $3,
+              ends_at = $4,
+              participation_mode = $5,
+              updated_at = now()
+            where id = $1
+          `,
+          [bookingId, title, startsAt, endsAt, dto.participationMode]
+        );
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          (error as Error & { code: string }).code === "23P01"
+        ) {
+          throw apiError(
+            HttpStatus.CONFLICT,
+            "SLOT_TAKEN",
+            "This time slot is already booked"
+          );
+        }
+        throw error;
+      }
+
+      if (removed.length) {
+        await client.query(
+          `
+            delete from booking_participants
+            where booking_id = $1 and user_id = any($2::uuid[])
+          `,
+          [bookingId, removed.map((participant) => participant.id)]
+        );
+      }
+      for (const participant of added) {
+        await client.query(
+          `
+            insert into booking_participants (booking_id, user_id, status)
+            values ($1, $2, 'INVITED')
+          `,
+          [bookingId, participant.id]
+        );
+      }
+
+      const editId = randomUUID();
+      for (const participant of retained) {
+        const copy = this.changeCopy(
+          title,
+          booking.room_name,
+          startsAt,
+          participant
+        );
+        await this.notifications.enqueue(client, {
+          eventKey: `booking:${bookingId}:update:${editId}:${participant.id}`,
+          userId: participant.id,
+          type: "BOOKING_UPDATED",
+          category: "CHANGES",
+          title: copy.title,
+          body: copy.body,
+          bookingId
+        });
+      }
+      for (const participant of removed) {
+        const copy = this.removalCopy(title, participant);
+        await this.notifications.enqueue(client, {
+          eventKey: `booking:${bookingId}:removed:${editId}:${participant.id}`,
+          userId: participant.id,
+          type: "BOOKING_PARTICIPANT_REMOVED",
+          category: "CHANGES",
+          title: copy.title,
+          body: copy.body,
+          bookingId
+        });
+      }
+      for (const participant of added) {
+        const copy = this.invitationCopy(
+          user.name,
+          title,
+          booking.room_name,
+          startsAt,
+          participant
+        );
+        await this.notifications.enqueue(client, {
+          eventKey: `booking:${bookingId}:invite:${editId}:${participant.id}`,
+          userId: participant.id,
+          type: "BOOKING_INVITATION",
+          category: "INVITATIONS",
+          title: copy.title,
+          body: copy.body,
+          bookingId
+        });
+      }
+    });
+  }
+
   async mine(userId: string, section: "future" | "past", offset: number) {
     const direction = section === "future" ? "asc" : "desc";
     const comparison = section === "future" ? ">=" : "<";
@@ -701,6 +953,46 @@ export class BookingsService {
       [ids]
     );
     return result.rows;
+  }
+
+  private changeCopy(
+    bookingTitle: string,
+    roomName: string,
+    startsAt: Date,
+    participant: ParticipantRow
+  ): { title: string; body: string } {
+    const locale = participant.locale === "en" ? "en-GB" : "uk-UA";
+    const date = new Intl.DateTimeFormat(locale, {
+      dateStyle: "full",
+      timeStyle: "short",
+      timeZone: participant.timezone ?? this.officeTimeZone
+    }).format(startsAt);
+    if (participant.locale === "en") {
+      return {
+        title: "Meeting details changed",
+        body: `“${bookingTitle}” is now scheduled in “${roomName}” on ${date}.`
+      };
+    }
+    return {
+      title: "Деталі зустрічі змінено",
+      body: `Зустріч «${bookingTitle}» тепер запланована в кімнаті «${roomName}»: ${date}.`
+    };
+  }
+
+  private removalCopy(
+    bookingTitle: string,
+    participant: ParticipantRow
+  ): { title: string; body: string } {
+    if (participant.locale === "en") {
+      return {
+        title: "Meeting participation changed",
+        body: `You are no longer a participant of “${bookingTitle}”.`
+      };
+    }
+    return {
+      title: "Участь у зустрічі змінено",
+      body: `Вас більше немає серед учасників зустрічі «${bookingTitle}».`
+    };
   }
 
   private invitationCopy(
