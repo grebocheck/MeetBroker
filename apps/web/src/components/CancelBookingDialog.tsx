@@ -1,5 +1,6 @@
 import { ApiError } from "../lib/api";
 import { Button } from "./ui/Button";
+import { ModalLayer } from "./ui/ModalLayer";
 
 export interface CancelBookingDetails {
   title: string;
@@ -33,7 +34,7 @@ export function CancelBookingDialog({
   });
 
   return (
-    <div
+    <ModalLayer
       className="modal-backdrop"
       role="presentation"
       onMouseDown={() => {
@@ -120,6 +121,6 @@ export function CancelBookingDialog({
           </Button>
         </div>
       </section>
-    </div>
+    </ModalLayer>
   );
 }

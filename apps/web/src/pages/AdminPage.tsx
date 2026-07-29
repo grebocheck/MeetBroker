@@ -6,6 +6,7 @@ import { Avatar } from "../components/Avatar";
 import { BookingDialog } from "../components/BookingDialog";
 import { RoomVisual } from "../components/RoomVisual";
 import { Button } from "../components/ui/Button";
+import { ModalLayer } from "../components/ui/ModalLayer";
 
 interface AdminUser {
   id: string;
@@ -397,7 +398,7 @@ function AdminBookingDialog({
   };
 
   return (
-    <div
+    <ModalLayer
       className="modal-backdrop"
       role="presentation"
       onMouseDown={() => {
@@ -560,7 +561,7 @@ function AdminBookingDialog({
           )}
         </div>
       </section>
-    </div>
+    </ModalLayer>
   );
 }
 
@@ -700,7 +701,7 @@ function UsersAdmin() {
                       Обмежити
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="danger"
                       size="small"
                       onClick={() => {
                         const reason = window.prompt(

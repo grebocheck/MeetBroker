@@ -4,6 +4,8 @@ import { api, ApiError } from "../lib/api";
 import { toDateTimeLocal } from "../lib/date";
 import type { Booking, Person, Room } from "../types";
 import { ParticipantPicker } from "./ParticipantPicker";
+import { Button } from "./ui/Button";
+import { ModalLayer } from "./ui/ModalLayer";
 
 export interface BookingDraft {
   startsAt: Date;
@@ -178,7 +180,7 @@ export function BookingDialog({
   const serverError = bookingError(save.error);
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+    <ModalLayer role="presentation" onMouseDown={onClose}>
       <section
         className="modal"
         role="dialog"
@@ -355,9 +357,9 @@ export function BookingDialog({
             </div>
           )}
           <div className="modal__actions">
-            <button type="button" className="button button--ghost" onClick={onClose}>
+            <Button variant="ghost" onClick={onClose}>
               Назад
-            </button>
+            </Button>
             <button
               className="button button--primary"
               disabled={save.isPending}
@@ -373,6 +375,6 @@ export function BookingDialog({
           </div>
         </form>
       </section>
-    </div>
+    </ModalLayer>
   );
 }

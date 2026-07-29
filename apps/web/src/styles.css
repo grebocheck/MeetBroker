@@ -651,6 +651,7 @@ hr {
 
 .button--primary,
 .button--danger,
+.button--ghost,
 .button--slanted {
   border-radius: 0;
   clip-path: var(--shape-action);
@@ -1469,7 +1470,8 @@ hr {
   inset: 0;
   display: grid;
   background: rgba(20, 28, 23, 0.38);
-  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
 }
 
 .modal-backdrop {

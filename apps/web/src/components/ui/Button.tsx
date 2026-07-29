@@ -21,7 +21,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     {
       variant = "secondary",
       size = "regular",
-      shape = variant === "ghost" ? "soft" : "slanted",
+      shape = "slanted",
       wide = false,
       className,
       children,
