@@ -4,13 +4,16 @@ import {
   OnModuleInit
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool, PoolClient, QueryResult, QueryResultRow } from "pg";
+import * as schema from "./schema";
 
 export type SqlExecutor = Pick<PoolClient, "query">;
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnApplicationShutdown {
   private readonly pool: Pool;
+  readonly orm: NodePgDatabase<typeof schema>;
 
   constructor(config: ConfigService) {
     const connectionString = config.get<string>("DATABASE_URL");
@@ -23,6 +26,7 @@ export class DatabaseService implements OnModuleInit, OnApplicationShutdown {
       max: 15,
       idleTimeoutMillis: 30_000
     });
+    this.orm = drizzle(this.pool, { schema });
   }
 
   async onModuleInit(): Promise<void> {
