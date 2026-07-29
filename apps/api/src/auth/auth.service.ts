@@ -16,6 +16,7 @@ interface UserRow {
   id: string;
   name: string;
   email: string;
+  pending_email: string | null;
   password_hash: string;
   bio: string | null;
   avatar_preset: string;
@@ -70,7 +71,12 @@ export class AuthService {
     }
 
     const existing = await this.database.query(
-      "select 1 from users where lower(trim(email)) = $1",
+      `
+        select 1
+        from users
+        where lower(trim(email)) = $1
+          or lower(trim(pending_email)) = $1
+      `,
       [email]
     );
     if (existing.rowCount) {
@@ -155,30 +161,70 @@ export class AuthService {
   }
 
   async verifyEmail(token: string): Promise<void> {
-    const result = await this.database.query<{ user_id: string }>(
-      `
-        update email_verification_tokens
-        set used_at = now()
-        where token_hash = $1
-          and used_at is null
-          and expires_at > now()
-        returning user_id
-      `,
-      [hashToken(token)]
-    );
-    const userId = result.rows[0]?.user_id;
-    if (!userId) {
-      throw apiError(
-        HttpStatus.BAD_REQUEST,
-        "INVALID_VERIFICATION_TOKEN",
-        "Verification link is invalid or expired"
+    await this.database.transaction(async (client) => {
+      const result = await client.query<{
+        user_id: string;
+        pending_email: string | null;
+      }>(
+        `
+          update email_verification_tokens
+          set used_at = now()
+          where token_hash = $1
+            and used_at is null
+            and expires_at > now()
+          returning user_id, pending_email
+        `,
+        [hashToken(token)]
       );
-    }
+      const verification = result.rows[0];
+      if (!verification) {
+        throw apiError(
+          HttpStatus.BAD_REQUEST,
+          "INVALID_VERIFICATION_TOKEN",
+          "Verification link is invalid or expired"
+        );
+      }
 
-    await this.database.query(
-      "update users set email_verified_at = coalesce(email_verified_at, now()) where id = $1",
-      [userId]
-    );
+      if (verification.pending_email) {
+        const changed = await client.query(
+          `
+            update users
+            set
+              email = pending_email,
+              pending_email = null,
+              email_verified_at = now(),
+              updated_at = now()
+            where id = $1
+              and lower(trim(pending_email)) = lower(trim($2))
+          `,
+          [verification.user_id, verification.pending_email]
+        );
+        if (!changed.rowCount) {
+          throw apiError(
+            HttpStatus.BAD_REQUEST,
+            "EMAIL_CHANGE_SUPERSEDED",
+            "A newer email change request is active"
+          );
+        }
+        await client.query(
+          `
+            insert into audit_logs
+              (id, actor_id, action, target_type, target_id)
+            values ($1, $2, 'EMAIL_CHANGED', 'USER', $2)
+          `,
+          [randomUUID(), verification.user_id]
+        );
+      } else {
+        await client.query(
+          `
+            update users
+            set email_verified_at = coalesce(email_verified_at, now())
+            where id = $1
+          `,
+          [verification.user_id]
+        );
+      }
+    });
   }
 
   async login(dto: LoginDto): Promise<SessionResult> {
@@ -230,6 +276,7 @@ export class AuthService {
       id: row.id,
       name: row.name,
       email: row.email,
+      pendingEmail: row.pending_email,
       bio: row.bio,
       avatarPreset: row.avatar_preset,
       avatarUrl: row.avatar_path ? `/uploads/${row.avatar_path}` : null,

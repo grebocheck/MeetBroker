@@ -28,6 +28,7 @@ interface AuthRow {
   id: string;
   name: string;
   email: string;
+  pending_email: string | null;
   bio: string | null;
   avatar_preset: string;
   avatar_path: string | null;
@@ -77,6 +78,7 @@ export class AuthGuard implements CanActivate {
           u.id,
           u.name,
           u.email,
+          u.pending_email,
           u.bio,
           u.avatar_preset,
           u.avatar_path,
@@ -109,6 +111,7 @@ export class AuthGuard implements CanActivate {
       id: row.id,
       name: row.name,
       email: row.email,
+      pendingEmail: row.pending_email,
       bio: row.bio,
       avatarPreset: row.avatar_preset,
       avatarUrl: row.avatar_path ? `/uploads/${row.avatar_path}` : null,

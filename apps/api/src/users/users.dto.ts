@@ -1,8 +1,11 @@
 import {
+  IsEmail,
   IsIn,
+  IsNotEmpty,
   IsOptional,
   IsString,
-  MaxLength
+  MaxLength,
+  MinLength,
 } from "class-validator";
 import type { Locale, Theme } from "../common/types";
 
@@ -47,4 +50,27 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(80)
   timezone?: string;
+}
+
+export class ChangeEmailDto {
+  @IsEmail()
+  @MaxLength(320)
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(72)
+  currentPassword!: string;
+}
+
+export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(72)
+  currentPassword!: string;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(72)
+  newPassword!: string;
 }

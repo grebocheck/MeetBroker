@@ -3,16 +3,23 @@ import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import * as argon2 from "argon2";
 import sharp from "sharp";
+import { createOpaqueToken, hashToken } from "../common/crypto";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
 import type { CurrentUser } from "../common/types";
-import type { UpdateProfileDto } from "./users.dto";
+import type {
+  ChangeEmailDto,
+  ChangePasswordDto,
+  UpdateProfileDto
+} from "./users.dto";
 
 interface ProfileRow {
   id: string;
   name: string;
   email: string;
+  pending_email: string | null;
   bio: string | null;
   avatar_preset: string;
   avatar_path: string | null;
@@ -96,6 +103,158 @@ export class UsersService {
       await unlink(resolve(this.uploadDir, previousPath)).catch(() => undefined);
     }
     return this.toCurrentUser(result.rows[0]);
+  }
+
+  async requestEmailChange(userId: string, dto: ChangeEmailDto) {
+    const email = dto.email.trim().toLowerCase();
+    const current = await this.database.query<{
+      email: string;
+      password_hash: string;
+    }>("select email, password_hash from users where id = $1", [userId]);
+    const user = current.rows[0];
+    if (
+      !user ||
+      !(await argon2.verify(user.password_hash, dto.currentPassword))
+    ) {
+      throw apiError(
+        HttpStatus.UNAUTHORIZED,
+        "CURRENT_PASSWORD_INCORRECT",
+        "Current password is incorrect"
+      );
+    }
+    if (user.email.trim().toLowerCase() === email) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "EMAIL_UNCHANGED",
+        "New email must be different from the current email"
+      );
+    }
+    const duplicate = await this.database.query(
+      `
+        select 1
+        from users
+        where id <> $1
+          and (
+            lower(trim(email)) = $2
+            or lower(trim(pending_email)) = $2
+          )
+      `,
+      [userId, email]
+    );
+    if (duplicate.rowCount) {
+      throw apiError(
+        HttpStatus.CONFLICT,
+        "EMAIL_TAKEN",
+        "This email is already registered"
+      );
+    }
+
+    const token = createOpaqueToken();
+    await this.database.transaction(async (client) => {
+      await client.query(
+        `
+          update email_verification_tokens
+          set used_at = now()
+          where user_id = $1
+            and pending_email is not null
+            and used_at is null
+        `,
+        [userId]
+      );
+      await client.query(
+        "update users set pending_email = $2, updated_at = now() where id = $1",
+        [userId, email]
+      );
+      await client.query(
+        `
+          insert into email_verification_tokens (
+            id, user_id, token_hash, pending_email, expires_at
+          )
+          values ($1, $2, $3, $4, now() + interval '24 hours')
+        `,
+        [randomUUID(), userId, hashToken(token), email]
+      );
+      await client.query(
+        `
+          insert into audit_logs
+            (id, actor_id, action, target_type, target_id, details)
+          values ($1, $2, 'EMAIL_CHANGE_REQUESTED', 'USER', $2, $3::jsonb)
+        `,
+        [randomUUID(), userId, JSON.stringify({ pendingEmail: email })]
+      );
+    });
+
+    if (process.env.NODE_ENV !== "production") {
+      process.stdout.write(
+        `[dev-email] Confirm ${email}: /verify-email?token=${token}\n`
+      );
+    }
+    return {
+      pendingEmail: email,
+      ...(process.env.NODE_ENV !== "production"
+        ? { verificationToken: token }
+        : {})
+    };
+  }
+
+  async changePassword(
+    userId: string,
+    sessionId: string,
+    dto: ChangePasswordDto
+  ): Promise<void> {
+    const passwordLength = Array.from(dto.newPassword).length;
+    if (passwordLength < 8 || passwordLength > 72) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "PASSWORD_LENGTH",
+        "Password must contain 8 to 72 characters"
+      );
+    }
+    const current = await this.database.query<{ password_hash: string }>(
+      "select password_hash from users where id = $1",
+      [userId]
+    );
+    const passwordHash = current.rows[0]?.password_hash;
+    if (
+      !passwordHash ||
+      !(await argon2.verify(passwordHash, dto.currentPassword))
+    ) {
+      throw apiError(
+        HttpStatus.UNAUTHORIZED,
+        "CURRENT_PASSWORD_INCORRECT",
+        "Current password is incorrect"
+      );
+    }
+    if (await argon2.verify(passwordHash, dto.newPassword)) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "PASSWORD_UNCHANGED",
+        "New password must be different from the current password"
+      );
+    }
+    const nextPasswordHash = await argon2.hash(dto.newPassword);
+    await this.database.transaction(async (client) => {
+      await client.query(
+        "update users set password_hash = $2, updated_at = now() where id = $1",
+        [userId, nextPasswordHash]
+      );
+      await client.query(
+        `
+          update sessions
+          set revoked_at = now()
+          where user_id = $1 and id <> $2 and revoked_at is null
+        `,
+        [userId, sessionId]
+      );
+      await client.query(
+        `
+          insert into audit_logs
+            (id, actor_id, action, target_type, target_id)
+          values ($1, $2, 'PASSWORD_CHANGED', 'USER', $2)
+        `,
+        [randomUUID(), userId]
+      );
+    });
   }
 
   async saveAvatar(userId: string, file: Express.Multer.File) {
@@ -189,6 +348,7 @@ export class UsersService {
       id: row.id,
       name: row.name,
       email: row.email,
+      pendingEmail: row.pending_email,
       bio: row.bio,
       avatarPreset: row.avatar_preset,
       avatarUrl: row.avatar_path ? `/uploads/${row.avatar_path}` : null,

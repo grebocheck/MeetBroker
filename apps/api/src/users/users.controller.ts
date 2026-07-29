@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   HttpStatus,
   Patch,
   Post,
@@ -15,7 +16,11 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import type { AuthenticatedRequest } from "../common/types";
 import { apiError } from "../common/http-error";
 import { Approved } from "../auth/auth.decorators";
-import { UpdateProfileDto } from "./users.dto";
+import {
+  ChangeEmailDto,
+  ChangePasswordDto,
+  UpdateProfileDto
+} from "./users.dto";
 import { UsersService } from "./users.service";
 
 @Controller("api/users")
@@ -37,6 +42,27 @@ export class UsersController {
     return {
       user: await this.users.updateProfile(request.user.id, dto)
     };
+  }
+
+  @Post("me/email-change")
+  requestEmailChange(
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: ChangeEmailDto
+  ) {
+    return this.users.requestEmailChange(request.user.id, dto);
+  }
+
+  @Post("me/password-change")
+  @HttpCode(204)
+  async changePassword(
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: ChangePasswordDto
+  ): Promise<void> {
+    await this.users.changePassword(
+      request.user.id,
+      request.sessionId,
+      dto
+    );
   }
 
   @Post("me/avatar")
