@@ -23,9 +23,27 @@ npm run smoke
 | Користувач | `user@meetbroker.local` | `User12345!` |
 | Користувач | `anna@meetbroker.local` | `User12345!` |
 
-Міграції та демонстраційні дані застосовуються контейнером `migrate`.
-Повторний запуск є безпечним. Для реальної інсталяції потрібно змінити
-паролі БД, webhook secret і демонстраційні облікові дані.
+Міграції застосовуються контейнером `migrate` через `node-pg-migrate`.
+Демонстраційні дані створюються лише з `SEED_DEMO_DATA=true`, яке вже
+вказане у `.env.example`; у production цю змінну потрібно вимкнути.
+Повторний запуск є безпечним. Для реальної інсталяції також потрібно змінити
+паролі БД, webhook secret і не використовувати демонстраційні облікові дані.
+
+Корисні команди для схеми:
+
+```bash
+npm run db:migrate
+npm run db:migrate:status
+npm run db:migrate:create -- add_room_equipment
+```
+
+Локальні команди очікують `DATABASE_URL`. Для бази всередині Compose status
+можна виконати так:
+
+```bash
+docker compose run --rm migrate \
+  npm run db:migrate:status:prod --workspace @meetbroker/api
+```
 
 ## Що входить до MVP
 
