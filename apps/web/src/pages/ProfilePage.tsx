@@ -188,7 +188,7 @@ export function ProfilePage({ user }: { user: User }) {
             <label className="upload-box">
               <span>
                 <strong>Або власне фото</strong>
-                <small>JPG, PNG чи WebP до 2 МБ</small>
+                <small>JPG, PNG чи WebP — автоматично обріжемо й оптимізуємо</small>
               </span>
               <input
                 type="file"

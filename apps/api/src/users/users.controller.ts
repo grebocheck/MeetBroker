@@ -26,7 +26,7 @@ export class UsersController {
     private readonly users: UsersService,
     config: ConfigService
   ) {
-    this.maxAvatarBytes = Number(config.get("MAX_AVATAR_BYTES") ?? 2_097_152);
+    this.maxAvatarBytes = Number(config.get("MAX_AVATAR_BYTES") ?? 12_582_912);
   }
 
   @Patch("me")
@@ -42,7 +42,7 @@ export class UsersController {
   @Post("me/avatar")
   @UseInterceptors(
     FileInterceptor("avatar", {
-      limits: { fileSize: 2_097_152, files: 1 }
+      limits: { fileSize: 12_582_912, files: 1 }
     })
   )
   uploadAvatar(
@@ -53,7 +53,7 @@ export class UsersController {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "AVATAR_REQUIRED",
-        "Avatar file is required and must not exceed 2 MB"
+        "Avatar file is required or is too large to process"
       );
     }
     return this.users.saveAvatar(request.user.id, file);
