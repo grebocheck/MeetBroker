@@ -10,6 +10,63 @@ export interface BookingDraft {
   endsAt: Date;
 }
 
+type BookingErrorTarget = "title" | "time" | "participants" | "form";
+
+function bookingError(error: unknown): {
+  target: BookingErrorTarget;
+  message: string;
+} | null {
+  if (!(error instanceof ApiError)) return null;
+  const errors: Record<string, { target: BookingErrorTarget; message: string }> = {
+    INVALID_TIME: {
+      target: "time",
+      message: "Перевірте час початку та завершення."
+    },
+    SLOT_ALIGNMENT: {
+      target: "time",
+      message: "Час має відповідати 30-хвилинній сітці."
+    },
+    DURATION: {
+      target: "time",
+      message: "Тривалість зустрічі має бути від 30 хвилин до 4 годин."
+    },
+    PAST: {
+      target: "time",
+      message: "Бронювання має починатися в майбутньому."
+    },
+    OUTSIDE_WORKING_HOURS: {
+      target: "time",
+      message: "Оберіть час у межах робочих годин кімнати."
+    },
+    SLOT_TAKEN: {
+      target: "time",
+      message: "Цей час уже зайнятий. Оберіть інший інтервал."
+    },
+    ROOM_UNAVAILABLE: {
+      target: "time",
+      message: "Кімната недоступна протягом вибраного часу."
+    },
+    ROOM_CAPACITY_EXCEEDED: {
+      target: "participants",
+      message: "Кількість учасників перевищує місткість кімнати."
+    },
+    INVALID_PARTICIPANT: {
+      target: "participants",
+      message: "Один або кілька учасників більше недоступні для запрошення."
+    },
+    BOOKING_CREATE_RESTRICTED: {
+      target: "form",
+      message: "Створення бронювань для вашого профілю тимчасово обмежене."
+    }
+  };
+  return (
+    errors[error.code] ?? {
+      target: "form",
+      message: error.message
+    }
+  );
+}
+
 export function BookingDialog({
   room,
   draft,
@@ -39,6 +96,10 @@ export function BookingDialog({
   const [participantIds, setParticipantIds] = useState<string[]>(
     booking?.participants.map((participant) => participant.id) ?? []
   );
+  const [localError, setLocalError] = useState<{
+    target: "title" | "time";
+    message: string;
+  } | null>(null);
   const colleagues = useQuery({
     queryKey: ["colleagues"],
     queryFn: () => api<{ users: Person[] }>("/api/users/colleagues")
@@ -58,7 +119,7 @@ export function BookingDialog({
           method: booking ? "PATCH" : "POST",
           body: JSON.stringify({
             ...(booking ? {} : { roomId: room.id }),
-            title,
+            title: title.trim(),
             startsAt: new Date(startsAt).toISOString(),
             endsAt: new Date(endsAt).toISOString(),
             participationMode: mode,
@@ -71,8 +132,30 @@ export function BookingDialog({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (!title.trim()) {
+      setLocalError({
+        target: "title",
+        message: "Введіть назву зустрічі."
+      });
+      return;
+    }
+    const start = new Date(startsAt);
+    const end = new Date(endsAt);
+    if (
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime()) ||
+      start >= end
+    ) {
+      setLocalError({
+        target: "time",
+        message: "Завершення має бути пізніше за початок."
+      });
+      return;
+    }
+    setLocalError(null);
     save.mutate();
   };
+  const serverError = bookingError(save.error);
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
@@ -94,40 +177,70 @@ export function BookingDialog({
             ×
           </button>
         </div>
-        <form className="form-stack" onSubmit={submit}>
+        <form className="form-stack" onSubmit={submit} noValidate>
           <label className="field">
             <span>Назва зустрічі</span>
             <input
               value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                setLocalError(null);
+                save.reset();
+              }}
               minLength={1}
               maxLength={100}
               placeholder="Наприклад, планування спринту"
               autoFocus
               required
             />
+            {(localError?.target === "title" ||
+              serverError?.target === "title") && (
+              <small className="field-error" role="alert">
+                {localError?.target === "title"
+                  ? localError.message
+                  : serverError?.message}
+              </small>
+            )}
           </label>
-          <div className="form-grid">
-            <label className="field">
-              <span>Початок</span>
-              <input
-                type="datetime-local"
-                step={1800}
-                value={startsAt}
-                onChange={(event) => setStartsAt(event.target.value)}
-                required
-              />
-            </label>
-            <label className="field">
-              <span>Завершення</span>
-              <input
-                type="datetime-local"
-                step={1800}
-                value={endsAt}
-                onChange={(event) => setEndsAt(event.target.value)}
-                required
-              />
-            </label>
+          <div className="time-fields">
+            <div className="form-grid">
+              <label className="field">
+                <span>Початок</span>
+                <input
+                  type="datetime-local"
+                  step={1800}
+                  value={startsAt}
+                  onChange={(event) => {
+                    setStartsAt(event.target.value);
+                    setLocalError(null);
+                    save.reset();
+                  }}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Завершення</span>
+                <input
+                  type="datetime-local"
+                  step={1800}
+                  value={endsAt}
+                  onChange={(event) => {
+                    setEndsAt(event.target.value);
+                    setLocalError(null);
+                    save.reset();
+                  }}
+                  required
+                />
+              </label>
+            </div>
+            {(localError?.target === "time" ||
+              serverError?.target === "time") && (
+              <small className="field-error" role="alert">
+                {localError?.target === "time"
+                  ? localError.message
+                  : serverError?.message}
+              </small>
+            )}
           </div>
           <fieldset className="segmented-field">
             <legend>Хто може долучитися</legend>
@@ -167,17 +280,24 @@ export function BookingDialog({
                 people={colleagueUsers}
                 selectedIds={participantIds}
                 maxSelected={availableSeats}
-                onChange={setParticipantIds}
+                onChange={(ids) => {
+                  setParticipantIds(ids);
+                  save.reset();
+                }}
               />
             )}
+            {serverError?.target === "participants" && (
+              <small className="field-error" role="alert">
+                {serverError.message}
+              </small>
+            )}
           </div>
-          {save.error && (
+          {save.error && (!serverError || serverError.target === "form") && (
             <div className="form-error" role="alert">
-              {save.error instanceof ApiError
-                ? save.error.message
-                : editing
+              {serverError?.message ??
+                (editing
                   ? "Не вдалося оновити бронювання"
-                  : "Не вдалося створити бронювання"}
+                  : "Не вдалося створити бронювання")}
             </div>
           )}
           <div className="modal__actions">

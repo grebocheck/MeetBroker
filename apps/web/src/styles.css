@@ -854,6 +854,21 @@ hr {
   font-size: 0.68rem;
 }
 
+.field .field-error,
+.field-error {
+  align-self: flex-start;
+  color: var(--danger);
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.time-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
 .field-heading {
   display: flex;
   justify-content: space-between;
