@@ -34,6 +34,28 @@ export class NotificationsService {
     event: NotificationEvent
   ): Promise<void> {
     const notificationId = randomUUID();
+    const queued = await executor.query(
+      `
+        insert into notification_outbox
+          (id, event_key, event_type, payload)
+        values ($1, $2, $3, $4::jsonb)
+        on conflict (event_key) do nothing
+        returning id
+      `,
+      [
+        randomUUID(),
+        event.eventKey,
+        event.type,
+        JSON.stringify({
+          userId: event.userId,
+          notificationId,
+          title: event.title,
+          body: event.body
+        })
+      ]
+    );
+    if (!queued.rowCount) return;
+
     await executor.query(
       `
         insert into notifications
@@ -47,25 +69,6 @@ export class NotificationsService {
         event.title,
         event.body,
         event.bookingId ?? null
-      ]
-    );
-    await executor.query(
-      `
-        insert into notification_outbox
-          (id, event_key, event_type, payload)
-        values ($1, $2, $3, $4::jsonb)
-        on conflict (event_key) do nothing
-      `,
-      [
-        randomUUID(),
-        event.eventKey,
-        event.type,
-        JSON.stringify({
-          userId: event.userId,
-          notificationId,
-          title: event.title,
-          body: event.body
-        })
       ]
     );
   }

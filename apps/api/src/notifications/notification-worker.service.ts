@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import nodemailer, { Transporter } from "nodemailer";
 import { DatabaseService } from "../database/database.service";
+import { NotificationsService } from "./notifications.service";
 
 interface OutboxPayload {
   userId: string;
@@ -12,6 +13,7 @@ interface OutboxPayload {
 
 interface OutboxRow {
   id: string;
+  event_type: string;
   payload: OutboxPayload;
   attempts: number;
 }
@@ -21,9 +23,11 @@ export class NotificationWorkerService {
   private readonly logger = new Logger(NotificationWorkerService.name);
   private readonly transporter: Transporter | null;
   private readonly telegramToken: string | undefined;
+  private readonly notifyBeforeMinutes: number;
 
   constructor(
     private readonly database: DatabaseService,
+    private readonly notifications: NotificationsService,
     config: ConfigService
   ) {
     const smtpHost = config.get<string>("SMTP_HOST");
@@ -44,13 +48,17 @@ export class NotificationWorkerService {
       : null;
     this.telegramToken =
       config.get<string>("TELEGRAM_BOT_TOKEN") || undefined;
+    this.notifyBeforeMinutes = Number(
+      config.get("NOTIFY_BEFORE_MINUTES") ?? 10
+    );
   }
 
   async processBatch(): Promise<number> {
+    await this.enqueueDueReminders();
     const jobs = await this.database.transaction(async (client) => {
       const result = await client.query<OutboxRow>(
         `
-          select id, payload, attempts
+          select id, event_type, payload, attempts
           from notification_outbox
           where status in ('PENDING', 'FAILED')
             and next_attempt_at <= now()
@@ -75,7 +83,7 @@ export class NotificationWorkerService {
 
     for (const job of jobs) {
       try {
-        await this.deliver(job.payload);
+        await this.deliver(job.payload, job.event_type);
         await this.database.query(
           `
             update notification_outbox
@@ -105,18 +113,27 @@ export class NotificationWorkerService {
     return jobs.length;
   }
 
-  private async deliver(payload: OutboxPayload): Promise<void> {
+  private async deliver(
+    payload: OutboxPayload,
+    eventType: string
+  ): Promise<void> {
     const result = await this.database.query<{
       email: string;
       email_enabled: boolean;
       telegram_enabled: boolean;
       chat_id: string | null;
+      invitations: boolean;
+      changes: boolean;
+      reminders: boolean;
     }>(
       `
         select
           u.email,
           p.email_enabled,
           p.telegram_enabled,
+          p.invitations,
+          p.changes,
+          p.reminders,
           t.chat_id
         from users u
         join notification_preferences p on p.user_id = u.id
@@ -127,6 +144,13 @@ export class NotificationWorkerService {
     );
     const target = result.rows[0];
     if (!target) return;
+    const typeEnabled =
+      eventType === "BOOKING_INVITATION"
+        ? target.invitations
+        : eventType === "BOOKING_REMINDER"
+          ? target.reminders
+          : target.changes;
+    if (!typeEnabled) return;
 
     const deliveries: Promise<unknown>[] = [];
     if (target.email_enabled) {
@@ -174,5 +198,70 @@ export class NotificationWorkerService {
     }
 
     await Promise.all(deliveries);
+  }
+
+  private async enqueueDueReminders(): Promise<void> {
+    const result = await this.database.query<{
+      booking_id: string;
+      title: string;
+      starts_at: Date;
+      user_id: string;
+      locale: "uk" | "en";
+      timezone: string | null;
+    }>(
+      `
+        with recipients as (
+          select b.id as booking_id, b.organizer_id as user_id
+          from bookings b
+          where b.cancelled_at is null
+            and b.starts_at > now()
+            and b.starts_at <= now() + ($1 || ' minutes')::interval
+          union
+          select b.id, bp.user_id
+          from bookings b
+          join booking_participants bp on bp.booking_id = b.id
+          where b.cancelled_at is null
+            and bp.status = 'ACCEPTED'
+            and b.starts_at > now()
+            and b.starts_at <= now() + ($1 || ' minutes')::interval
+        )
+        select
+          b.id as booking_id,
+          b.title,
+          b.starts_at,
+          u.id as user_id,
+          u.locale,
+          u.timezone
+        from recipients r
+        join bookings b on b.id = r.booking_id
+        join users u on u.id = r.user_id
+      `,
+      [String(this.notifyBeforeMinutes)]
+    );
+
+    for (const reminder of result.rows) {
+      const locale = reminder.locale === "en" ? "en-GB" : "uk-UA";
+      const formatted = new Intl.DateTimeFormat(locale, {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: reminder.timezone ?? "Europe/Kyiv"
+      }).format(reminder.starts_at);
+      await this.database.transaction((client) =>
+        this.notifications.enqueue(client, {
+          eventKey: `booking:${reminder.booking_id}:reminder:${reminder.user_id}`,
+          userId: reminder.user_id,
+          type: "BOOKING_REMINDER",
+          title:
+            reminder.locale === "en"
+              ? "Meeting starts soon"
+              : "Зустріч скоро почнеться",
+          body:
+            reminder.locale === "en"
+              ? `“${reminder.title}” starts at ${formatted}.`
+              : `«${reminder.title}» починається о ${formatted}.`,
+          bookingId: reminder.booking_id
+        })
+      );
+    }
   }
 }
