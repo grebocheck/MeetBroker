@@ -74,6 +74,42 @@ body,
   margin: 0;
 }
 
+html {
+  scrollbar-color:
+    color-mix(in srgb, var(--primary) 62%, var(--surface-strong))
+    var(--surface-muted);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--surface-muted) 82%, var(--surface));
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--primary) 78%, var(--cyan)),
+      var(--primary)
+    )
+    padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hover) padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--surface-muted);
+}
+
 body {
   background:
     radial-gradient(circle at 86% 8%, color-mix(in srgb, var(--cyan) 24%, transparent), transparent 24rem),
@@ -894,9 +930,8 @@ hr {
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 5px 24px 5px 24px;
-  background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
+  background: var(--surface-raised);
   box-shadow: var(--shadow-md);
-  backdrop-filter: blur(16px);
 }
 
 .calendar-card__toolbar {
@@ -973,14 +1008,21 @@ hr {
 }
 
 .day-heading.is-today strong {
-  display: grid;
-  place-items: center;
-  min-width: 37px;
-  height: 26px;
-  border-radius: 2px 10px 2px 10px;
-  background: var(--accent);
-  color: #fff;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 34%, transparent);
+  position: relative;
+  padding: 1px 7px 5px;
+  color: var(--accent);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.day-heading.is-today strong::after {
+  position: absolute;
+  right: 4px;
+  bottom: 0;
+  left: 4px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  content: "";
 }
 
 .time-column {
@@ -1428,6 +1470,8 @@ hr {
   flex-direction: column;
   border: 1px dashed var(--border);
   border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
   text-align: center;
 }
 
@@ -1665,18 +1709,18 @@ hr {
 
 .settings-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   gap: 20px;
 }
 
 .settings-card,
 .admin-card {
+  min-width: 0;
   padding: 26px;
   border: 1px solid var(--border);
   border-radius: 4px 24px 4px 24px;
-  background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
+  background: var(--surface-raised);
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(14px);
 }
 
 .settings-card__heading {
@@ -1690,17 +1734,16 @@ hr {
 
 .avatar-picker {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
   gap: 8px;
 }
 
 .avatar-picker button {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  justify-self: center;
+  width: min(60px, 100%);
   aspect-ratio: 1;
+  justify-self: center;
   padding: 2px;
   border: 2px solid transparent;
   border-radius: 50%;
@@ -1774,22 +1817,24 @@ hr {
 }
 
 .notification-matrix {
+  overflow: hidden;
   margin: 8px 0 16px;
   border: 1px solid var(--border);
   border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-muted) 38%, var(--surface-raised));
 }
 
 .notification-matrix__header,
 .notification-matrix__row {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) repeat(3, minmax(66px, 0.55fr));
+  grid-template-columns: minmax(104px, 1.25fr) repeat(3, minmax(52px, 0.55fr));
   align-items: center;
 }
 
 .notification-matrix__header {
   min-height: 44px;
   color: var(--text-muted);
-  background: var(--surface-soft);
+  background: var(--surface-muted);
   font-size: 0.68rem;
   font-weight: 700;
 }
@@ -1797,11 +1842,13 @@ hr {
 .notification-matrix__row {
   min-height: 58px;
   border-top: 1px solid var(--border);
+  background: var(--surface-raised);
 }
 
 .notification-matrix__header > *,
 .notification-matrix__row > * {
-  padding: 8px 12px;
+  min-width: 0;
+  padding: 8px 6px;
   text-align: center;
 }
 
