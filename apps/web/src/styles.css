@@ -43,6 +43,13 @@
     0 100%,
     8px 50%
   );
+  --shape-nav-origin: polygon(
+    0 0,
+    calc(100% - 12px) 0,
+    100% 50%,
+    calc(100% - 12px) 100%,
+    0 100%
+  );
 }
 
 :root[data-theme="dark"] {
@@ -379,6 +386,15 @@ hr {
   background-color: #f6fbff;
   color: #0759bd;
   transform: translateX(4px);
+}
+
+@media (min-width: 1051px) {
+  .nav-item {
+    width: calc(100% + 26px);
+    margin-left: -26px;
+    padding-left: 46px;
+    clip-path: var(--shape-nav-origin);
+  }
 }
 
 .sidebar-utilities {
