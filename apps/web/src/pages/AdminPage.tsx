@@ -1476,6 +1476,9 @@ function humanizeAction(action: string): string {
     USER_RESTRICTED: "Додано обмеження",
     USER_RESTRICTION_REVOKED: "Знято обмеження",
     USER_ROLE_CHANGED: "Змінено роль",
+    EMAIL_CHANGE_REQUESTED: "Запитано зміну email",
+    EMAIL_CHANGED: "Змінено email",
+    PASSWORD_CHANGED: "Змінено пароль",
     ROOM_CREATED: "Створено кімнату",
     ROOM_UPDATED: "Оновлено кімнату",
     ROOM_IMAGE_UPDATED: "Оновлено фото кімнати",
@@ -1529,6 +1532,7 @@ function humanizeDetailKey(key: string): string {
     weekdays: "Дні тижня",
     recurrenceUntil: "Повторюється до",
     occurrenceCount: "Створено інтервалів",
+    pendingEmail: "Нова email-адреса",
   };
   return keys[key] ?? key;
 }

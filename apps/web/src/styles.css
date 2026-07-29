@@ -712,6 +712,31 @@ hr {
   outline-color: var(--danger-fill);
 }
 
+.button:disabled {
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+}
+
+.button--primary:disabled,
+.button--danger:disabled {
+  background: color-mix(in srgb, var(--text-muted) 24%, var(--surface-muted));
+  color: color-mix(in srgb, var(--text-muted) 72%, var(--surface-raised));
+}
+
+.button--secondary.button--slanted:disabled {
+  background: color-mix(in srgb, var(--border) 72%, transparent);
+  color: var(--text-muted);
+}
+
+.button--secondary.button--slanted:disabled::before {
+  background: var(--surface-muted);
+}
+
+.button--ghost:disabled {
+  color: color-mix(in srgb, var(--text-muted) 65%, transparent);
+}
+
 .button--wide {
   width: 100%;
 }
@@ -2257,9 +2282,68 @@ hr {
 }
 
 .preference-row small,
-.integration-row span {
+.integration-row span,
+.integration-row small {
   color: var(--text-muted);
   font-size: 0.68rem;
+}
+
+.account-inline-form,
+.security-section {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 3px 16px 3px 16px;
+  background: var(--surface-muted);
+}
+
+.account-inline-form {
+  display: flex;
+  margin-bottom: 14px;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dev-verification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.dev-verification small {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.security-section {
+  margin-top: 18px;
+}
+
+.security-section > div:first-child {
+  margin-bottom: 16px;
+}
+
+.security-section h3 {
+  margin: 0 0 5px;
+}
+
+.security-section p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.form-success {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 48%, var(--border));
+  border-radius: 3px 12px 3px 12px;
+  background: color-mix(in srgb, var(--cyan) 10%, var(--surface-raised));
+  color: var(--text);
+  font-size: 0.72rem;
 }
 
 .notification-matrix {

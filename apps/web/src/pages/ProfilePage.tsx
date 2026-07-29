@@ -7,6 +7,7 @@ import {
   SearchSelect,
   type SearchSelectOption
 } from "../components/SearchSelect";
+import { Button } from "../components/ui/Button";
 
 type NotificationCategory =
   | "INVITATIONS"
@@ -51,6 +52,19 @@ interface Preferences {
 export function ProfilePage({ user }: { user: User }) {
   const queryClient = useQueryClient();
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailForm, setEmailForm] = useState({
+    email: user.pendingEmail ?? user.email,
+    currentPassword: ""
+  });
+  const [verificationToken, setVerificationToken] = useState<string | null>(
+    null
+  );
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
   const [profile, setProfile] = useState({
     name: user.name,
     bio: user.bio ?? "",
@@ -129,6 +143,56 @@ export function ProfilePage({ user }: { user: User }) {
       api<void>("/api/notifications/telegram", { method: "DELETE" }),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["notification-preferences"] })
+  });
+  const changeEmail = useMutation({
+    mutationFn: () =>
+      api<{ pendingEmail: string; verificationToken?: string }>(
+        "/api/users/me/email-change",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email: emailForm.email,
+            currentPassword: emailForm.currentPassword
+          })
+        }
+      ),
+    onSuccess: ({ pendingEmail, verificationToken: token }) => {
+      setVerificationToken(token ?? null);
+      setEmailForm({ email: pendingEmail, currentPassword: "" });
+      queryClient.setQueryData<{ user: User }>(["me"], (current) =>
+        current
+          ? { user: { ...current.user, pendingEmail } }
+          : current
+      );
+    }
+  });
+  const confirmEmail = useMutation({
+    mutationFn: (token: string) =>
+      api<void>("/api/auth/verify-email", {
+        method: "POST",
+        body: JSON.stringify({ token })
+      }),
+    onSuccess: async () => {
+      setVerificationToken(null);
+      setShowEmailForm(false);
+      await queryClient.invalidateQueries({ queryKey: ["me"] });
+    }
+  });
+  const changePassword = useMutation({
+    mutationFn: () =>
+      api<void>("/api/users/me/password-change", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword
+        })
+      }),
+    onSuccess: () =>
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      })
   });
 
   const submit = (event: FormEvent) => {
@@ -248,12 +312,13 @@ export function ProfilePage({ user }: { user: User }) {
                   .join(". ")}
               </div>
             )}
-            <button
-              className="button button--primary"
+            <Button
+              type="submit"
+              variant="primary"
               disabled={save.isPending}
             >
               {save.isPending ? "Зберігаємо…" : "Зберегти профіль"}
-            </button>
+            </Button>
           </form>
         </section>
 
@@ -268,6 +333,114 @@ export function ProfilePage({ user }: { user: User }) {
             <div className="preference-list">
               <div className="integration-row">
                 <div>
+                  <strong>Email</strong>
+                  <span>{user.email}</span>
+                  {(user.pendingEmail || changeEmail.data?.pendingEmail) && (
+                    <small>
+                      Очікує підтвердження:{" "}
+                      {user.pendingEmail ?? changeEmail.data?.pendingEmail}
+                    </small>
+                  )}
+                </div>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    changeEmail.reset();
+                    confirmEmail.reset();
+                    setShowEmailForm((visible) => !visible);
+                  }}
+                >
+                  {showEmailForm ? "Закрити" : "Змінити"}
+                </Button>
+              </div>
+              {showEmailForm && (
+                <form
+                  className="account-inline-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    changeEmail.mutate();
+                  }}
+                >
+                  <label className="field">
+                    <span>Нова email-адреса</span>
+                    <input
+                      type="email"
+                      autoComplete="email"
+                      value={emailForm.email}
+                      onChange={(event) => {
+                        changeEmail.reset();
+                        setEmailForm({
+                          ...emailForm,
+                          email: event.target.value
+                        });
+                      }}
+                      required
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Поточний пароль</span>
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={emailForm.currentPassword}
+                      onChange={(event) => {
+                        changeEmail.reset();
+                        setEmailForm({
+                          ...emailForm,
+                          currentPassword: event.target.value
+                        });
+                      }}
+                      required
+                    />
+                  </label>
+                  {changeEmail.error && (
+                    <div className="form-error" role="alert">
+                      {changeEmail.error instanceof ApiError
+                        ? changeEmail.error.message
+                        : "Не вдалося змінити email"}
+                    </div>
+                  )}
+                  {changeEmail.isSuccess && (
+                    <div className="form-success" role="status">
+                      Надіслано підтвердження на нову адресу.
+                    </div>
+                  )}
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="small"
+                    disabled={
+                      changeEmail.isPending ||
+                      !emailForm.email.trim() ||
+                      !emailForm.currentPassword
+                    }
+                  >
+                    {changeEmail.isPending
+                      ? "Надсилаємо…"
+                      : "Підтвердити зміну"}
+                  </Button>
+                  {verificationToken && (
+                    <div className="dev-verification">
+                      <small>
+                        Demo-режим: підтвердження доступне одразу без поштового
+                        сервера.
+                      </small>
+                      <Button
+                        size="small"
+                        onClick={() => confirmEmail.mutate(verificationToken)}
+                        disabled={confirmEmail.isPending}
+                      >
+                        {confirmEmail.isPending
+                          ? "Підтверджуємо…"
+                          : "Підтвердити email"}
+                      </Button>
+                    </div>
+                  )}
+                </form>
+              )}
+              <hr />
+              <div className="integration-row">
+                <div>
                   <strong>Telegram</strong>
                   <span>
                     {preferences.data.telegramConnected
@@ -278,15 +451,16 @@ export function ProfilePage({ user }: { user: User }) {
                   </span>
                 </div>
                 {preferences.data.telegramConnected ? (
-                  <button
-                    className="button button--ghost button--small"
+                  <Button
+                    variant="ghost"
+                    size="small"
                     onClick={() => disconnectTelegram.mutate()}
                   >
                     Від’єднати
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    className="button button--secondary button--small"
+                  <Button
+                    size="small"
                     disabled={
                       !preferences.data.telegramAvailable ||
                       telegramLink.isPending
@@ -294,14 +468,14 @@ export function ProfilePage({ user }: { user: User }) {
                     onClick={() => telegramLink.mutate()}
                   >
                     Підключити
-                  </button>
+                  </Button>
                 )}
               </div>
               <hr />
               <div className="notification-matrix">
                 <div className="notification-matrix__header">
                   <span>Група</span>
-                  <span>У застосунку</span>
+                  <span>Застосунок</span>
                   <span>Email</span>
                   <span>Telegram</span>
                 </div>
@@ -339,7 +513,7 @@ export function ProfilePage({ user }: { user: User }) {
                         >
                           <span className="notification-channel-label">
                             {channel === "IN_APP"
-                              ? "У застосунку"
+                              ? "Застосунок"
                               : channel === "EMAIL"
                                 ? "Email"
                                 : "Telegram"}
@@ -365,8 +539,110 @@ export function ProfilePage({ user }: { user: User }) {
               </div>
               <small>
                 Канали налаштовуються незалежно: наприклад, запрошення можна
-                отримувати в Telegram, а нагадування — лише у застосунку.
+                отримувати в Telegram, а нагадування — лише в застосунку.
               </small>
+              <hr />
+              <div className="security-section">
+                <div>
+                  <h3>Зміна пароля</h3>
+                  <p>
+                    Після зміни інші активні сесії буде завершено автоматично.
+                  </p>
+                </div>
+                <form
+                  className="form-stack"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    changePassword.mutate();
+                  }}
+                >
+                  <label className="field">
+                    <span>Поточний пароль</span>
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={passwordForm.currentPassword}
+                      onChange={(event) => {
+                        changePassword.reset();
+                        setPasswordForm({
+                          ...passwordForm,
+                          currentPassword: event.target.value
+                        });
+                      }}
+                      required
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Новий пароль</span>
+                    <input
+                      type="password"
+                      minLength={8}
+                      maxLength={72}
+                      autoComplete="new-password"
+                      value={passwordForm.newPassword}
+                      onChange={(event) => {
+                        changePassword.reset();
+                        setPasswordForm({
+                          ...passwordForm,
+                          newPassword: event.target.value
+                        });
+                      }}
+                      required
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Повторіть новий пароль</span>
+                    <input
+                      type="password"
+                      minLength={8}
+                      maxLength={72}
+                      autoComplete="new-password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(event) => {
+                        changePassword.reset();
+                        setPasswordForm({
+                          ...passwordForm,
+                          confirmPassword: event.target.value
+                        });
+                      }}
+                      required
+                    />
+                    {passwordForm.confirmPassword &&
+                      passwordForm.newPassword !==
+                        passwordForm.confirmPassword && (
+                        <small className="field-error">
+                          Паролі не збігаються
+                        </small>
+                      )}
+                  </label>
+                  {changePassword.error && (
+                    <div className="form-error" role="alert">
+                      {changePassword.error instanceof ApiError
+                        ? changePassword.error.message
+                        : "Не вдалося змінити пароль"}
+                    </div>
+                  )}
+                  {changePassword.isSuccess && (
+                    <div className="form-success" role="status">
+                      Пароль успішно змінено.
+                    </div>
+                  )}
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={
+                      changePassword.isPending ||
+                      passwordForm.newPassword.length < 8 ||
+                      passwordForm.newPassword !==
+                        passwordForm.confirmPassword
+                    }
+                  >
+                    {changePassword.isPending
+                      ? "Змінюємо…"
+                      : "Змінити пароль"}
+                  </Button>
+                </form>
+              </div>
             </div>
           )}
         </section>
