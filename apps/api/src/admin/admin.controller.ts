@@ -4,13 +4,19 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
   Query,
-  Req
+  Req,
+  UploadedFile,
+  UseInterceptors
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { AdminOnly, Approved } from "../auth/auth.decorators";
+import { apiError } from "../common/http-error";
 import type { AuthenticatedRequest } from "../common/types";
 import {
   CreateRoomBlockDto,
@@ -26,7 +32,16 @@ import { AdminService } from "./admin.service";
 @AdminOnly()
 @Controller("api/admin")
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  private readonly maxRoomImageBytes: number;
+
+  constructor(
+    private readonly admin: AdminService,
+    config: ConfigService
+  ) {
+    this.maxRoomImageBytes = Number(
+      config.get("MAX_ROOM_IMAGE_BYTES") ?? 12_582_912
+    );
+  }
 
   @Get("users")
   async users(
@@ -99,6 +114,36 @@ export class AdminController {
     @Body() dto: UpdateRoomDto
   ): Promise<void> {
     await this.admin.updateRoom(request.user.id, id, dto);
+  }
+
+  @Post("rooms/:id/image")
+  @UseInterceptors(
+    FileInterceptor("image", {
+      limits: { fileSize: 12_582_912, files: 1 }
+    })
+  )
+  uploadRoomImage(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    if (!file || file.size > this.maxRoomImageBytes) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "ROOM_IMAGE_REQUIRED",
+        "Room image is required or is too large to process"
+      );
+    }
+    return this.admin.saveRoomImage(request.user.id, id, file);
+  }
+
+  @Delete("rooms/:id/image")
+  @HttpCode(204)
+  async removeRoomImage(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string
+  ): Promise<void> {
+    await this.admin.removeRoomImage(request.user.id, id);
   }
 
   @Post("room-blocks")

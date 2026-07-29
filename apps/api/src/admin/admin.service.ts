@@ -1,5 +1,9 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import sharp from "sharp";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
 import type {
@@ -11,7 +15,16 @@ import type {
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly database: DatabaseService) {}
+  private readonly uploadDir: string;
+
+  constructor(
+    private readonly database: DatabaseService,
+    config: ConfigService
+  ) {
+    this.uploadDir =
+      config.get<string>("UPLOAD_DIR") ??
+      resolve(process.cwd(), "storage/uploads");
+  }
 
   async users(status?: string, search?: string) {
     const result = await this.database.query<{
@@ -332,6 +345,88 @@ export class AdminService {
       ]
     );
     await this.audit(actorId, "ROOM_UPDATED", "ROOM", roomId, dto);
+  }
+
+  async saveRoomImage(
+    actorId: string,
+    roomId: string,
+    file: Express.Multer.File
+  ) {
+    const room = await this.database.query<{ image_path: string | null }>(
+      "select image_path from rooms where id = $1",
+      [roomId]
+    );
+    if (!room.rows[0]) {
+      throw apiError(
+        HttpStatus.NOT_FOUND,
+        "ROOM_NOT_FOUND",
+        "Room was not found"
+      );
+    }
+
+    let processed: Buffer;
+    try {
+      processed = await sharp(file.buffer, {
+        failOn: "warning",
+        limitInputPixels: 30_000_000
+      })
+        .rotate()
+        .resize(1600, 900, { fit: "cover", position: "attention" })
+        .webp({ quality: 84 })
+        .toBuffer();
+    } catch {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "INVALID_ROOM_IMAGE",
+        "Room image must be a valid image"
+      );
+    }
+
+    await mkdir(this.uploadDir, { recursive: true });
+    const filename = `room-${randomUUID()}.webp`;
+    await writeFile(resolve(this.uploadDir, filename), processed, {
+      flag: "wx"
+    });
+    await this.database.query(
+      `
+        update rooms
+        set image_path = $2, updated_at = now()
+        where id = $1
+      `,
+      [roomId, filename]
+    );
+
+    const previousPath = room.rows[0].image_path;
+    if (previousPath && previousPath !== filename) {
+      await unlink(resolve(this.uploadDir, previousPath)).catch(() => undefined);
+    }
+    await this.audit(actorId, "ROOM_IMAGE_UPDATED", "ROOM", roomId);
+    return { imageUrl: `/uploads/${filename}` };
+  }
+
+  async removeRoomImage(actorId: string, roomId: string): Promise<void> {
+    const room = await this.database.query<{ image_path: string | null }>(
+      "select image_path from rooms where id = $1",
+      [roomId]
+    );
+    if (!room.rows[0]) {
+      throw apiError(
+        HttpStatus.NOT_FOUND,
+        "ROOM_NOT_FOUND",
+        "Room was not found"
+      );
+    }
+
+    await this.database.query(
+      "update rooms set image_path = null, updated_at = now() where id = $1",
+      [roomId]
+    );
+    if (room.rows[0].image_path) {
+      await unlink(resolve(this.uploadDir, room.rows[0].image_path)).catch(
+        () => undefined
+      );
+    }
+    await this.audit(actorId, "ROOM_IMAGE_REMOVED", "ROOM", roomId);
   }
 
   async createRoomBlock(actorId: string, dto: CreateRoomBlockDto) {

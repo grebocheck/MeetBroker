@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import type { Room } from "../types";
 import { Avatar } from "../components/Avatar";
+import { RoomVisual } from "../components/RoomVisual";
 
 interface AdminUser {
   id: string;
@@ -237,6 +238,7 @@ function RoomsAdmin() {
     floor: 1,
     capacity: 6
   });
+  const [roomImage, setRoomImage] = useState<File | null>(null);
   const [blockForm, setBlockForm] = useState({
     roomId: "",
     title: "Технічне обслуговування",
@@ -244,14 +246,47 @@ function RoomsAdmin() {
     endsAt: ""
   });
   const createRoom = useMutation({
-    mutationFn: () =>
-      api<{ id: string }>("/api/admin/rooms", {
+    mutationFn: async () => {
+      const created = await api<{ id: string }>("/api/admin/rooms", {
         method: "POST",
         body: JSON.stringify(roomForm)
-      }),
+      });
+      if (roomImage) {
+        const form = new FormData();
+        form.set("image", roomImage);
+        await api<{ imageUrl: string }>(
+          `/api/admin/rooms/${created.id}/image`,
+          { method: "POST", body: form }
+        );
+      }
+      return created;
+    },
     onSuccess: () => {
       setRoomForm({ name: "", floor: 1, capacity: 6 });
+      setRoomImage(null);
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    }
+  });
+  const uploadRoomImage = useMutation({
+    mutationFn: ({ roomId, file }: { roomId: string; file: File }) => {
+      const form = new FormData();
+      form.set("image", file);
+      return api<{ imageUrl: string }>(
+        `/api/admin/rooms/${roomId}/image`,
+        { method: "POST", body: form }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+    }
+  });
+  const removeRoomImage = useMutation({
+    mutationFn: (roomId: string) =>
+      api<void>(`/api/admin/rooms/${roomId}/image`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
     }
   });
   const createBlock = useMutation({
@@ -277,13 +312,45 @@ function RoomsAdmin() {
         <div className="room-admin-list">
           {rooms.data?.rooms.map((room) => (
             <div className="room-admin-row" key={room.id}>
-              <span className="room-symbol">{room.name.slice(0, 1)}</span>
-              <div>
+              <RoomVisual room={room} size="compact" />
+              <div className="room-admin-row__copy">
                 <strong>{room.name}</strong>
                 <span>
                   {room.floor} поверх · {room.capacity} місць ·{" "}
                   {room.workStart}–{room.workEnd}
                 </span>
+              </div>
+              <div className="room-image-actions">
+                <label className="room-image-action">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) uploadRoomImage.mutate({ roomId: room.id, file });
+                      event.target.value = "";
+                    }}
+                  />
+                  {uploadRoomImage.isPending &&
+                  uploadRoomImage.variables?.roomId === room.id
+                    ? "Обробляємо…"
+                    : room.imageUrl
+                      ? "Замінити"
+                      : "Додати фото"}
+                </label>
+                {room.imageUrl && (
+                  <button
+                    type="button"
+                    className="room-image-remove"
+                    disabled={
+                      removeRoomImage.isPending &&
+                      removeRoomImage.variables === room.id
+                    }
+                    onClick={() => removeRoomImage.mutate(room.id)}
+                  >
+                    Прибрати
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -333,6 +400,35 @@ function RoomsAdmin() {
               />
             </label>
           </div>
+          <label className="upload-box">
+            <span>
+              <strong>Фото кімнати</strong>
+              <small>
+                JPG, PNG чи WebP — автоматично кадруємо до широкого формату
+              </small>
+            </span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) =>
+                setRoomImage(event.target.files?.[0] ?? null)
+              }
+            />
+            <em>{roomImage ? roomImage.name : "Обрати файл"}</em>
+          </label>
+          {(createRoom.error ||
+            uploadRoomImage.error ||
+            removeRoomImage.error) && (
+            <div className="form-error">
+              {createRoom.error instanceof ApiError
+                ? createRoom.error.message
+                : uploadRoomImage.error instanceof ApiError
+                  ? uploadRoomImage.error.message
+                  : removeRoomImage.error instanceof ApiError
+                    ? removeRoomImage.error.message
+                  : "Не вдалося зберегти фото кімнати"}
+            </div>
+          )}
           <button className="button button--secondary">Додати</button>
         </form>
       </section>

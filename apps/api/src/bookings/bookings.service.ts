@@ -23,6 +23,7 @@ interface RoomRow {
   capacity: number;
   work_start: string;
   work_end: string;
+  image_path: string | null;
   active: boolean;
 }
 
@@ -64,7 +65,15 @@ export class BookingsService {
 
     const room = await this.database.query<RoomRow>(
       `
-        select id, name, floor, capacity, work_start::text, work_end::text, active
+        select
+          id,
+          name,
+          floor,
+          capacity,
+          work_start::text,
+          work_end::text,
+          image_path,
+          active
         from rooms where id = $1
       `,
       [roomId]
@@ -153,7 +162,10 @@ export class BookingsService {
         floor: room.rows[0].floor,
         capacity: room.rows[0].capacity,
         workStart: room.rows[0].work_start.slice(0, 5),
-        workEnd: room.rows[0].work_end.slice(0, 5)
+        workEnd: room.rows[0].work_end.slice(0, 5),
+        imageUrl: room.rows[0].image_path
+          ? `/uploads/${room.rows[0].image_path}`
+          : null
       },
       bookings: bookings.rows.map((booking) => ({
         id: booking.id,

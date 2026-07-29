@@ -11,6 +11,7 @@ import {
 import { useI18n } from "../lib/i18n";
 import type { Booking, Room, Schedule, User } from "../types";
 import { Avatar } from "../components/Avatar";
+import { RoomVisual } from "../components/RoomVisual";
 import {
   BookingDialog,
   type BookingDraft
@@ -124,9 +125,12 @@ export function CalendarPage({ user }: { user: User }) {
     <div className="page calendar-page">
       <header className="page-header calendar-toolbar">
         <div className="room-identity">
-          <div className="room-identity__visual" aria-hidden="true">
-            <span>{room?.name?.slice(0, 1) ?? "M"}</span>
-          </div>
+          <RoomVisual
+            room={{
+              name: room?.name ?? "Переговорні",
+              imageUrl: room?.imageUrl ?? null
+            }}
+          />
           <div>
             <span className="eyebrow">{t("calendar")}</span>
             <h1>{room?.name ?? "Переговорні"}</h1>

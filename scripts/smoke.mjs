@@ -166,6 +166,14 @@ async function main() {
   });
   check(roomsResult.body?.rooms?.length >= 2, "Expected at least two seeded rooms");
 
+  const colleagues = await request("/api/users/colleagues", {
+    headers: { cookie: userCookie }
+  });
+  check(
+    Array.isArray(colleagues.body?.users),
+    "Colleagues response must contain a resolved users array"
+  );
+
   const booking = await createAndCancelBooking(
     userCookie,
     roomsResult.body.rooms[1]
@@ -221,6 +229,53 @@ async function main() {
   });
   check(users.body?.users?.length >= 3, "Expected seeded users in admin response");
 
+  const roomImageForm = new FormData();
+  roomImageForm.set(
+    "image",
+    new Blob(
+      [
+        '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="18">' +
+          '<rect width="32" height="18" fill="#0878f9"/></svg>'
+      ],
+      { type: "image/svg+xml" }
+    ),
+    "smoke-room.svg"
+  );
+  const imageUpload = await fetch(
+    `${baseUrl}/api/admin/rooms/${roomsResult.body.rooms[0].id}/image`,
+    {
+      method: "POST",
+      headers: { cookie: adminCookie },
+      body: roomImageForm
+    }
+  );
+  const imageUploadBody = await imageUpload.json();
+  check(
+    imageUpload.ok && imageUploadBody?.imageUrl?.endsWith(".webp"),
+    `Room image upload failed: ${JSON.stringify(imageUploadBody)}`
+  );
+  const roomsWithImage = await request("/api/rooms", {
+    headers: { cookie: adminCookie }
+  });
+  check(
+    roomsWithImage.body.rooms[0].imageUrl === imageUploadBody.imageUrl,
+    "Uploaded room image was not returned by the rooms API"
+  );
+  await request(
+    `/api/admin/rooms/${roomsResult.body.rooms[0].id}/image`,
+    {
+      method: "DELETE",
+      headers: { cookie: adminCookie }
+    }
+  );
+  const roomsWithoutImage = await request("/api/rooms", {
+    headers: { cookie: adminCookie }
+  });
+  check(
+    roomsWithoutImage.body.rooms[0].imageUrl === null,
+    "Room image removal did not restore the placeholder state"
+  );
+
   const audit = await request("/api/admin/audit", {
     headers: { cookie: adminCookie }
   });
@@ -228,7 +283,7 @@ async function main() {
 
   console.log(
     `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/cancel, ` +
-      "events, preferences and administration"
+      "colleagues, events, preferences, room image lifecycle and administration"
   );
 }
 

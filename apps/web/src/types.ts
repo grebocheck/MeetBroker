@@ -24,6 +24,7 @@ export interface Room {
   capacity: number;
   workStart: string;
   workEnd: string;
+  imageUrl: string | null;
 }
 
 export interface Person {
