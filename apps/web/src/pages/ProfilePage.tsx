@@ -4,12 +4,21 @@ import { api, ApiError } from "../lib/api";
 import type { Theme, User } from "../types";
 import { Avatar } from "../components/Avatar";
 
+type NotificationCategory =
+  | "INVITATIONS"
+  | "CHANGES"
+  | "REMINDERS"
+  | "ACCESS";
+type NotificationChannel = "IN_APP" | "EMAIL" | "TELEGRAM";
+
+interface NotificationSubscription {
+  category: NotificationCategory;
+  channel: NotificationChannel;
+  enabled: boolean;
+}
+
 interface Preferences {
-  emailEnabled: boolean;
-  telegramEnabled: boolean;
-  invitations: boolean;
-  changes: boolean;
-  reminders: boolean;
+  subscriptions: NotificationSubscription[];
   telegramConnected: boolean;
   telegramAvailable: boolean;
 }
@@ -63,7 +72,11 @@ export function ProfilePage({ user }: { user: User }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me"] })
   });
   const updatePreferences = useMutation({
-    mutationFn: (next: Partial<Preferences>) =>
+    mutationFn: (next: {
+      category: NotificationCategory;
+      channel: NotificationChannel;
+      enabled: boolean;
+    }) =>
       api<Preferences>("/api/notifications/preferences", {
         method: "PATCH",
         body: JSON.stringify(next)
@@ -250,14 +263,6 @@ export function ProfilePage({ user }: { user: User }) {
           </div>
           {preferences.data && (
             <div className="preference-list">
-              <PreferenceToggle
-                label="Email"
-                description={user.email}
-                checked={preferences.data.emailEnabled}
-                onChange={(emailEnabled) =>
-                  updatePreferences.mutate({ emailEnabled })
-                }
-              />
               <div className="integration-row">
                 <div>
                   <strong>Telegram</strong>
@@ -290,54 +295,72 @@ export function ProfilePage({ user }: { user: User }) {
                 )}
               </div>
               <hr />
-              {(
-                [
-                  ["invitations", "Нові запрошення"],
-                  ["changes", "Зміни й скасування"],
-                  ["reminders", "Нагадування"]
-                ] as const
-              ).map(([key, label]) => (
-                <PreferenceToggle
-                  key={key}
-                  label={label}
-                  description="Внутрішні та підключені зовнішні канали"
-                  checked={preferences.data[key]}
-                  onChange={(value) =>
-                    updatePreferences.mutate({ [key]: value })
-                  }
-                />
-              ))}
+              <div className="notification-matrix">
+                <div className="notification-matrix__header">
+                  <span>Група</span>
+                  <span>У застосунку</span>
+                  <span>Email</span>
+                  <span>Telegram</span>
+                </div>
+                {(
+                  [
+                    ["INVITATIONS", "Нові запрошення"],
+                    ["CHANGES", "Зміни й скасування"],
+                    ["REMINDERS", "Нагадування"],
+                    ["ACCESS", "Доступ і безпека"]
+                  ] as const
+                ).map(([category, label]) => (
+                  <div className="notification-matrix__row" key={category}>
+                    <strong>{label}</strong>
+                    {(
+                      ["IN_APP", "EMAIL", "TELEGRAM"] as const
+                    ).map((channel) => {
+                      const checked =
+                        preferences.data.subscriptions.find(
+                          (item) =>
+                            item.category === category &&
+                            item.channel === channel
+                        )?.enabled ?? false;
+                      const disabled =
+                        channel === "TELEGRAM" &&
+                        (!preferences.data.telegramAvailable ||
+                          !preferences.data.telegramConnected);
+                      return (
+                        <label
+                          key={channel}
+                          title={
+                            disabled
+                              ? "Спочатку підключіть Telegram"
+                              : `${label}: ${channel}`
+                          }
+                        >
+                          <input
+                            className="switch"
+                            type="checkbox"
+                            checked={checked}
+                            disabled={disabled}
+                            onChange={(event) =>
+                              updatePreferences.mutate({
+                                category,
+                                channel,
+                                enabled: event.target.checked
+                              })
+                            }
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+              <small>
+                Канали налаштовуються незалежно: наприклад, запрошення можна
+                отримувати в Telegram, а нагадування — лише у застосунку.
+              </small>
             </div>
           )}
         </section>
       </div>
     </div>
-  );
-}
-
-function PreferenceToggle({
-  label,
-  description,
-  checked,
-  onChange
-}: {
-  label: string;
-  description: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <label className="preference-row">
-      <span>
-        <strong>{label}</strong>
-        <small>{description}</small>
-      </span>
-      <input
-        className="switch"
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-    </label>
   );
 }

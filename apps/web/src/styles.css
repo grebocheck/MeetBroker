@@ -1272,6 +1272,50 @@ hr {
   font-size: 0.68rem;
 }
 
+.notification-matrix {
+  overflow-x: auto;
+  margin: 8px 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.notification-matrix__header,
+.notification-matrix__row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) repeat(3, minmax(88px, 0.55fr));
+  align-items: center;
+  min-width: 510px;
+}
+
+.notification-matrix__header {
+  min-height: 44px;
+  color: var(--text-muted);
+  background: var(--surface-soft);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.notification-matrix__row {
+  min-height: 58px;
+  border-top: 1px solid var(--border);
+}
+
+.notification-matrix__header > *,
+.notification-matrix__row > * {
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.notification-matrix__header > :first-child,
+.notification-matrix__row > :first-child {
+  text-align: left;
+}
+
+.notification-matrix__row label {
+  display: flex;
+  justify-content: center;
+}
+
 .switch {
   width: 42px;
   height: 23px;
@@ -1299,6 +1343,11 @@ hr {
 
 .switch:checked::after {
   transform: translateX(19px);
+}
+
+.switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .admin-page {
