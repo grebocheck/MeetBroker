@@ -61,12 +61,12 @@ export class UsersController {
 
   @Approved()
   @Get("colleagues")
-  listColleagues(
+  async listColleagues(
     @Req() request: AuthenticatedRequest,
     @Query("search") search?: string
   ) {
     return {
-      users: this.users.listColleagues(request.user.id, search)
+      users: await this.users.listColleagues(request.user.id, search)
     };
   }
 }

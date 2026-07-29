@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { toDateTimeLocal } from "../lib/date";
@@ -31,12 +31,11 @@ export function BookingDialog({
     queryFn: () => api<{ users: Person[] }>("/api/users/colleagues")
   });
   const availableSeats = Math.max(0, room.capacity - 1);
-  const selected = useMemo(
-    () =>
-      colleagues.data?.users.filter((user) =>
-        participantIds.includes(user.id)
-      ) ?? [],
-    [colleagues.data, participantIds]
+  const colleagueUsers = Array.isArray(colleagues.data?.users)
+    ? colleagues.data.users
+    : [];
+  const selected = colleagueUsers.filter((user) =>
+    participantIds.includes(user.id)
   );
   const create = useMutation({
     mutationFn: () =>
@@ -140,9 +139,14 @@ export function BookingDialog({
             </div>
             {colleagues.isLoading ? (
               <div className="subtle-box">Завантажуємо колег…</div>
+            ) : colleagues.isError ? (
+              <div className="form-error" role="alert">
+                Не вдалося завантажити список колег. Бронювання можна створити
+                без запрошень.
+              </div>
             ) : (
               <div className="people-picker">
-                {colleagues.data?.users.map((person) => {
+                {colleagueUsers.map((person) => {
                   const checked = participantIds.includes(person.id);
                   return (
                     <label
