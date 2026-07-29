@@ -47,6 +47,21 @@ async function request(path, options = {}) {
   return { response, body };
 }
 
+async function waitForReady(timeoutMs = 20_000) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError;
+  while (Date.now() < deadline) {
+    try {
+      const health = await request("/api/health");
+      if (health.body?.status === "ok") return;
+    } catch (error) {
+      lastError = error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw lastError ?? new Error("Application did not become ready");
+}
+
 async function login(credentials) {
   const { response, body } = await request("/api/auth/login", {
     method: "POST",
@@ -137,15 +152,13 @@ async function createAndCancelBooking(cookie, room) {
 
 async function main() {
   console.log(`Smoke checking ${baseUrl}`);
+  await waitForReady();
 
   const home = await request("/");
   check(
     typeof home.body === "string" && home.body.includes('<div id="root">'),
     "Frontend entry page is missing"
   );
-
-  const health = await request("/api/health");
-  check(health.body?.status === "ok", "Health endpoint is not healthy");
 
   const userCookie = await login(userCredentials);
   const roomsResult = await request("/api/rooms", {
