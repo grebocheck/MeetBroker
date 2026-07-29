@@ -7,3 +7,4 @@ coverage/
 storage/uploads/*
 !storage/uploads/.gitkeep
 .DS_Store
+.codebase-memory/
