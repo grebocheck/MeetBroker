@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Patch,
   Post,
   Query,
@@ -12,6 +13,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { AuthenticatedRequest } from "../common/types";
+import { apiError } from "../common/http-error";
 import { Approved } from "../auth/auth.decorators";
 import { UpdateProfileDto } from "./users.dto";
 import { UsersService } from "./users.service";
@@ -48,7 +50,11 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File
   ) {
     if (!file || file.size > this.maxAvatarBytes) {
-      throw new Error("Avatar file is required");
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "AVATAR_REQUIRED",
+        "Avatar file is required and must not exceed 2 MB"
+      );
     }
     return this.users.saveAvatar(request.user.id, file);
   }

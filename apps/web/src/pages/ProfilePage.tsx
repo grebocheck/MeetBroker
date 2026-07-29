@@ -16,6 +16,7 @@ interface Preferences {
 
 export function ProfilePage({ user }: { user: User }) {
   const queryClient = useQueryClient();
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [profile, setProfile] = useState({
     name: user.name,
     bio: user.bio ?? "",
@@ -33,9 +34,13 @@ export function ProfilePage({ user }: { user: User }) {
     mutationFn: () =>
       api<{ user: User }>("/api/users/me", {
         method: "PATCH",
-        body: JSON.stringify(profile)
+        body: JSON.stringify({
+          ...profile,
+          avatarPreset: selectedPreset ?? undefined
+        })
       }),
     onSuccess: ({ user: updated }) => {
+      setSelectedPreset(null);
       queryClient.setQueryData(["me"], { user: updated });
       const resolved =
         updated.theme === "SYSTEM"
@@ -105,7 +110,7 @@ export function ProfilePage({ user }: { user: User }) {
             <Avatar
               name={profile.name}
               preset={profile.avatarPreset}
-              url={user.avatarUrl}
+              url={selectedPreset ? null : user.avatarUrl}
               size="lg"
             />
           </div>
@@ -147,7 +152,10 @@ export function ProfilePage({ user }: { user: User }) {
                         profile.avatarPreset === preset ? "is-selected" : ""
                       }
                       onClick={() =>
-                        setProfile({ ...profile, avatarPreset: preset })
+                        {
+                          setProfile({ ...profile, avatarPreset: preset });
+                          setSelectedPreset(preset);
+                        }
                       }
                       aria-label={`Аватар ${index + 1}`}
                     >

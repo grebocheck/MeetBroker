@@ -58,6 +58,12 @@ export class UsersService {
       );
     }
 
+    const previous = dto.avatarPreset
+      ? await this.database.query<{ avatar_path: string | null }>(
+          "select avatar_path from users where id = $1",
+          [userId]
+        )
+      : null;
     const result = await this.database.query<ProfileRow>(
       `
         update users
@@ -65,6 +71,7 @@ export class UsersService {
           name = coalesce($2, name),
           bio = case when $3::boolean then nullif(trim($4), '') else bio end,
           avatar_preset = coalesce($5, avatar_preset),
+          avatar_path = case when $5::text is not null then null else avatar_path end,
           locale = coalesce($6, locale),
           theme = coalesce($7, theme),
           timezone = case when $8::boolean then nullif($9, '') else timezone end,
@@ -84,6 +91,10 @@ export class UsersService {
         dto.timezone ?? null
       ]
     );
+    const previousPath = previous?.rows[0]?.avatar_path;
+    if (previousPath) {
+      await unlink(resolve(this.uploadDir, previousPath)).catch(() => undefined);
+    }
     return this.toCurrentUser(result.rows[0]);
   }
 
@@ -113,11 +124,14 @@ export class UsersService {
     });
 
     const previous = await this.database.query<{ avatar_path: string | null }>(
+      "select avatar_path from users where id = $1",
+      [userId]
+    );
+    await this.database.query(
       `
         update users
         set avatar_path = $2, updated_at = now()
         where id = $1
-        returning avatar_path
       `,
       [userId, filename]
     );
