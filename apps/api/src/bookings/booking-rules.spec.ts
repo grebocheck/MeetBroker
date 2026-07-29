@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest";
+import { intervalsOverlap, validateBookingRules } from "./booking-rules";
+
+describe("intervalsOverlap", () => {
+  it("allows adjacent intervals", () => {
+    expect(
+      intervalsOverlap(
+        new Date("2026-08-10T07:00:00Z"),
+        new Date("2026-08-10T08:00:00Z"),
+        new Date("2026-08-10T08:00:00Z"),
+        new Date("2026-08-10T09:00:00Z")
+      )
+    ).toBe(false);
+  });
+
+  it("detects partial overlap", () => {
+    expect(
+      intervalsOverlap(
+        new Date("2026-08-10T07:00:00Z"),
+        new Date("2026-08-10T08:00:00Z"),
+        new Date("2026-08-10T07:30:00Z"),
+        new Date("2026-08-10T08:30:00Z")
+      )
+    ).toBe(true);
+  });
+
+  it("detects a full match", () => {
+    const start = new Date("2026-08-10T07:00:00Z");
+    const end = new Date("2026-08-10T08:00:00Z");
+    expect(intervalsOverlap(start, end, start, end)).toBe(true);
+  });
+
+  it("does not overlap equal times on neighboring days", () => {
+    expect(
+      intervalsOverlap(
+        new Date("2026-08-10T07:00:00Z"),
+        new Date("2026-08-10T08:00:00Z"),
+        new Date("2026-08-11T07:00:00Z"),
+        new Date("2026-08-11T08:00:00Z")
+      )
+    ).toBe(false);
+  });
+});
+
+describe("validateBookingRules", () => {
+  it("accepts a valid Kyiv office interval", () => {
+    expect(
+      validateBookingRules({
+        startsAt: new Date("2026-08-10T07:00:00Z"),
+        endsAt: new Date("2026-08-10T08:00:00Z"),
+        now: new Date("2026-08-01T00:00:00Z"),
+        officeTimeZone: "Europe/Kyiv",
+        workStart: "09:00",
+        workEnd: "19:00"
+      })
+    ).toBeNull();
+  });
+
+  it("rejects a booking outside office hours", () => {
+    expect(
+      validateBookingRules({
+        startsAt: new Date("2026-08-10T05:00:00Z"),
+        endsAt: new Date("2026-08-10T06:00:00Z"),
+        now: new Date("2026-08-01T00:00:00Z"),
+        officeTimeZone: "Europe/Kyiv",
+        workStart: "09:00",
+        workEnd: "19:00"
+      })
+    ).toBe("OUTSIDE_WORKING_HOURS");
+  });
+});
