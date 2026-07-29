@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "ea30ef1d55f9f9c5d3cd7bf00bb7ae97e0e5afd4",
-    "indexed_at": "2026-07-29T11:47:31Z",
+    "commit": "5f3a766b808b74146bb39576430614dcd9829778",
+    "indexed_at": "2026-07-29T11:50:23Z",
     "project": "meetbroker",
     "nodes": 651,
     "edges": 1530,
     "original_size": 2228224,
-    "compressed_size": 179974,
+    "compressed_size": 180000,
     "compression_level": 3
 }
