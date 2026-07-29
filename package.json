@@ -13,6 +13,8 @@
     "typecheck": "npm run typecheck --workspace @meetbroker/api && npm run typecheck --workspace @meetbroker/web",
     "smoke": "node scripts/smoke.mjs",
     "db:migrate": "npm run db:migrate --workspace @meetbroker/api",
+    "db:migrate:status": "npm run db:migrate:status --workspace @meetbroker/api",
+    "db:migrate:create": "npm run db:migrate:create --workspace @meetbroker/api --",
     "db:seed": "npm run db:seed --workspace @meetbroker/api"
   },
   "engines": {

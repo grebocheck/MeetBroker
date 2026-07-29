@@ -19,6 +19,7 @@ COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 RUN npm ci --omit=dev
 COPY --from=build /app/apps/api/dist apps/api/dist
+COPY apps/api/src/database/migrate.mjs apps/api/src/database/migrate.mjs
 COPY apps/api/src/database/migrations apps/api/src/database/migrations
 RUN mkdir -p storage/uploads
 EXPOSE 3000
