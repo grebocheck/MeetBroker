@@ -2,7 +2,7 @@
 
 Дата генерації: 2026-07-29  
 Режим: вбудований `imagegen`  
-Призначення: референси для вибору, не production-ready assets
+Призначення: дизайн-референси та production sprite sheet аватарів
 
 ## Файли
 
@@ -11,7 +11,7 @@
 | `assets/design-concepts/kyiv-light-calendar.png` | 1586×992 | Світлий корпоративний календар |
 | `assets/design-concepts/orbit-calendar.png` | 1586×992 | Контрастний технологічний календар |
 | `assets/design-concepts/dobra-calendar.png` | 1568×1003 | Теплий календар із карткою профілю |
-| `assets/avatar-concepts/editorial-avatar-sheet.png` | 1448×1086 | Стилістичний аркуш із 12 аватарами |
+| `assets/avatar-concepts/editorial-avatar-sheet.png` | 1448×1086 | Production sprite sheet із 12 аватарами |
 
 ## Нормалізовані промпти
 
@@ -40,20 +40,22 @@
 > Ukrainian labels and accessible contrast. Calendar remains dominant. No
 > childish illustration, heavy shadows, gradients or marketing layout.
 
-### Editorial avatar sheet
+### Flowing blue avatar sheet
 
-> Cohesive 4×3 sheet of twelve diverse adult professional illustrated
-> avatars. Refined flat editorial style, consistent head-and-shoulders crop,
-> readable at 48px, varied faces and several identity-neutral characters.
-> Forest green, Kyiv blue, teal, amber, coral, plum and warm neutrals. No
-> text, logos, photorealism, stereotypes, gradients or repeated faces.
+> Production avatar sprite sheet for a corporate meeting-room application.
+> Preserve the exact 4×3 grid topology, equal tile dimensions and one
+> centered head-and-shoulders portrait per tile. Completely redesign all
+> twelve professionals in a polished vector-like editorial style with
+> geometric shapes, diagonal cuts and subtle water-flow arcs. Use navy,
+> cobalt, cyan, ice blue and small hot-pink signal accents. Keep all faces
+> distinct and diverse. No text, logos, copied characters, watermarks,
+> photorealism or content crossing cell boundaries.
 
 ## Обмеження використання
 
 - текст усередині mockup-зображень може містити генеративні неточності;
 - демонстраційні дати й люди не є тестовими даними продукту;
 - mockup не визначає точні відступи або CSS tokens;
-- аркуш аватарів не використовується як sprite sheet;
-- перед production-використанням аватари мають бути окремими оптимізованими
-  файлами з підтвердженими правами та стабільними ID.
-
+- аркуш аватарів використовується як sprite sheet із контрактом 4×3;
+- стабільні ID `avatar-01`…`avatar-12` залежать від порядку клітинок, тому
+  геометрію аркуша не можна змінювати без міграції профілів.
