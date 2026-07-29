@@ -2281,6 +2281,147 @@ hr {
   gap: 18px;
 }
 
+.admin-booking-toolbar {
+  flex-wrap: wrap;
+}
+
+.admin-booking-search {
+  display: flex;
+  min-width: min(100%, 360px);
+  flex: 1;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-booking-search .field {
+  width: min(100%, 310px);
+}
+
+.admin-booking-search input {
+  min-height: 36px;
+}
+
+.admin-booking-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-booking-row {
+  display: grid;
+  align-items: center;
+  min-height: 84px;
+  padding: 12px;
+  grid-template-columns: minmax(104px, 0.34fr) minmax(240px, 1fr) auto;
+  gap: 18px;
+  border-bottom: 1px solid var(--border);
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.admin-booking-row:hover {
+  background: color-mix(in srgb, var(--surface-muted) 72%, transparent);
+}
+
+.admin-booking-row > time,
+.admin-booking-row__main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-booking-row > time strong {
+  font-family: "Unbounded Variable", sans-serif;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.admin-booking-row > time span,
+.admin-booking-row__main > span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-booking-row__title {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-booking-row__title > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-booking-modal {
+  width: min(650px, 100%);
+}
+
+.admin-booking-organizer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.admin-booking-organizer > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-booking-organizer span,
+.admin-booking-organizer small,
+.admin-booking-participants > span,
+.admin-booking-participants small {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.admin-booking-organizer strong,
+.admin-booking-organizer small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-booking-participants {
+  display: flex;
+  max-height: 210px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 3px 16px 3px 16px;
+  background: var(--surface-muted);
+}
+
+.admin-booking-participants > strong {
+  margin-bottom: 4px;
+}
+
+.admin-booking-participants > div {
+  display: grid;
+  align-items: center;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 9px;
+}
+
+.admin-booking-participants .avatar {
+  width: 30px;
+  height: 30px;
+}
+
 .result-count {
   color: var(--text-muted);
   font-size: 0.7rem;
@@ -2938,6 +3079,34 @@ hr {
 
   .admin-user-row {
     grid-template-columns: 42px 1fr;
+  }
+
+  .tabs {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .tabs button {
+    flex: 0 0 auto;
+  }
+
+  .admin-booking-search,
+  .admin-booking-search .field {
+    width: 100%;
+  }
+
+  .admin-booking-search {
+    min-width: 100%;
+  }
+
+  .admin-booking-row {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .admin-booking-row > button {
+    justify-self: start;
+    grid-column: 2;
   }
 
   .admin-user-row__status,

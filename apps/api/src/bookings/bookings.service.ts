@@ -868,13 +868,16 @@ export class BookingsService {
           "Only the organizer can cancel this booking"
         );
       }
-      if (user.role === "ADMIN" && booking.organizer_id !== user.id) {
-        const reason = dto.reason?.trim();
-        if (!reason) {
+      const isAdministrativeCancellation =
+        user.role === "ADMIN" && booking.organizer_id !== user.id;
+      const cancellationReason = dto.reason?.trim();
+      if (isAdministrativeCancellation) {
+        const reason = cancellationReason;
+        if (!reason || reason.length < 3) {
           throw apiError(
             HttpStatus.BAD_REQUEST,
             "CANCELLATION_REASON_REQUIRED",
-            "Administrator must provide a cancellation reason"
+            "Administrator must provide a cancellation reason of at least 3 characters"
           );
         }
         await client.query(
@@ -904,14 +907,22 @@ export class BookingsService {
         "select user_id from booking_participants where booking_id = $1",
         [bookingId]
       );
-      for (const participant of participants.rows) {
+      const recipientIds = new Set(
+        participants.rows.map((participant) => participant.user_id)
+      );
+      if (isAdministrativeCancellation) {
+        recipientIds.add(booking.organizer_id);
+      }
+      for (const recipientId of recipientIds) {
         await this.notifications.enqueue(client, {
-          eventKey: `booking:${bookingId}:cancel:${participant.user_id}`,
-          userId: participant.user_id,
+          eventKey: `booking:${bookingId}:cancel:${recipientId}`,
+          userId: recipientId,
           type: "BOOKING_CANCELLED",
           category: "CHANGES",
           title: "Зустріч скасовано",
-          body: `Зустріч «${booking.title}» було скасовано.`,
+          body: cancellationReason
+            ? `Зустріч «${booking.title}» було скасовано. Причина: ${cancellationReason}.`
+            : `Зустріч «${booking.title}» було скасовано.`,
           bookingId
         });
       }

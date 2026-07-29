@@ -35,8 +35,39 @@ interface AuditLog {
   actorName: string | null;
 }
 
+interface AdminBookingPerson {
+  id: string;
+  name: string;
+  email: string;
+  avatarPreset: string;
+  avatarUrl: string | null;
+}
+
+interface AdminBooking {
+  id: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  participationMode: "INVITE_ONLY" | "OPEN";
+  overrideReason: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  cancelledByName: string | null;
+  room: {
+    id: string;
+    name: string;
+    floor: number;
+  };
+  organizer: AdminBookingPerson;
+  participants: (AdminBookingPerson & {
+    status: "INVITED" | "ACCEPTED" | "DECLINED";
+  })[];
+}
+
 export function AdminPage() {
-  const [section, setSection] = useState<"users" | "rooms" | "audit">("users");
+  const [section, setSection] = useState<
+    "users" | "bookings" | "rooms" | "audit"
+  >("users");
   return (
     <div className="page admin-page">
       <header className="page-header">
@@ -54,6 +85,12 @@ export function AdminPage() {
           Користувачі
         </button>
         <button
+          className={section === "bookings" ? "is-active" : ""}
+          onClick={() => setSection("bookings")}
+        >
+          Бронювання
+        </button>
+        <button
           className={section === "rooms" ? "is-active" : ""}
           onClick={() => setSection("rooms")}
         >
@@ -67,8 +104,399 @@ export function AdminPage() {
         </button>
       </div>
       {section === "users" && <UsersAdmin />}
+      {section === "bookings" && <BookingsAdmin />}
       {section === "rooms" && <RoomsAdmin />}
       {section === "audit" && <AuditAdmin />}
+    </div>
+  );
+}
+
+function BookingsAdmin() {
+  const queryClient = useQueryClient();
+  const [status, setStatus] = useState("upcoming");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<AdminBooking | null>(null);
+  const [reason, setReason] = useState("");
+  const query = new URLSearchParams({ status });
+  if (search) query.set("search", search);
+  const bookings = useQuery({
+    queryKey: ["admin-bookings", status, search],
+    queryFn: () =>
+      api<{ bookings: AdminBooking[] }>(
+        `/api/admin/bookings?${query.toString()}`
+      )
+  });
+  const cancelBooking = useMutation({
+    mutationFn: ({
+      id,
+      cancellationReason
+    }: {
+      id: string;
+      cancellationReason: string;
+    }) =>
+      api<void>(`/api/bookings/${id}`, {
+        method: "DELETE",
+        body: JSON.stringify({ reason: cancellationReason })
+      }),
+    onSuccess: async () => {
+      setSelected(null);
+      setReason("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-bookings"] }),
+        queryClient.invalidateQueries({ queryKey: ["schedule"] }),
+        queryClient.invalidateQueries({ queryKey: ["bookings-mine"] }),
+        queryClient.invalidateQueries({ queryKey: ["audit"] })
+      ]);
+    }
+  });
+
+  return (
+    <>
+      <section className="admin-card">
+        <div className="admin-card__toolbar admin-booking-toolbar">
+          <div className="segmented">
+            {[
+              ["upcoming", "Майбутні"],
+              ["past", "Минулі"],
+              ["cancelled", "Скасовані"],
+              ["", "Усі"]
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                className={status === value ? "is-active" : ""}
+                onClick={() => setStatus(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <form
+            className="admin-booking-search"
+            role="search"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setSearch(searchInput.trim());
+            }}
+          >
+            <label className="field">
+              <span className="sr-only">Пошук бронювань</span>
+              <input
+                type="search"
+                placeholder="Назва, кімната або організатор"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+              />
+            </label>
+            <button className="button button--secondary button--small">
+              Знайти
+            </button>
+          </form>
+          <span className="result-count">
+            {bookings.data?.bookings.length ?? 0} бронювань
+          </span>
+        </div>
+
+        {bookings.isLoading ? (
+          <div className="subtle-box">Завантажуємо бронювання…</div>
+        ) : bookings.error ? (
+          <div className="form-error">
+            {bookings.error instanceof ApiError
+              ? bookings.error.message
+              : "Не вдалося завантажити бронювання"}
+          </div>
+        ) : bookings.data?.bookings.length === 0 ? (
+          <div className="empty-inline">
+            За цими умовами бронювань не знайдено.
+          </div>
+        ) : (
+          <div className="admin-booking-list">
+            {bookings.data?.bookings.map((booking) => {
+              const startsAt = new Date(booking.startsAt);
+              const endsAt = new Date(booking.endsAt);
+              const isPast = endsAt <= new Date();
+              return (
+                <article className="admin-booking-row" key={booking.id}>
+                  <time dateTime={booking.startsAt}>
+                    <strong>
+                      {new Intl.DateTimeFormat("uk-UA", {
+                        day: "2-digit",
+                        month: "short"
+                      }).format(startsAt)}
+                    </strong>
+                    <span>
+                      {new Intl.DateTimeFormat("uk-UA", {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      }).format(startsAt)}
+                      {" — "}
+                      {new Intl.DateTimeFormat("uk-UA", {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      }).format(endsAt)}
+                    </span>
+                  </time>
+                  <div className="admin-booking-row__main">
+                    <div className="admin-booking-row__title">
+                      <strong>{booking.title}</strong>
+                      <span
+                        className={`status-badge ${
+                          booking.cancelledAt
+                            ? "status-badge--warning"
+                            : ""
+                        }`}
+                      >
+                        {booking.cancelledAt
+                          ? "Скасовано"
+                          : isPast
+                            ? "Завершено"
+                            : booking.participationMode === "OPEN"
+                              ? "Відкрита подія"
+                              : "Запрошення"}
+                      </span>
+                    </div>
+                    <span>
+                      {booking.room.name}, {booking.room.floor} поверх ·{" "}
+                      {booking.organizer.name} ·{" "}
+                      {booking.participants.length} учасників
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="button button--secondary button--small"
+                    onClick={() => {
+                      cancelBooking.reset();
+                      setReason("");
+                      setSelected(booking);
+                    }}
+                  >
+                    Деталі
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {selected && (
+        <AdminBookingDialog
+          booking={selected}
+          reason={reason}
+          onReasonChange={setReason}
+          pending={cancelBooking.isPending}
+          error={cancelBooking.error}
+          onClose={() => {
+            if (!cancelBooking.isPending) {
+              setSelected(null);
+              setReason("");
+              cancelBooking.reset();
+            }
+          }}
+          onCancel={() =>
+            cancelBooking.mutate({
+              id: selected.id,
+              cancellationReason: reason.trim()
+            })
+          }
+        />
+      )}
+    </>
+  );
+}
+
+function AdminBookingDialog({
+  booking,
+  reason,
+  onReasonChange,
+  pending,
+  error,
+  onClose,
+  onCancel
+}: {
+  booking: AdminBooking;
+  reason: string;
+  onReasonChange: (value: string) => void;
+  pending: boolean;
+  error: unknown;
+  onClose: () => void;
+  onCancel: () => void;
+}) {
+  const startsAt = new Date(booking.startsAt);
+  const endsAt = new Date(booking.endsAt);
+  const canCancel = !booking.cancelledAt && endsAt > new Date();
+  const date = new Intl.DateTimeFormat("uk-UA", {
+    dateStyle: "full"
+  }).format(startsAt);
+  const time = new Intl.DateTimeFormat("uk-UA", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  const statusLabels = {
+    INVITED: "Запрошено",
+    ACCEPTED: "Бере участь",
+    DECLINED: "Відмовився"
+  };
+
+  return (
+    <div
+      className="modal-backdrop"
+      role="presentation"
+      onMouseDown={() => {
+        if (!pending) onClose();
+      }}
+    >
+      <section
+        className={`modal admin-booking-modal ${
+          canCancel ? "modal--confirm" : ""
+        }`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-booking-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="modal__header">
+          <div>
+            <span className={`eyebrow ${canCancel ? "eyebrow--danger" : ""}`}>
+              {canCancel ? "Адміністративна дія" : "Деталі бронювання"}
+            </span>
+            <h2 id="admin-booking-title">{booking.title}</h2>
+          </div>
+          <button
+            className="icon-button"
+            onClick={onClose}
+            aria-label="Закрити"
+            disabled={pending}
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="cancel-summary">
+          <dl>
+            <div>
+              <dt>Кімната</dt>
+              <dd>{booking.room.name}</dd>
+            </div>
+            <div>
+              <dt>Формат</dt>
+              <dd>
+                {booking.participationMode === "OPEN"
+                  ? "Відкрита подія"
+                  : "За запрошенням"}
+              </dd>
+            </div>
+            <div>
+              <dt>Дата</dt>
+              <dd>{date}</dd>
+            </div>
+            <div>
+              <dt>Час</dt>
+              <dd>
+                {time.format(startsAt)} — {time.format(endsAt)}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="admin-booking-organizer">
+          <Avatar
+            name={booking.organizer.name}
+            preset={booking.organizer.avatarPreset}
+            url={booking.organizer.avatarUrl}
+          />
+          <div>
+            <span>Організатор</span>
+            <strong>{booking.organizer.name}</strong>
+            <small>{booking.organizer.email}</small>
+          </div>
+        </div>
+
+        <div className="admin-booking-participants">
+          <strong>Учасники · {booking.participants.length}</strong>
+          {booking.participants.length === 0 ? (
+            <span>Додаткових учасників немає.</span>
+          ) : (
+            booking.participants.map((participant) => (
+              <div key={participant.id}>
+                <Avatar
+                  name={participant.name}
+                  preset={participant.avatarPreset}
+                  url={participant.avatarUrl}
+                />
+                <span>{participant.name}</span>
+                <small>{statusLabels[participant.status]}</small>
+              </div>
+            ))
+          )}
+        </div>
+
+        {booking.overrideReason && (
+          <div className="subtle-box">
+            <strong>Причина обходу недоступності:</strong>{" "}
+            {booking.overrideReason}
+          </div>
+        )}
+
+        {booking.cancelledAt && (
+          <div className="subtle-box">
+            <strong>Скасовано:</strong>{" "}
+            {new Intl.DateTimeFormat("uk-UA", {
+              dateStyle: "medium",
+              timeStyle: "short"
+            }).format(new Date(booking.cancelledAt))}
+            {booking.cancelledByName ? ` · ${booking.cancelledByName}` : ""}
+            {booking.cancellationReason
+              ? ` · Причина: ${booking.cancellationReason}`
+              : ""}
+          </div>
+        )}
+
+        {canCancel && (
+          <label className="field">
+            <span>Причина примусового скасування</span>
+            <textarea
+              value={reason}
+              onChange={(event) => onReasonChange(event.target.value)}
+              maxLength={300}
+              placeholder="Наприклад, бронювання порушує правила використання кімнати"
+              required
+            />
+            <small>
+              Організатор і учасники отримають цю причину в сповіщенні.
+            </small>
+          </label>
+        )}
+
+        {Boolean(error) && (
+          <div className="form-error" role="alert">
+            {error instanceof ApiError
+              ? error.message
+              : "Не вдалося скасувати бронювання"}
+          </div>
+        )}
+
+        <div className="modal__actions">
+          <button
+            type="button"
+            className="button button--secondary button--slanted"
+            onClick={onClose}
+            disabled={pending}
+          >
+            <span>Закрити</span>
+          </button>
+          {canCancel && (
+            <button
+              type="button"
+              className="button button--danger"
+              onClick={onCancel}
+              disabled={pending || reason.trim().length < 3}
+            >
+              {pending ? "Скасовуємо…" : "Скасувати бронювання"}
+            </button>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

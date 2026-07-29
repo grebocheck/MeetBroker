@@ -108,6 +108,139 @@ export class AdminService {
     }));
   }
 
+  async bookings(status?: string, search?: string, roomId?: string) {
+    const normalizedStatus = ["upcoming", "past", "cancelled"].includes(
+      status ?? ""
+    )
+      ? status
+      : "";
+    const result = await this.database.query<{
+      id: string;
+      title: string;
+      starts_at: Date;
+      ends_at: Date;
+      participation_mode: "INVITE_ONLY" | "OPEN";
+      override_reason: string | null;
+      cancelled_at: Date | null;
+      cancellation_reason: string | null;
+      cancelled_by_name: string | null;
+      room_id: string;
+      room_name: string;
+      room_floor: number;
+      organizer_id: string;
+      organizer_name: string;
+      organizer_email: string;
+      organizer_avatar_preset: string;
+      organizer_avatar_path: string | null;
+      participants: unknown;
+    }>(
+      `
+        select
+          b.id,
+          b.title,
+          b.starts_at,
+          b.ends_at,
+          b.participation_mode,
+          b.override_reason,
+          b.cancelled_at,
+          cancellation_audit.details->>'reason' as cancellation_reason,
+          canceller.name as cancelled_by_name,
+          r.id as room_id,
+          r.name as room_name,
+          r.floor as room_floor,
+          organizer.id as organizer_id,
+          organizer.name as organizer_name,
+          organizer.email as organizer_email,
+          organizer.avatar_preset as organizer_avatar_preset,
+          organizer.avatar_path as organizer_avatar_path,
+          coalesce(
+            (
+              select jsonb_agg(
+                jsonb_build_object(
+                  'id', participant.id,
+                  'name', participant.name,
+                  'email', participant.email,
+                  'avatarPreset', participant.avatar_preset,
+                  'avatarUrl', case
+                    when participant.avatar_path is not null
+                    then '/uploads/' || participant.avatar_path
+                    else null
+                  end,
+                  'status', bp.status
+                )
+                order by participant.name
+              )
+              from booking_participants bp
+              join users participant on participant.id = bp.user_id
+              where bp.booking_id = b.id
+            ),
+            '[]'::jsonb
+          ) as participants
+        from bookings b
+        join rooms r on r.id = b.room_id
+        join users organizer on organizer.id = b.organizer_id
+        left join users canceller on canceller.id = b.cancelled_by
+        left join lateral (
+          select details
+          from audit_logs
+          where action = 'BOOKING_CANCELLED_BY_ADMIN'
+            and target_type = 'BOOKING'
+            and target_id = b.id
+          order by created_at desc
+          limit 1
+        ) cancellation_audit on true
+        where
+          (
+            $1 = ''
+            or ($1 = 'upcoming' and b.cancelled_at is null and b.ends_at > now())
+            or ($1 = 'past' and b.cancelled_at is null and b.ends_at <= now())
+            or ($1 = 'cancelled' and b.cancelled_at is not null)
+          )
+          and (
+            $2 = ''
+            or b.title ilike '%' || $2 || '%'
+            or r.name ilike '%' || $2 || '%'
+            or organizer.name ilike '%' || $2 || '%'
+            or organizer.email ilike '%' || $2 || '%'
+          )
+          and ($3 = '' or r.id::text = $3)
+        order by
+          case when b.cancelled_at is null and b.ends_at > now() then 0 else 1 end,
+          case when b.cancelled_at is null and b.ends_at > now() then b.starts_at end asc,
+          b.starts_at desc
+        limit 100
+      `,
+      [normalizedStatus, search?.trim() ?? "", roomId?.trim() ?? ""]
+    );
+
+    return result.rows.map((booking) => ({
+      id: booking.id,
+      title: booking.title,
+      startsAt: booking.starts_at,
+      endsAt: booking.ends_at,
+      participationMode: booking.participation_mode,
+      overrideReason: booking.override_reason,
+      cancelledAt: booking.cancelled_at,
+      cancellationReason: booking.cancellation_reason,
+      cancelledByName: booking.cancelled_by_name,
+      room: {
+        id: booking.room_id,
+        name: booking.room_name,
+        floor: booking.room_floor
+      },
+      organizer: {
+        id: booking.organizer_id,
+        name: booking.organizer_name,
+        email: booking.organizer_email,
+        avatarPreset: booking.organizer_avatar_preset,
+        avatarUrl: booking.organizer_avatar_path
+          ? `/uploads/${booking.organizer_avatar_path}`
+          : null
+      },
+      participants: booking.participants
+    }));
+  }
+
   async approve(actorId: string, userId: string): Promise<void> {
     const result = await this.database.query(
       `

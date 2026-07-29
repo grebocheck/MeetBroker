@@ -51,6 +51,17 @@ export class AdminController {
     return { users: await this.admin.users(status, search) };
   }
 
+  @Get("bookings")
+  async bookings(
+    @Query("status") status?: string,
+    @Query("search") search?: string,
+    @Query("roomId") roomId?: string
+  ) {
+    return {
+      bookings: await this.admin.bookings(status, search, roomId)
+    };
+  }
+
   @Post("users/:id/approve")
   @HttpCode(204)
   async approve(

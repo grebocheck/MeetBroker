@@ -265,6 +265,23 @@ async function main() {
   });
   check(users.body?.users?.length >= 3, "Expected seeded users in admin response");
 
+  const managedBookings = await request(
+    "/api/admin/bookings?status=cancelled&search=Updated%20MVP%20smoke",
+    { headers: { cookie: adminCookie } }
+  );
+  const managedBooking = managedBookings.body?.bookings?.find(
+    (item) => item.id === booking.id
+  );
+  check(managedBooking, "Cancelled booking is missing from admin management");
+  check(
+    managedBooking.room?.id && managedBooking.organizer?.email,
+    "Admin booking details are incomplete"
+  );
+  check(
+    Array.isArray(managedBooking.participants),
+    "Admin booking participants must be resolved"
+  );
+
   const placeholderRoom = roomsResult.body.rooms.find(
     (room) => room.imageUrl === null
   );
@@ -325,7 +342,8 @@ async function main() {
 
   console.log(
     `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/update/cancel, ` +
-      "colleagues, events, preferences, room image lifecycle and administration"
+      "colleagues, events, preferences, booking management, room image lifecycle " +
+      "and administration"
   );
 }
 
