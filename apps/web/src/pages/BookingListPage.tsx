@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient
+} from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { navigate } from "../lib/router";
 import type { User } from "../types";
@@ -16,18 +20,28 @@ interface MyBooking {
   participantStatus: "INVITED" | "ACCEPTED" | "DECLINED" | null;
 }
 
+interface BookingPage {
+  bookings: MyBooking[];
+  hasMore: boolean;
+  nextOffset: number | null;
+}
+
 export function BookingListPage({ user }: { user: User }) {
   const [section, setSection] = useState<"future" | "past">("future");
   const [cancellingBooking, setCancellingBooking] =
     useState<MyBooking | null>(null);
   const queryClient = useQueryClient();
-  const bookings = useQuery({
+  const bookings = useInfiniteQuery({
     queryKey: ["my-bookings", section],
-    queryFn: () =>
-      api<{ bookings: MyBooking[] }>(
-        `/api/bookings/mine?section=${section}`
-      )
+    queryFn: ({ pageParam }) =>
+      api<BookingPage>(
+        `/api/bookings/mine?section=${section}&offset=${pageParam}`
+      ),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined
   });
+  const visibleBookings =
+    bookings.data?.pages.flatMap((page) => page.bookings) ?? [];
   const cancel = useMutation({
     mutationFn: (id: string) =>
       api<void>(`/api/bookings/${id}`, {
@@ -81,7 +95,7 @@ export function BookingListPage({ user }: { user: User }) {
 
       {bookings.isLoading ? (
         <ListSkeleton />
-      ) : bookings.isError ? (
+      ) : bookings.isError && visibleBookings.length === 0 ? (
         <div className="state-panel state-panel--error">
           <strong>Не вдалося завантажити бронювання</strong>
           <span>
@@ -93,7 +107,7 @@ export function BookingListPage({ user }: { user: User }) {
             Повторити
           </button>
         </div>
-      ) : bookings.data?.bookings.length === 0 ? (
+      ) : visibleBookings.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state__icon">○</span>
           <h2>
@@ -117,7 +131,7 @@ export function BookingListPage({ user }: { user: User }) {
         </div>
       ) : (
         <div className="booking-list">
-          {bookings.data?.bookings.map((booking) => {
+          {visibleBookings.map((booking) => {
             const organizer = booking.organizerId === user.id;
             return (
               <article className="booking-row" key={booking.id}>
@@ -208,6 +222,30 @@ export function BookingListPage({ user }: { user: User }) {
               </article>
             );
           })}
+          {bookings.hasNextPage && (
+            <div className="load-more-row">
+              <button
+                className="button button--secondary"
+                onClick={() => bookings.fetchNextPage()}
+                disabled={bookings.isFetchingNextPage}
+              >
+                {bookings.isFetchingNextPage
+                  ? "Завантажуємо…"
+                  : "Показати більше"}
+              </button>
+            </div>
+          )}
+          {bookings.isFetchNextPageError && (
+            <div className="form-error load-more-error" role="alert">
+              Не вдалося завантажити наступні бронювання.
+              <button
+                type="button"
+                onClick={() => bookings.fetchNextPage()}
+              >
+                Спробувати ще раз
+              </button>
+            </div>
+          )}
         </div>
       )}
       {cancellingBooking && (

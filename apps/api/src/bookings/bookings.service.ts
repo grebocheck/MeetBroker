@@ -627,6 +627,8 @@ export class BookingsService {
   }
 
   async mine(userId: string, section: "future" | "past", offset: number) {
+    const pageSize = 30;
+    const safeOffset = Math.max(offset, 0);
     const direction = section === "future" ? "asc" : "desc";
     const comparison = section === "future" ? ">=" : "<";
     const result = await this.database.query<{
@@ -659,11 +661,12 @@ export class BookingsService {
           and (b.organizer_id = $1 or bp.user_id = $1)
           and b.starts_at ${comparison} now()
         order by b.starts_at ${direction}
-        limit 30 offset $2
+        limit $3 offset $2
       `,
-      [userId, Math.max(offset, 0)]
+      [userId, safeOffset, pageSize + 1]
     );
-    return result.rows.map((row) => ({
+    const hasMore = result.rows.length > pageSize;
+    const bookings = result.rows.slice(0, pageSize).map((row) => ({
       id: row.id,
       title: row.title,
       startsAt: row.starts_at,
@@ -673,6 +676,11 @@ export class BookingsService {
       participationMode: row.participation_mode,
       participantStatus: row.participant_status
     }));
+    return {
+      bookings,
+      hasMore,
+      nextOffset: hasMore ? safeOffset + pageSize : null
+    };
   }
 
   async openEvents(userId: string) {

@@ -1776,6 +1776,28 @@ hr {
   gap: 8px;
 }
 
+.load-more-row {
+  display: flex;
+  justify-content: center;
+  padding: 18px 0 4px;
+}
+
+.load-more-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.load-more-error button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--danger);
+  font-weight: 750;
+  text-decoration: underline;
+}
+
 .booking-row {
   display: grid;
   align-items: center;

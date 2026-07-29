@@ -50,13 +50,11 @@ export class BookingsController {
   ) {
     const section = sectionRaw === "past" ? "past" : "future";
     const offset = Number(offsetRaw ?? 0);
-    return {
-      bookings: await this.bookings.mine(
-        request.user.id,
-        section,
-        Number.isInteger(offset) ? offset : 0
-      )
-    };
+    return this.bookings.mine(
+      request.user.id,
+      section,
+      Number.isInteger(offset) ? offset : 0
+    );
   }
 
   @Patch(":id")
