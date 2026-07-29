@@ -1,14 +1,14 @@
 const baseUrl = (process.env.BASE_URL ?? "http://localhost:8080").replace(
   /\/$/,
-  ""
+  "",
 );
 const userCredentials = {
   email: process.env.SMOKE_USER_EMAIL ?? "user@meetbroker.local",
-  password: process.env.SMOKE_USER_PASSWORD ?? "User12345!"
+  password: process.env.SMOKE_USER_PASSWORD ?? "User12345!",
 };
 const adminCredentials = {
   email: process.env.SMOKE_ADMIN_EMAIL ?? "admin@meetbroker.local",
-  password: process.env.SMOKE_ADMIN_PASSWORD ?? "Admin123!"
+  password: process.env.SMOKE_ADMIN_PASSWORD ?? "Admin123!",
 };
 
 function check(condition, message) {
@@ -22,8 +22,8 @@ async function request(path, options = {}) {
     ...options,
     headers: {
       ...(options.body ? { "content-type": "application/json" } : {}),
-      ...options.headers
-    }
+      ...options.headers,
+    },
   });
   const raw = await response.text();
   let body;
@@ -40,7 +40,7 @@ async function request(path, options = {}) {
     const details =
       typeof body === "string" ? body : JSON.stringify(body, null, 2);
     throw new Error(
-      `${options.method ?? "GET"} ${path} returned ${response.status}: ${details}`
+      `${options.method ?? "GET"} ${path} returned ${response.status}: ${details}`,
     );
   }
 
@@ -65,11 +65,14 @@ async function waitForReady(timeoutMs = 20_000) {
 async function login(credentials) {
   const { response, body } = await request("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify(credentials)
+    body: JSON.stringify(credentials),
   });
   const setCookie =
     response.headers.getSetCookie?.()[0] ?? response.headers.get("set-cookie");
-  check(setCookie, `Login for ${credentials.email} did not set a session cookie`);
+  check(
+    setCookie,
+    `Login for ${credentials.email} did not set a session cookie`,
+  );
   check(body?.user?.email === credentials.email, "Login returned another user");
   return setCookie.split(";", 1)[0];
 }
@@ -80,14 +83,13 @@ function localParts(date, timeZone) {
     weekday: "short",
     hour: "2-digit",
     minute: "2-digit",
-    hourCycle: "h23"
+    hourCycle: "h23",
   }).formatToParts(date);
 
   return Object.fromEntries(
-    parts.filter(({ type }) => type !== "literal").map(({ type, value }) => [
-      type,
-      value
-    ])
+    parts
+      .filter(({ type }) => type !== "literal")
+      .map(({ type, value }) => [type, value]),
   );
 }
 
@@ -112,21 +114,128 @@ function bookingCandidates(timeZone) {
   return candidates;
 }
 
+function dateKey(date, timeZone) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+async function verifyRoomAvailabilityRules(adminCookie, room) {
+  const changedWorkStart = room.workStart === "08:30" ? "09:00" : "08:30";
+  const changedWorkEnd = room.workEnd === "18:30" ? "19:00" : "18:30";
+  await request(`/api/admin/rooms/${room.id}`, {
+    method: "PATCH",
+    headers: { cookie: adminCookie },
+    body: JSON.stringify({
+      workStart: changedWorkStart,
+      workEnd: changedWorkEnd,
+    }),
+  });
+  const changedRooms = await request("/api/rooms", {
+    headers: { cookie: adminCookie },
+  });
+  const changedRoom = changedRooms.body.rooms.find(
+    (candidate) => candidate.id === room.id,
+  );
+  check(
+    changedRoom?.workStart === changedWorkStart &&
+      changedRoom?.workEnd === changedWorkEnd,
+    "Room working hours were not updated",
+  );
+
+  const officeTimeZone = process.env.OFFICE_TIME_ZONE ?? "Europe/Kyiv";
+  const startsAt = bookingCandidates(officeTimeZone)[0];
+  const endsAt = new Date(startsAt.getTime() + 30 * 60_000);
+  const recurrenceUntil = new Date(startsAt.getTime() + 6 * 24 * 60 * 60_000);
+  const created = await request("/api/admin/room-blocks", {
+    method: "POST",
+    headers: { cookie: adminCookie },
+    body: JSON.stringify({
+      roomId: room.id,
+      title: `Recurring smoke ${Date.now()}`,
+      privateNote: "Automated lifecycle verification",
+      startsAt: startsAt.toISOString(),
+      endsAt: endsAt.toISOString(),
+      recurrence: "DAILY",
+      recurrenceInterval: 2,
+      recurrenceUntil: dateKey(recurrenceUntil, officeTimeZone),
+    }),
+  });
+  check(
+    created.body?.id && created.body?.occurrenceCount === 4,
+    "Recurring room unavailability did not materialize four occurrences",
+  );
+  const blockRules = await request("/api/admin/room-blocks", {
+    headers: { cookie: adminCookie },
+  });
+  check(
+    blockRules.body?.blocks?.some(
+      (block) =>
+        block.id === created.body.id &&
+        block.kind === "SERIES" &&
+        block.occurrenceCount === 4,
+    ),
+    "Recurring room unavailability is missing from administration",
+  );
+  const rangeFrom = new Date(startsAt.getTime() - 60 * 60_000);
+  const rangeTo = new Date(recurrenceUntil.getTime() + 24 * 60 * 60_000);
+  const schedule = await request(
+    `/api/bookings/schedule?roomId=${room.id}` +
+      `&from=${encodeURIComponent(rangeFrom.toISOString())}` +
+      `&to=${encodeURIComponent(rangeTo.toISOString())}`,
+    { headers: { cookie: adminCookie } },
+  );
+  check(
+    schedule.body?.blocks?.filter((block) => block.seriesId === created.body.id)
+      .length === 4,
+    "Recurring room unavailability is not fully visible in the schedule",
+  );
+  await request(`/api/admin/room-blocks/${created.body.id}?scope=series`, {
+    method: "DELETE",
+    headers: { cookie: adminCookie },
+  });
+  const scheduleAfterCancellation = await request(
+    `/api/bookings/schedule?roomId=${room.id}` +
+      `&from=${encodeURIComponent(rangeFrom.toISOString())}` +
+      `&to=${encodeURIComponent(rangeTo.toISOString())}`,
+    { headers: { cookie: adminCookie } },
+  );
+  check(
+    !scheduleAfterCancellation.body?.blocks?.some(
+      (block) => block.seriesId === created.body.id,
+    ),
+    "Cancelled room unavailability series remains in the schedule",
+  );
+
+  await request(`/api/admin/rooms/${room.id}`, {
+    method: "PATCH",
+    headers: { cookie: adminCookie },
+    body: JSON.stringify({
+      workStart: room.workStart,
+      workEnd: room.workEnd,
+    }),
+  });
+  return created.body.id;
+}
+
 async function createUpdateAndCancelBooking(
   cookie,
   notificationRecipientCookie,
   notificationRecipientId,
-  room
+  room,
 ) {
   for (const startsAt of bookingCandidates(
-    process.env.OFFICE_TIME_ZONE ?? "Europe/Kyiv"
+    process.env.OFFICE_TIME_ZONE ?? "Europe/Kyiv",
   )) {
     const endsAt = new Date(startsAt.getTime() + 30 * 60_000);
     const response = await fetch(`${baseUrl}/api/bookings`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        cookie
+        cookie,
       },
       body: JSON.stringify({
         roomId: room.id,
@@ -134,8 +243,8 @@ async function createUpdateAndCancelBooking(
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
         participationMode: "INVITE_ONLY",
-        participantIds: [notificationRecipientId]
-      })
+        participantIds: [notificationRecipientId],
+      }),
     });
     const body = await response.json();
 
@@ -154,20 +263,20 @@ async function createUpdateAndCancelBooking(
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
         participationMode: "INVITE_ONLY",
-        participantIds: [notificationRecipientId]
-      })
+        participantIds: [notificationRecipientId],
+      }),
     });
     const recipientNotifications = await request("/api/notifications", {
-      headers: { cookie: notificationRecipientCookie }
+      headers: { cookie: notificationRecipientCookie },
     });
     check(
       recipientNotifications.body?.notifications?.some(
         (notification) =>
           notification.bookingId === body.id &&
           notification.type === "BOOKING_UPDATED" &&
-          notification.body.includes(updatedTitle)
+          notification.body.includes(updatedTitle),
       ),
-      "Booking update notification was not created"
+      "Booking update notification was not created",
     );
 
     const administrativeTitle = `Admin adjusted MVP smoke ${Date.now()}`;
@@ -176,21 +285,21 @@ async function createUpdateAndCancelBooking(
       method: "PATCH",
       headers: {
         "content-type": "application/json",
-        cookie: notificationRecipientCookie
+        cookie: notificationRecipientCookie,
       },
       body: JSON.stringify({
         title: administrativeTitle,
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
         participationMode: "INVITE_ONLY",
-        participantIds: [notificationRecipientId]
-      })
+        participantIds: [notificationRecipientId],
+      }),
     });
     const missingReasonBody = await missingReason.json();
     check(
       missingReason.status === 400 &&
         missingReasonBody?.error?.code === "ADMIN_EDIT_REASON_REQUIRED",
-      "Editing another user's booking must require an administrative reason"
+      "Editing another user's booking must require an administrative reason",
     );
     await request(`/api/bookings/${body.id}`, {
       method: "PATCH",
@@ -201,11 +310,11 @@ async function createUpdateAndCancelBooking(
         endsAt: endsAt.toISOString(),
         participationMode: "INVITE_ONLY",
         participantIds: [notificationRecipientId],
-        adminReason: administrativeReason
-      })
+        adminReason: administrativeReason,
+      }),
     });
     const organizerNotifications = await request("/api/notifications", {
-      headers: { cookie }
+      headers: { cookie },
     });
     check(
       organizerNotifications.body?.notifications?.some(
@@ -213,15 +322,15 @@ async function createUpdateAndCancelBooking(
           notification.bookingId === body.id &&
           notification.type === "BOOKING_UPDATED" &&
           notification.body.includes("Адміністратор") &&
-          notification.body.includes(administrativeReason)
+          notification.body.includes(administrativeReason),
       ),
-      "Administrative update was not attributed in organizer notification"
+      "Administrative update was not attributed in organizer notification",
     );
 
     await request(`/api/bookings/${body.id}`, {
       method: "DELETE",
       headers: { cookie: notificationRecipientCookie },
-      body: JSON.stringify({ reason: "Administrative smoke cancellation" })
+      body: JSON.stringify({ reason: "Administrative smoke cancellation" }),
     });
     return { id: body.id, startsAt };
   }
@@ -236,49 +345,55 @@ async function main() {
   const home = await request("/");
   check(
     typeof home.body === "string" && home.body.includes('<div id="root">'),
-    "Frontend entry page is missing"
+    "Frontend entry page is missing",
   );
 
   const userCookie = await login(userCredentials);
   const adminCookie = await login(adminCredentials);
   const adminMe = await request("/api/auth/me", {
-    headers: { cookie: adminCookie }
+    headers: { cookie: adminCookie },
   });
   const roomsResult = await request("/api/rooms", {
-    headers: { cookie: userCookie }
+    headers: { cookie: userCookie },
   });
-  check(roomsResult.body?.rooms?.length >= 2, "Expected at least two seeded rooms");
+  check(
+    roomsResult.body?.rooms?.length >= 2,
+    "Expected at least two seeded rooms",
+  );
 
   const colleagues = await request("/api/users/colleagues", {
-    headers: { cookie: userCookie }
+    headers: { cookie: userCookie },
   });
   check(
     Array.isArray(colleagues.body?.users),
-    "Colleagues response must contain a resolved users array"
+    "Colleagues response must contain a resolved users array",
   );
 
   const booking = await createUpdateAndCancelBooking(
     userCookie,
     adminCookie,
     adminMe.body.user.id,
-    roomsResult.body.rooms[1]
+    roomsResult.body.rooms[1],
   );
 
   const openEvents = await request("/api/bookings/open", {
-    headers: { cookie: userCookie }
+    headers: { cookie: userCookie },
   });
-  check(Array.isArray(openEvents.body?.events), "Open events response is invalid");
+  check(
+    Array.isArray(openEvents.body?.events),
+    "Open events response is invalid",
+  );
 
   const preferences = await request("/api/notifications/preferences", {
-    headers: { cookie: userCookie }
+    headers: { cookie: userCookie },
   });
   check(
     Array.isArray(preferences.body?.subscriptions) &&
       preferences.body.subscriptions.length === 12,
-    "Notification preferences response is invalid"
+    "Notification preferences response is invalid",
   );
   const invitationsByEmail = preferences.body.subscriptions.find(
-    (item) => item.category === "INVITATIONS" && item.channel === "EMAIL"
+    (item) => item.category === "INVITATIONS" && item.channel === "EMAIL",
   );
   const updatedPreferences = await request("/api/notifications/preferences", {
     method: "PATCH",
@@ -286,17 +401,17 @@ async function main() {
     body: JSON.stringify({
       category: "INVITATIONS",
       channel: "EMAIL",
-      enabled: !invitationsByEmail.enabled
-    })
+      enabled: !invitationsByEmail.enabled,
+    }),
   });
   check(
     updatedPreferences.body?.subscriptions?.some(
       (item) =>
         item.category === "INVITATIONS" &&
         item.channel === "EMAIL" &&
-        item.enabled === !invitationsByEmail.enabled
+        item.enabled === !invitationsByEmail.enabled,
     ),
-    "Notification preference matrix update failed"
+    "Notification preference matrix update failed",
   );
   await request("/api/notifications/preferences", {
     method: "PATCH",
@@ -304,38 +419,46 @@ async function main() {
     body: JSON.stringify({
       category: "INVITATIONS",
       channel: "EMAIL",
-      enabled: invitationsByEmail.enabled
-    })
+      enabled: invitationsByEmail.enabled,
+    }),
   });
 
   const users = await request("/api/admin/users", {
-    headers: { cookie: adminCookie }
+    headers: { cookie: adminCookie },
   });
-  check(users.body?.users?.length >= 3, "Expected seeded users in admin response");
+  check(
+    users.body?.users?.length >= 3,
+    "Expected seeded users in admin response",
+  );
 
   const managedBookings = await request(
     "/api/admin/bookings?status=cancelled&search=Admin%20adjusted%20MVP%20smoke",
-    { headers: { cookie: adminCookie } }
+    { headers: { cookie: adminCookie } },
   );
   const managedBooking = managedBookings.body?.bookings?.find(
-    (item) => item.id === booking.id
+    (item) => item.id === booking.id,
   );
   check(managedBooking, "Cancelled booking is missing from admin management");
   check(
     managedBooking.room?.id && managedBooking.organizer?.email,
-    "Admin booking details are incomplete"
+    "Admin booking details are incomplete",
   );
   check(
     Array.isArray(managedBooking.participants),
-    "Admin booking participants must be resolved"
+    "Admin booking participants must be resolved",
   );
   check(
     managedBooking.cancellationReason === "Administrative smoke cancellation",
-    "Admin cancellation reason is missing from booking details"
+    "Admin cancellation reason is missing from booking details",
+  );
+
+  const roomBlockSeriesId = await verifyRoomAvailabilityRules(
+    adminCookie,
+    roomsResult.body.rooms[0],
   );
 
   const placeholderRoom = roomsResult.body.rooms.find(
-    (room) => room.imageUrl === null
+    (room) => room.imageUrl === null,
   );
   check(placeholderRoom, "Expected one demo room to keep the placeholder");
   const roomImageForm = new FormData();
@@ -344,72 +467,81 @@ async function main() {
     new Blob(
       [
         '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="18">' +
-          '<rect width="32" height="18" fill="#0878f9"/></svg>'
+          '<rect width="32" height="18" fill="#0878f9"/></svg>',
       ],
-      { type: "image/svg+xml" }
+      { type: "image/svg+xml" },
     ),
-    "smoke-room.svg"
+    "smoke-room.svg",
   );
   const imageUpload = await fetch(
     `${baseUrl}/api/admin/rooms/${placeholderRoom.id}/image`,
     {
       method: "POST",
       headers: { cookie: adminCookie },
-      body: roomImageForm
-    }
+      body: roomImageForm,
+    },
   );
   const imageUploadBody = await imageUpload.json();
   check(
     imageUpload.ok && imageUploadBody?.imageUrl?.endsWith(".webp"),
-    `Room image upload failed: ${JSON.stringify(imageUploadBody)}`
+    `Room image upload failed: ${JSON.stringify(imageUploadBody)}`,
   );
   const roomsWithImage = await request("/api/rooms", {
-    headers: { cookie: adminCookie }
+    headers: { cookie: adminCookie },
   });
   check(
     roomsWithImage.body.rooms.find((room) => room.id === placeholderRoom.id)
       ?.imageUrl === imageUploadBody.imageUrl,
-    "Uploaded room image was not returned by the rooms API"
+    "Uploaded room image was not returned by the rooms API",
   );
-  await request(
-    `/api/admin/rooms/${placeholderRoom.id}/image`,
-    {
-      method: "DELETE",
-      headers: { cookie: adminCookie }
-    }
-  );
+  await request(`/api/admin/rooms/${placeholderRoom.id}/image`, {
+    method: "DELETE",
+    headers: { cookie: adminCookie },
+  });
   const roomsWithoutImage = await request("/api/rooms", {
-    headers: { cookie: adminCookie }
+    headers: { cookie: adminCookie },
   });
   check(
     roomsWithoutImage.body.rooms.find((room) => room.id === placeholderRoom.id)
       ?.imageUrl === null,
-    "Room image removal did not restore the placeholder state"
+    "Room image removal did not restore the placeholder state",
   );
 
   const audit = await request(
     "/api/admin/audit?category=booking&search=Admin%20adjusted",
-    { headers: { cookie: adminCookie } }
+    { headers: { cookie: adminCookie } },
   );
   check(Array.isArray(audit.body?.logs), "Admin audit response is invalid");
   check(
     audit.body.logs.every((entry) => entry.targetType === "BOOKING"),
-    "Event log category filter returned a non-booking event"
+    "Event log category filter returned a non-booking event",
   );
   check(
     audit.body.logs.some(
       (entry) =>
         entry.targetId === booking.id &&
         entry.action === "BOOKING_UPDATED_BY_ADMIN" &&
-        entry.details?.reason === "Room operations verification"
+        entry.details?.reason === "Room operations verification",
     ),
-    "Administrative booking update is missing from event log"
+    "Administrative booking update is missing from event log",
+  );
+  const roomAudit = await request(
+    "/api/admin/audit?category=room&search=Recurring%20smoke",
+    { headers: { cookie: adminCookie } },
+  );
+  check(
+    roomAudit.body?.logs?.some(
+      (entry) =>
+        entry.targetId === roomBlockSeriesId &&
+        entry.action === "ROOM_BLOCK_SERIES_CANCELLED",
+    ),
+    "Room unavailability series lifecycle is missing from the event log",
   );
 
   console.log(
     `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/update/cancel, ` +
       "colleagues, events, preferences, booking management, room image lifecycle " +
-      "and administration"
+      "working hours, recurring unavailability and administration",
   );
 }
 
