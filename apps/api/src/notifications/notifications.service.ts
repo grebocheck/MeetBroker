@@ -1,14 +1,17 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { DatabaseService, SqlExecutor } from "../database/database.service";
+import {
+  notifications,
+  notificationSubscriptions,
+  telegramConnections
+} from "../database/schema";
 import { createOpaqueToken, hashToken } from "../common/crypto";
 import { apiError } from "../common/http-error";
 import type { UpdateNotificationPreferencesDto } from "./notifications.dto";
-import {
-  NotificationCategory,
-  NotificationChannelName
-} from "./notification-channel";
+import type { NotificationCategory } from "./notification-channel";
 
 export interface NotificationEvent {
   eventKey: string;
@@ -88,71 +91,58 @@ export class NotificationsService {
   }
 
   async list(userId: string, limit = 30) {
-    const result = await this.database.query<{
-      id: string;
-      type: string;
-      title: string;
-      body: string;
-      booking_id: string | null;
-      read_at: Date | null;
-      created_at: Date;
-    }>(
-      `
-        select id, type, title, body, booking_id, read_at, created_at
-        from notifications
-        where user_id = $1
-        order by created_at desc
-        limit $2
-      `,
-      [userId, Math.min(Math.max(limit, 1), 100)]
-    );
-    return result.rows.map((row) => ({
+    const rows = await this.database.orm
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(Math.min(Math.max(limit, 1), 100));
+    return rows.map((row) => ({
       id: row.id,
       type: row.type,
       title: row.title,
       body: row.body,
-      bookingId: row.booking_id,
-      read: Boolean(row.read_at),
-      createdAt: row.created_at
+      bookingId: row.bookingId,
+      read: Boolean(row.readAt),
+      createdAt: row.createdAt
     }));
   }
 
   async markRead(userId: string, notificationId: string): Promise<void> {
-    await this.database.query(
-      `
-        update notifications
-        set read_at = coalesce(read_at, now())
-        where id = $1 and user_id = $2
-      `,
-      [notificationId, userId]
-    );
+    await this.database.orm
+      .update(notifications)
+      .set({ readAt: sql`coalesce(${notifications.readAt}, now())` })
+      .where(
+        and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId)
+        )
+      );
   }
 
   async getPreferences(userId: string) {
-    const result = await this.database.query<{
-      category: NotificationCategory;
-      channel: NotificationChannelName;
-      enabled: boolean;
-    }>(
-      `
-        select category, channel, enabled
-        from notification_subscriptions
-        where user_id = $1
-        order by category, channel
-      `,
-      [userId]
-    );
-    const telegram = await this.database.query<{ connected: boolean }>(
-      `
-        select exists (
-          select 1 from telegram_connections where user_id = $1
-        ) as connected
-      `,
-      [userId]
-    );
+    const [subscriptions, telegram] = await Promise.all([
+      this.database.orm
+        .select({
+          category: notificationSubscriptions.category,
+          channel: notificationSubscriptions.channel,
+          enabled: notificationSubscriptions.enabled
+        })
+        .from(notificationSubscriptions)
+        .where(eq(notificationSubscriptions.userId, userId))
+        .orderBy(
+          asc(notificationSubscriptions.category),
+          asc(notificationSubscriptions.channel)
+        ),
+      this.database.orm
+        .select({ userId: telegramConnections.userId })
+        .from(telegramConnections)
+        .where(eq(telegramConnections.userId, userId))
+        .limit(1)
+    ]);
     return {
-      subscriptions: result.rows,
-      telegramConnected: telegram.rows[0]?.connected ?? false,
+      subscriptions,
+      telegramConnected: telegram.length > 0,
       telegramAvailable: Boolean(this.botUsername)
     };
   }
@@ -161,16 +151,22 @@ export class NotificationsService {
     userId: string,
     dto: UpdateNotificationPreferencesDto
   ) {
-    await this.database.query(
-      `
-        insert into notification_subscriptions
-          (user_id, category, channel, enabled)
-        values ($1, $2, $3, $4)
-        on conflict (user_id, category, channel)
-        do update set enabled = excluded.enabled, updated_at = now()
-      `,
-      [userId, dto.category, dto.channel, dto.enabled]
-    );
+    await this.database.orm
+      .insert(notificationSubscriptions)
+      .values({
+        userId,
+        category: dto.category,
+        channel: dto.channel,
+        enabled: dto.enabled
+      })
+      .onConflictDoUpdate({
+        target: [
+          notificationSubscriptions.userId,
+          notificationSubscriptions.category,
+          notificationSubscriptions.channel
+        ],
+        set: { enabled: dto.enabled, updatedAt: new Date() }
+      });
     return this.getPreferences(userId);
   }
 
