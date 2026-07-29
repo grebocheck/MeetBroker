@@ -67,6 +67,22 @@ interface AdminBooking {
   })[];
 }
 
+interface AdminRoomBlock {
+  id: string;
+  kind: "ONCE" | "SERIES";
+  roomId: string;
+  roomName: string;
+  title: string;
+  privateNote: string | null;
+  startsAt: string;
+  endsAt: string;
+  frequency: "DAILY" | "WEEKLY" | null;
+  recurrenceInterval: number | null;
+  weekdays: number[] | null;
+  recurrenceUntil: string | null;
+  occurrenceCount: number;
+}
+
 export function AdminPage() {
   const [section, setSection] = useState<
     "users" | "bookings" | "rooms" | "audit"
@@ -128,24 +144,24 @@ function BookingsAdmin() {
     queryKey: ["admin-bookings", status, search],
     queryFn: () =>
       api<{ bookings: AdminBooking[] }>(
-        `/api/admin/bookings?${query.toString()}`
-      )
+        `/api/admin/bookings?${query.toString()}`,
+      ),
   });
   const rooms = useQuery({
     queryKey: ["rooms"],
-    queryFn: () => api<{ rooms: Room[] }>("/api/rooms")
+    queryFn: () => api<{ rooms: Room[] }>("/api/rooms"),
   });
   const cancelBooking = useMutation({
     mutationFn: ({
       id,
-      cancellationReason
+      cancellationReason,
     }: {
       id: string;
       cancellationReason: string;
     }) =>
       api<void>(`/api/bookings/${id}`, {
         method: "DELETE",
-        body: JSON.stringify({ reason: cancellationReason })
+        body: JSON.stringify({ reason: cancellationReason }),
       }),
     onSuccess: async () => {
       setSelected(null);
@@ -154,9 +170,9 @@ function BookingsAdmin() {
         queryClient.invalidateQueries({ queryKey: ["admin-bookings"] }),
         queryClient.invalidateQueries({ queryKey: ["schedule"] }),
         queryClient.invalidateQueries({ queryKey: ["bookings-mine"] }),
-        queryClient.invalidateQueries({ queryKey: ["audit"] })
+        queryClient.invalidateQueries({ queryKey: ["audit"] }),
       ]);
-    }
+    },
   });
 
   return (
@@ -168,7 +184,7 @@ function BookingsAdmin() {
               ["upcoming", "Майбутні"],
               ["past", "Минулі"],
               ["cancelled", "Скасовані"],
-              ["", "Усі"]
+              ["", "Усі"],
             ].map(([value, label]) => (
               <button
                 key={value}
@@ -229,18 +245,18 @@ function BookingsAdmin() {
                     <strong>
                       {new Intl.DateTimeFormat("uk-UA", {
                         day: "2-digit",
-                        month: "short"
+                        month: "short",
                       }).format(startsAt)}
                     </strong>
                     <span>
                       {new Intl.DateTimeFormat("uk-UA", {
                         hour: "2-digit",
-                        minute: "2-digit"
+                        minute: "2-digit",
                       }).format(startsAt)}
                       {" — "}
                       {new Intl.DateTimeFormat("uk-UA", {
                         hour: "2-digit",
-                        minute: "2-digit"
+                        minute: "2-digit",
                       }).format(endsAt)}
                     </span>
                   </time>
@@ -249,9 +265,7 @@ function BookingsAdmin() {
                       <strong>{booking.title}</strong>
                       <span
                         className={`status-badge ${
-                          booking.cancelledAt
-                            ? "status-badge--warning"
-                            : ""
+                          booking.cancelledAt ? "status-badge--warning" : ""
                         }`}
                       >
                         {booking.cancelledAt
@@ -265,8 +279,8 @@ function BookingsAdmin() {
                     </div>
                     <span>
                       {booking.room.name}, {booking.room.floor} поверх ·{" "}
-                      {booking.organizer.name} ·{" "}
-                      {booking.participants.length} учасників
+                      {booking.organizer.name} · {booking.participants.length}{" "}
+                      учасників
                     </span>
                   </div>
                   <button
@@ -308,7 +322,7 @@ function BookingsAdmin() {
           onCancel={() =>
             cancelBooking.mutate({
               id: selected.id,
-              cancellationReason: reason.trim()
+              cancellationReason: reason.trim(),
             })
           }
         />
@@ -316,9 +330,7 @@ function BookingsAdmin() {
       {editing &&
         rooms.data?.rooms.find((room) => room.id === editing.room.id) && (
           <BookingDialog
-            room={
-              rooms.data.rooms.find((room) => room.id === editing.room.id)!
-            }
+            room={rooms.data.rooms.find((room) => room.id === editing.room.id)!}
             booking={
               {
                 id: editing.id,
@@ -327,7 +339,7 @@ function BookingsAdmin() {
                 endsAt: editing.endsAt,
                 participationMode: editing.participationMode,
                 organizer: editing.organizer,
-                participants: editing.participants
+                participants: editing.participants,
               } satisfies Booking
             }
             administrative
@@ -336,11 +348,11 @@ function BookingsAdmin() {
               setEditing(null);
               await Promise.all([
                 queryClient.invalidateQueries({
-                  queryKey: ["admin-bookings"]
+                  queryKey: ["admin-bookings"],
                 }),
                 queryClient.invalidateQueries({ queryKey: ["schedule"] }),
                 queryClient.invalidateQueries({ queryKey: ["bookings-mine"] }),
-                queryClient.invalidateQueries({ queryKey: ["audit"] })
+                queryClient.invalidateQueries({ queryKey: ["audit"] }),
               ]);
             }}
           />
@@ -357,7 +369,7 @@ function AdminBookingDialog({
   error,
   onClose,
   onEdit,
-  onCancel
+  onCancel,
 }: {
   booking: AdminBooking;
   reason: string;
@@ -372,16 +384,16 @@ function AdminBookingDialog({
   const endsAt = new Date(booking.endsAt);
   const canCancel = !booking.cancelledAt && endsAt > new Date();
   const date = new Intl.DateTimeFormat("uk-UA", {
-    dateStyle: "full"
+    dateStyle: "full",
   }).format(startsAt);
   const time = new Intl.DateTimeFormat("uk-UA", {
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
   });
   const statusLabels = {
     INVITED: "Запрошено",
     ACCEPTED: "Бере участь",
-    DECLINED: "Відмовився"
+    DECLINED: "Відмовився",
   };
 
   return (
@@ -489,7 +501,7 @@ function AdminBookingDialog({
             <strong>Скасовано:</strong>{" "}
             {new Intl.DateTimeFormat("uk-UA", {
               dateStyle: "medium",
-              timeStyle: "short"
+              timeStyle: "short",
             }).format(new Date(booking.cancelledAt))}
             {booking.cancelledByName ? ` · ${booking.cancelledByName}` : ""}
             {booking.cancellationReason
@@ -563,13 +575,13 @@ function UsersAdmin() {
   const users = useQuery({
     queryKey: ["admin-users", filter],
     queryFn: () =>
-      api<{ users: AdminUser[] }>(`/api/admin/users?status=${filter}`)
+      api<{ users: AdminUser[] }>(`/api/admin/users?status=${filter}`),
   });
   const action = useMutation({
     mutationFn: ({
       path,
       method = "POST",
-      body
+      body,
     }: {
       path: string;
       method?: string;
@@ -577,26 +589,26 @@ function UsersAdmin() {
     }) =>
       api<void>(path, {
         method,
-        body: body ? JSON.stringify(body) : undefined
+        body: body ? JSON.stringify(body) : undefined,
       }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] })
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
   const restrict = (user: AdminUser) => {
     const days = window.prompt(
       `На скільки днів заборонити ${user.name} створювати бронювання?`,
-      "7"
+      "7",
     );
     if (!days) return;
     const reason = window.prompt("Причина обмеження:");
     if (!reason) return;
     const expiresAt = new Date(
-      Date.now() + Math.max(1, Number(days)) * 86_400_000
+      Date.now() + Math.max(1, Number(days)) * 86_400_000,
     ).toISOString();
     action.mutate({
       path: `/api/admin/users/${user.id}/restrictions`,
-      body: { capability: "BOOKING_CREATE", expiresAt, reason }
+      body: { capability: "BOOKING_CREATE", expiresAt, reason },
     });
   };
 
@@ -608,7 +620,7 @@ function UsersAdmin() {
             ["pending", "Очікують"],
             ["active", "Активні"],
             ["revoked", "Відкликані"],
-            ["", "Усі"]
+            ["", "Усі"],
           ].map(([value, label]) => (
             <button
               key={value}
@@ -660,24 +672,29 @@ function UsersAdmin() {
                         : "Очікує схвалення"}
                 </span>
                 {user.restrictions.map((restriction) => (
-                  <span className="status-badge status-badge--warning" key={restriction.id}>
+                  <span
+                    className="status-badge status-badge--warning"
+                    key={restriction.id}
+                  >
                     Без бронювань
                   </span>
                 ))}
               </div>
               <div className="admin-user-row__actions">
-                {!user.approved && user.emailVerified && !user.accessRevoked && (
-                  <button
-                    className="button button--primary button--small"
-                    onClick={() =>
-                      action.mutate({
-                        path: `/api/admin/users/${user.id}/approve`
-                      })
-                    }
-                  >
-                    Схвалити
-                  </button>
-                )}
+                {!user.approved &&
+                  user.emailVerified &&
+                  !user.accessRevoked && (
+                    <button
+                      className="button button--primary button--small"
+                      onClick={() =>
+                        action.mutate({
+                          path: `/api/admin/users/${user.id}/approve`,
+                        })
+                      }
+                    >
+                      Схвалити
+                    </button>
+                  )}
                 {user.approved && !user.accessRevoked && (
                   <>
                     <button
@@ -689,11 +706,13 @@ function UsersAdmin() {
                     <button
                       className="button button--ghost button--small"
                       onClick={() => {
-                        const reason = window.prompt("Причина відкликання доступу:");
+                        const reason = window.prompt(
+                          "Причина відкликання доступу:",
+                        );
                         if (reason) {
                           action.mutate({
                             path: `/api/admin/users/${user.id}/revoke`,
-                            body: { reason }
+                            body: { reason },
                           });
                         }
                       }}
@@ -715,55 +734,72 @@ function RoomsAdmin() {
   const queryClient = useQueryClient();
   const rooms = useQuery({
     queryKey: ["rooms"],
-    queryFn: () => api<{ rooms: Room[] }>("/api/rooms")
+    queryFn: () => api<{ rooms: Room[] }>("/api/rooms"),
+  });
+  const blocks = useQuery({
+    queryKey: ["admin-room-blocks"],
+    queryFn: () => api<{ blocks: AdminRoomBlock[] }>("/api/admin/room-blocks"),
   });
   const [roomForm, setRoomForm] = useState({
     name: "",
     floor: 1,
-    capacity: 6
+    capacity: 6,
+    workStart: "09:00",
+    workEnd: "19:00",
   });
   const [roomImage, setRoomImage] = useState<File | null>(null);
   const [blockForm, setBlockForm] = useState({
     roomId: "",
     title: "Технічне обслуговування",
+    privateNote: "",
     startsAt: "",
-    endsAt: ""
+    endsAt: "",
+    recurrence: "NONE" as "NONE" | "DAILY" | "WEEKLY",
+    recurrenceInterval: 1,
+    weekdays: [] as number[],
+    recurrenceUntil: "",
   });
   const createRoom = useMutation({
     mutationFn: async () => {
       const created = await api<{ id: string }>("/api/admin/rooms", {
         method: "POST",
-        body: JSON.stringify(roomForm)
+        body: JSON.stringify(roomForm),
       });
       if (roomImage) {
         const form = new FormData();
         form.set("image", roomImage);
         await api<{ imageUrl: string }>(
           `/api/admin/rooms/${created.id}/image`,
-          { method: "POST", body: form }
+          { method: "POST", body: form },
         );
       }
       return created;
     },
     onSuccess: () => {
-      setRoomForm({ name: "", floor: 1, capacity: 6 });
+      setRoomForm({
+        name: "",
+        floor: 1,
+        capacity: 6,
+        workStart: "09:00",
+        workEnd: "19:00",
+      });
       setRoomImage(null);
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
-    }
+    },
   });
   const uploadRoomImage = useMutation({
     mutationFn: ({ roomId, file }: { roomId: string; file: File }) => {
       const form = new FormData();
       form.set("image", file);
-      return api<{ imageUrl: string }>(
-        `/api/admin/rooms/${roomId}/image`,
-        { method: "POST", body: form }
-      );
+      return api<{ imageUrl: string }>(`/api/admin/rooms/${roomId}/image`, {
+        method: "POST",
+        body: form,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       queryClient.invalidateQueries({ queryKey: ["schedule"] });
-    }
+    },
   });
   const removeRoomImage = useMutation({
     mutationFn: (roomId: string) =>
@@ -771,7 +807,7 @@ function RoomsAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       queryClient.invalidateQueries({ queryKey: ["schedule"] });
-    }
+    },
   });
   const createBlock = useMutation({
     mutationFn: () =>
@@ -780,13 +816,43 @@ function RoomsAdmin() {
         body: JSON.stringify({
           ...blockForm,
           startsAt: new Date(blockForm.startsAt).toISOString(),
-          endsAt: new Date(blockForm.endsAt).toISOString()
-        })
+          endsAt: new Date(blockForm.endsAt).toISOString(),
+          recurrenceUntil:
+            blockForm.recurrence === "NONE"
+              ? undefined
+              : blockForm.recurrenceUntil,
+          weekdays:
+            blockForm.recurrence === "WEEKLY" ? blockForm.weekdays : undefined,
+        }),
       }),
     onSuccess: () => {
-      setBlockForm({ ...blockForm, startsAt: "", endsAt: "" });
+      setBlockForm({
+        ...blockForm,
+        startsAt: "",
+        endsAt: "",
+        recurrence: "NONE",
+        recurrenceInterval: 1,
+        weekdays: [],
+        recurrenceUntil: "",
+      });
       queryClient.invalidateQueries({ queryKey: ["schedule"] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["admin-room-blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["audit"] });
+    },
+  });
+  const cancelBlock = useMutation({
+    mutationFn: (block: AdminRoomBlock) =>
+      api<void>(
+        `/api/admin/room-blocks/${block.id}?scope=${
+          block.kind === "SERIES" ? "series" : "once"
+        }`,
+        { method: "DELETE" },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-room-blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["audit"] });
+    },
   });
 
   return (
@@ -800,10 +866,10 @@ function RoomsAdmin() {
               <div className="room-admin-row__copy">
                 <strong>{room.name}</strong>
                 <span>
-                  {room.floor} поверх · {room.capacity} місць ·{" "}
-                  {room.workStart}–{room.workEnd}
+                  {room.floor} поверх · {room.capacity} місць
                 </span>
               </div>
+              <RoomHoursEditor room={room} />
               <div className="room-image-actions">
                 <label className="room-image-action">
                   <input
@@ -811,7 +877,8 @@ function RoomsAdmin() {
                     accept="image/jpeg,image/png,image/webp"
                     onChange={(event) => {
                       const file = event.target.files?.[0];
-                      if (file) uploadRoomImage.mutate({ roomId: room.id, file });
+                      if (file)
+                        uploadRoomImage.mutate({ roomId: room.id, file });
                       event.target.value = "";
                     }}
                   />
@@ -865,7 +932,10 @@ function RoomsAdmin() {
                 min={0}
                 value={roomForm.floor}
                 onChange={(event) =>
-                  setRoomForm({ ...roomForm, floor: Number(event.target.value) })
+                  setRoomForm({
+                    ...roomForm,
+                    floor: Number(event.target.value),
+                  })
                 }
               />
             </label>
@@ -878,9 +948,35 @@ function RoomsAdmin() {
                 onChange={(event) =>
                   setRoomForm({
                     ...roomForm,
-                    capacity: Number(event.target.value)
+                    capacity: Number(event.target.value),
                   })
                 }
+              />
+            </label>
+          </div>
+          <div className="form-grid">
+            <label className="field">
+              <span>Працює з</span>
+              <input
+                type="time"
+                step={1800}
+                value={roomForm.workStart}
+                onChange={(event) =>
+                  setRoomForm({ ...roomForm, workStart: event.target.value })
+                }
+                required
+              />
+            </label>
+            <label className="field">
+              <span>Працює до</span>
+              <input
+                type="time"
+                step={1800}
+                value={roomForm.workEnd}
+                onChange={(event) =>
+                  setRoomForm({ ...roomForm, workEnd: event.target.value })
+                }
+                required
               />
             </label>
           </div>
@@ -910,7 +1006,7 @@ function RoomsAdmin() {
                   ? uploadRoomImage.error.message
                   : removeRoomImage.error instanceof ApiError
                     ? removeRoomImage.error.message
-                  : "Не вдалося зберегти фото кімнати"}
+                    : "Не вдалося зберегти фото кімнати"}
             </div>
           )}
           <button className="button button--secondary">Додати</button>
@@ -918,11 +1014,50 @@ function RoomsAdmin() {
       </section>
 
       <section className="admin-card">
+        <span className="eyebrow">Винятки з графіка</span>
         <h2>Недоступність кімнати</h2>
         <p>
-          Прибирання, ремонт чи інший період, поверх якого може бронювати лише
-          адміністратор із причиною.
+          Разова проблема або серія прибирань, ремонтів та інших регулярних
+          робіт. Робочі години налаштовуються окремо біля кожної кімнати.
         </p>
+        <div className="room-block-list">
+          {blocks.isLoading ? (
+            <div className="subtle-box">Завантажуємо правила…</div>
+          ) : blocks.data?.blocks.length === 0 ? (
+            <div className="empty-inline">
+              Активних винятків із графіка немає.
+            </div>
+          ) : (
+            blocks.data?.blocks.map((block) => (
+              <article className="room-block-row" key={block.id}>
+                <div>
+                  <span
+                    className={`status-badge ${
+                      block.kind === "SERIES" ? "status-badge--warning" : ""
+                    }`}
+                  >
+                    {block.kind === "SERIES" ? "Серія" : "Разово"}
+                  </span>
+                  <strong>{block.title}</strong>
+                  <small>
+                    {block.roomName} · {formatRoomBlockRule(block)}
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  className="button button--ghost button--small"
+                  disabled={
+                    cancelBlock.isPending &&
+                    cancelBlock.variables?.id === block.id
+                  }
+                  onClick={() => cancelBlock.mutate(block)}
+                >
+                  {block.kind === "SERIES" ? "Скасувати серію" : "Прибрати"}
+                </button>
+              </article>
+            ))
+          )}
+        </div>
         <form
           className="form-stack admin-form"
           onSubmit={(event) => {
@@ -958,6 +1093,20 @@ function RoomsAdmin() {
             />
           </label>
           <label className="field">
+            <span>Внутрішня примітка</span>
+            <textarea
+              value={blockForm.privateNote}
+              onChange={(event) =>
+                setBlockForm({
+                  ...blockForm,
+                  privateNote: event.target.value,
+                })
+              }
+              maxLength={300}
+              placeholder="Не показується користувачам"
+            />
+          </label>
+          <label className="field">
             <span>Початок</span>
             <input
               type="datetime-local"
@@ -979,6 +1128,107 @@ function RoomsAdmin() {
               required
             />
           </label>
+          <fieldset className="segmented-field">
+            <legend>Повторення</legend>
+            <div className="segmented recurrence-segmented">
+              {[
+                ["NONE", "Не повторюється"],
+                ["DAILY", "Кожні N днів"],
+                ["WEEKLY", "За днями тижня"],
+              ].map(([value, label]) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={blockForm.recurrence === value ? "is-active" : ""}
+                  onClick={() =>
+                    setBlockForm({
+                      ...blockForm,
+                      recurrence: value as "NONE" | "DAILY" | "WEEKLY",
+                      weekdays: value === "WEEKLY" ? blockForm.weekdays : [],
+                    })
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          {blockForm.recurrence !== "NONE" && (
+            <>
+              <div className="form-grid">
+                <label className="field">
+                  <span>
+                    Інтервал у{" "}
+                    {blockForm.recurrence === "DAILY" ? "днях" : "тижнях"}
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={blockForm.recurrenceInterval}
+                    onChange={(event) =>
+                      setBlockForm({
+                        ...blockForm,
+                        recurrenceInterval: Number(event.target.value),
+                      })
+                    }
+                    required
+                  />
+                </label>
+                <label className="field">
+                  <span>Повторювати до</span>
+                  <input
+                    type="date"
+                    value={blockForm.recurrenceUntil}
+                    onChange={(event) =>
+                      setBlockForm({
+                        ...blockForm,
+                        recurrenceUntil: event.target.value,
+                      })
+                    }
+                    required
+                  />
+                </label>
+              </div>
+              {blockForm.recurrence === "WEEKLY" && (
+                <fieldset className="weekday-picker">
+                  <legend>Дні тижня</legend>
+                  {[
+                    [1, "Пн"],
+                    [2, "Вт"],
+                    [3, "Ср"],
+                    [4, "Чт"],
+                    [5, "Пт"],
+                    [6, "Сб"],
+                    [0, "Нд"],
+                  ].map(([value, label]) => {
+                    const day = Number(value);
+                    const checked = blockForm.weekdays.includes(day);
+                    return (
+                      <button
+                        type="button"
+                        key={value}
+                        className={checked ? "is-active" : ""}
+                        aria-pressed={checked}
+                        onClick={() =>
+                          setBlockForm({
+                            ...blockForm,
+                            weekdays: checked
+                              ? blockForm.weekdays.filter(
+                                  (candidate) => candidate !== day,
+                                )
+                              : [...blockForm.weekdays, day],
+                          })
+                        }
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </fieldset>
+              )}
+            </>
+          )}
           {createBlock.error && (
             <div className="form-error">
               {createBlock.error instanceof ApiError
@@ -988,14 +1238,113 @@ function RoomsAdmin() {
           )}
           <button
             className="button button--primary"
-            disabled={createBlock.isPending}
+            disabled={
+              createBlock.isPending ||
+              (blockForm.recurrence === "WEEKLY" &&
+                blockForm.weekdays.length === 0)
+            }
           >
-            Заблокувати час
+            {createBlock.isPending
+              ? "Зберігаємо…"
+              : blockForm.recurrence === "NONE"
+                ? "Додати разовий виняток"
+                : "Створити серію"}
           </button>
         </form>
       </section>
     </div>
   );
+}
+
+function RoomHoursEditor({ room }: { room: Room }) {
+  const queryClient = useQueryClient();
+  const [workStart, setWorkStart] = useState(room.workStart);
+  const [workEnd, setWorkEnd] = useState(room.workEnd);
+  const changed = workStart !== room.workStart || workEnd !== room.workEnd;
+  const update = useMutation({
+    mutationFn: () =>
+      api<void>(`/api/admin/rooms/${room.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ workStart, workEnd }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["audit"] });
+    },
+  });
+
+  return (
+    <div className="room-hours-editor">
+      <label>
+        <span className="sr-only">Початок роботи {room.name}</span>
+        <input
+          type="time"
+          step={1800}
+          value={workStart}
+          onChange={(event) => {
+            setWorkStart(event.target.value);
+            update.reset();
+          }}
+        />
+      </label>
+      <span>—</span>
+      <label>
+        <span className="sr-only">Завершення роботи {room.name}</span>
+        <input
+          type="time"
+          step={1800}
+          value={workEnd}
+          onChange={(event) => {
+            setWorkEnd(event.target.value);
+            update.reset();
+          }}
+        />
+      </label>
+      <button
+        type="button"
+        className="button button--secondary button--small"
+        disabled={!changed || update.isPending}
+        onClick={() => update.mutate()}
+      >
+        {update.isPending ? "…" : "Зберегти"}
+      </button>
+      {update.error && (
+        <small className="field-error">
+          {update.error instanceof ApiError
+            ? update.error.message
+            : "Не вдалося оновити графік"}
+        </small>
+      )}
+    </div>
+  );
+}
+
+function formatRoomBlockRule(block: AdminRoomBlock): string {
+  const time = new Intl.DateTimeFormat("uk-UA", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  if (block.kind === "ONCE") {
+    return `${time.format(new Date(block.startsAt))} — ${time.format(
+      new Date(block.endsAt),
+    )}`;
+  }
+  const interval = block.recurrenceInterval ?? 1;
+  const frequency =
+    block.frequency === "DAILY"
+      ? interval === 1
+        ? "щодня"
+        : `кожні ${interval} дн.`
+      : interval === 1
+        ? "щотижня"
+        : `кожні ${interval} тиж.`;
+  const weekdays = block.weekdays?.length
+    ? ` · ${block.weekdays
+        .map((day) => ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"][day])
+        .join(", ")}`
+    : "";
+  return `${frequency}${weekdays} · ${block.occurrenceCount} майбутніх входжень`;
 }
 
 function AuditAdmin() {
@@ -1007,7 +1356,7 @@ function AuditAdmin() {
   const logs = useQuery({
     queryKey: ["audit", category, search],
     queryFn: () =>
-      api<{ logs: AuditLog[] }>(`/api/admin/audit?${query.toString()}`)
+      api<{ logs: AuditLog[] }>(`/api/admin/audit?${query.toString()}`),
   });
   return (
     <section className="admin-card">
@@ -1015,16 +1364,14 @@ function AuditAdmin() {
         <div>
           <span className="eyebrow">Хронологія системи</span>
           <h2>Журнал подій</h2>
-          <p>
-            Бронювання, доступ і зміни кімнат із зазначенням виконавця.
-          </p>
+          <p>Бронювання, доступ і зміни кімнат із зазначенням виконавця.</p>
         </div>
         <div className="segmented">
           {[
             ["", "Усі"],
             ["booking", "Бронювання"],
             ["access", "Доступ"],
-            ["room", "Кімнати"]
+            ["room", "Кімнати"],
           ].map(([value, label]) => (
             <button
               key={value}
@@ -1075,7 +1422,7 @@ function AuditAdmin() {
               <time dateTime={log.createdAt}>
                 {new Intl.DateTimeFormat("uk-UA", {
                   dateStyle: "medium",
-                  timeStyle: "short"
+                  timeStyle: "short",
                 }).format(new Date(log.createdAt))}
               </time>
               <div className="activity-row__main">
@@ -1129,6 +1476,9 @@ function humanizeAction(action: string): string {
     ROOM_IMAGE_UPDATED: "Оновлено фото кімнати",
     ROOM_IMAGE_REMOVED: "Прибрано фото кімнати",
     ROOM_BLOCK_CREATED: "Заблоковано час кімнати",
+    ROOM_BLOCK_CANCELLED: "Прибрано недоступність кімнати",
+    ROOM_BLOCK_SERIES_CREATED: "Створено серію недоступності",
+    ROOM_BLOCK_SERIES_CANCELLED: "Скасовано серію недоступності",
     BOOKING_CREATED: "Створено бронювання",
     BOOKING_UPDATED: "Оновлено бронювання",
     BOOKING_UPDATED_BY_ADMIN: "Адміністратор змінив бронювання",
@@ -1138,7 +1488,7 @@ function humanizeAction(action: string): string {
     BOOKING_INVITATION_ACCEPTED: "Прийнято запрошення",
     BOOKING_INVITATION_DECLINED: "Відхилено запрошення",
     OPEN_EVENT_JOINED: "Користувач долучився до відкритої події",
-    OPEN_EVENT_LEFT: "Користувач залишив відкриту подію"
+    OPEN_EVENT_LEFT: "Користувач залишив відкриту подію",
   };
   return actions[action] ?? action;
 }
@@ -1148,7 +1498,9 @@ function humanizeTarget(target: string): string {
     {
       BOOKING: "Бронювання",
       USER: "Користувач",
-      ROOM: "Кімната"
+      ROOM: "Кімната",
+      ROOM_BLOCK: "Недоступність кімнати",
+      ROOM_BLOCK_SERIES: "Серія недоступності",
     }[target] ?? target
   );
 }
@@ -1166,7 +1518,12 @@ function humanizeDetailKey(key: string): string {
     removedParticipants: "Видалено учасників",
     role: "Роль",
     capability: "Обмеження",
-    expiresAt: "Діє до"
+    expiresAt: "Діє до",
+    recurrence: "Повторення",
+    recurrenceInterval: "Інтервал",
+    weekdays: "Дні тижня",
+    recurrenceUntil: "Повторюється до",
+    occurrenceCount: "Створено інтервалів",
   };
   return keys[key] ?? key;
 }
@@ -1175,13 +1532,10 @@ function formatActivityValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "string") {
     const date = new Date(value);
-    if (
-      /^\d{4}-\d{2}-\d{2}T/.test(value) &&
-      !Number.isNaN(date.getTime())
-    ) {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(date.getTime())) {
       return new Intl.DateTimeFormat("uk-UA", {
         dateStyle: "medium",
-        timeStyle: "short"
+        timeStyle: "short",
       }).format(date);
     }
     if (value === "OPEN") return "Відкрита подія";

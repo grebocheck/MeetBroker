@@ -3,19 +3,12 @@ import { addDays, addWeeks } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
-import {
-  dateKeyInZone,
-  officeLocalToInstant,
-  officeWeek
-} from "../lib/date";
+import { dateKeyInZone, officeLocalToInstant, officeWeek } from "../lib/date";
 import { useI18n } from "../lib/i18n";
 import type { Booking, Room, Schedule, User } from "../types";
 import { Avatar } from "../components/Avatar";
 import { RoomVisual } from "../components/RoomVisual";
-import {
-  BookingDialog,
-  type BookingDraft
-} from "../components/BookingDialog";
+import { BookingDialog, type BookingDraft } from "../components/BookingDialog";
 import { CancelBookingDialog } from "../components/CancelBookingDialog";
 
 const SLOT_HEIGHT = 32;
@@ -36,80 +29,81 @@ export function CalendarPage({ user }: { user: User }) {
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
   });
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(
-    initialParams.get("roomId")
+    initialParams.get("roomId"),
   );
   const [minCapacity, setMinCapacity] = useState(0);
   const [draft, setDraft] = useState<BookingDraft | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
-  const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
+  const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(
+    null,
+  );
   const rooms = useQuery({
     queryKey: ["rooms", minCapacity],
     queryFn: () =>
       api<{ rooms: Room[] }>(
         minCapacity > 0
           ? `/api/rooms?minCapacity=${minCapacity}`
-          : "/api/rooms"
-      )
+          : "/api/rooms",
+      ),
   });
   const roomOptions = rooms.data?.rooms ?? [];
-  const roomId =
-    roomOptions.some((candidate) => candidate.id === selectedRoomId)
-      ? selectedRoomId
-      : (roomOptions[0]?.id ?? null);
+  const roomId = roomOptions.some(
+    (candidate) => candidate.id === selectedRoomId,
+  )
+    ? selectedRoomId
+    : (roomOptions[0]?.id ?? null);
   const officeTimeZone = DEFAULT_TIME_ZONE;
   const weekDays = useMemo(
     () => officeWeek(reference, officeTimeZone),
-    [reference, officeTimeZone]
+    [reference, officeTimeZone],
   );
-  const rangeStart = officeLocalToInstant(
-    weekDays[0],
-    0,
-    0,
-    officeTimeZone
-  );
+  const rangeStart = officeLocalToInstant(weekDays[0], 0, 0, officeTimeZone);
   const rangeEnd = officeLocalToInstant(
     addDays(weekDays[6], 1),
     0,
     0,
-    officeTimeZone
+    officeTimeZone,
   );
   const schedule = useQuery({
     queryKey: ["schedule", roomId, rangeStart.toISOString()],
     queryFn: () =>
       api<Schedule>(
         `/api/bookings/schedule?roomId=${roomId}&from=${encodeURIComponent(
-          rangeStart.toISOString()
-        )}&to=${encodeURIComponent(rangeEnd.toISOString())}`
+          rangeStart.toISOString(),
+        )}&to=${encodeURIComponent(rangeEnd.toISOString())}`,
       ),
-    enabled: Boolean(roomId)
+    enabled: Boolean(roomId),
   });
 
-  const room = schedule.data?.room ?? rooms.data?.rooms.find((r) => r.id === roomId);
-  const startMinutes = clockMinutes(room?.workStart ?? "09:00");
-  const endMinutes = clockMinutes(room?.workEnd ?? "19:00");
+  const room =
+    schedule.data?.room ?? rooms.data?.rooms.find((r) => r.id === roomId);
+  const workStartMinutes = clockMinutes(room?.workStart ?? "09:00");
+  const workEndMinutes = clockMinutes(room?.workEnd ?? "19:00");
+  const startMinutes = Math.min(7 * 60, workStartMinutes);
+  const endMinutes = Math.max(21 * 60, workEndMinutes);
   const slots = Array.from(
     { length: Math.max(1, (endMinutes - startMinutes) / 30) },
-    (_, index) => startMinutes + index * 30
+    (_, index) => startMinutes + index * 30,
   );
 
   const cancel = useMutation({
     mutationFn: (bookingId: string) =>
       api<void>(`/api/bookings/${bookingId}`, {
         method: "DELETE",
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       }),
     onSuccess: () => {
       setSelectedBooking(null);
       setCancellingBooking(null);
       queryClient.invalidateQueries({ queryKey: ["schedule"] });
       queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
-    }
+    },
   });
 
   const weekTitle = new Intl.DateTimeFormat(
     locale === "uk" ? "uk-UA" : "en-GB",
-    { day: "numeric", month: "long" }
+    { day: "numeric", month: "long" },
   );
   const localTimeZone =
     user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -120,8 +114,8 @@ export function CalendarPage({ user }: { user: User }) {
     (day) =>
       dateKeyInZone(
         officeLocalToInstant(day, 12, 0, officeTimeZone),
-        officeTimeZone
-      ) === dateKeyInZone(now, officeTimeZone)
+        officeTimeZone,
+      ) === dateKeyInZone(now, officeTimeZone),
   );
   const showCurrentTime =
     currentDayVisible && nowMinutes >= startMinutes && nowMinutes <= endMinutes;
@@ -131,8 +125,8 @@ export function CalendarPage({ user }: { user: User }) {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-      timeZone: officeTimeZone
-    }
+      timeZone: officeTimeZone,
+    },
   ).format(now);
 
   return (
@@ -142,7 +136,7 @@ export function CalendarPage({ user }: { user: User }) {
           <RoomVisual
             room={{
               name: room?.name ?? "Переговорні",
-              imageUrl: room?.imageUrl ?? null
+              imageUrl: room?.imageUrl ?? null,
             }}
           />
           <div>
@@ -150,9 +144,13 @@ export function CalendarPage({ user }: { user: User }) {
             <h1>{room?.name ?? "Переговорні"}</h1>
             {room && (
               <div className="room-meta">
-                <span>{room.floor} {t("floor")}</span>
+                <span>
+                  {room.floor} {t("floor")}
+                </span>
                 <span>•</span>
-                <span>{room.capacity} {t("capacity")}</span>
+                <span>
+                  {room.capacity} {t("capacity")}
+                </span>
               </div>
             )}
           </div>
@@ -195,26 +193,31 @@ export function CalendarPage({ user }: { user: User }) {
             onClick={() => {
               if (!room) return;
               const candidates = weekDays.flatMap((day) =>
-                slots.map((minutes) =>
-                  officeLocalToInstant(
-                    day,
-                    Math.floor(minutes / 60),
-                    minutes % 60,
-                    officeTimeZone
+                slots
+                  .filter(
+                    (minutes) =>
+                      minutes >= workStartMinutes && minutes < workEndMinutes,
                   )
-                )
+                  .map((minutes) =>
+                    officeLocalToInstant(
+                      day,
+                      Math.floor(minutes / 60),
+                      minutes % 60,
+                      officeTimeZone,
+                    ),
+                  ),
               );
               const next =
                 candidates.find((candidate) => candidate > new Date()) ??
                 officeLocalToInstant(
                   addDays(weekDays[6], 1),
-                  Math.floor(startMinutes / 60),
-                  startMinutes % 60,
-                  officeTimeZone
+                  Math.floor(workStartMinutes / 60),
+                  workStartMinutes % 60,
+                  officeTimeZone,
                 );
               setDraft({
                 startsAt: next,
-                endsAt: new Date(next.getTime() + 3_600_000)
+                endsAt: new Date(next.getTime() + 3_600_000),
               });
             }}
           >
@@ -278,9 +281,7 @@ export function CalendarPage({ user }: { user: User }) {
           <div className="empty-state calendar-empty-state">
             <span className="empty-state__icon">○</span>
             <h2>Немає кімнати потрібної місткості</h2>
-            <p>
-              Зменште кількість місць або перегляньте всі доступні кімнати.
-            </p>
+            <p>Зменште кількість місць або перегляньте всі доступні кімнати.</p>
             <button
               className="button button--secondary"
               onClick={() => setMinCapacity(0)}
@@ -310,87 +311,94 @@ export function CalendarPage({ user }: { user: User }) {
             <div className="calendar-scroll">
               <div
                 className="week-grid"
-                style={{
-                  "--calendar-height": `${slots.length * SLOT_HEIGHT}px`
-                } as React.CSSProperties}
+                style={
+                  {
+                    "--calendar-height": `${slots.length * SLOT_HEIGHT}px`,
+                  } as React.CSSProperties
+                }
               >
-              <div className="week-grid__corner" />
-              {weekDays.map((day) => {
-                const instant = officeLocalToInstant(
-                  day,
-                  12,
-                  0,
-                  officeTimeZone
-                );
-                const isToday =
-                  dateKeyInZone(instant, officeTimeZone) ===
-                  dateKeyInZone(new Date(), officeTimeZone);
-                return (
-                  <div
-                    className={`day-heading${isToday ? " is-today" : ""}`}
-                    key={day.toISOString()}
-                  >
-                    <span>
-                      {new Intl.DateTimeFormat(
-                        locale === "uk" ? "uk-UA" : "en-GB",
-                        { weekday: "short", timeZone: officeTimeZone }
-                      ).format(instant)}
-                    </span>
-                    <strong>
-                      {new Intl.DateTimeFormat(
-                        locale === "uk" ? "uk-UA" : "en-GB",
-                        { day: "2-digit", month: "2-digit", timeZone: officeTimeZone }
-                      ).format(instant)}
-                    </strong>
-                  </div>
-                );
-              })}
-              <div className="time-column">
-                {slots.map((minutes, index) => {
+                <div className="week-grid__corner" />
+                {weekDays.map((day) => {
                   const instant = officeLocalToInstant(
-                    weekDays[0],
-                    Math.floor(minutes / 60),
-                    minutes % 60,
-                    officeTimeZone
+                    day,
+                    12,
+                    0,
+                    officeTimeZone,
                   );
+                  const isToday =
+                    dateKeyInZone(instant, officeTimeZone) ===
+                    dateKeyInZone(new Date(), officeTimeZone);
                   return (
-                    <span
-                      key={minutes}
-                      style={{ top: index * SLOT_HEIGHT - 7 }}
+                    <div
+                      className={`day-heading${isToday ? " is-today" : ""}`}
+                      key={day.toISOString()}
                     >
-                      {new Intl.DateTimeFormat(
-                        locale === "uk" ? "uk-UA" : "en-GB",
-                        {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                          timeZone: localTimeZone
-                        }
-                      ).format(instant)}
-                    </span>
+                      <span>
+                        {new Intl.DateTimeFormat(
+                          locale === "uk" ? "uk-UA" : "en-GB",
+                          { weekday: "short", timeZone: officeTimeZone },
+                        ).format(instant)}
+                      </span>
+                      <strong>
+                        {new Intl.DateTimeFormat(
+                          locale === "uk" ? "uk-UA" : "en-GB",
+                          {
+                            day: "2-digit",
+                            month: "2-digit",
+                            timeZone: officeTimeZone,
+                          },
+                        ).format(instant)}
+                      </strong>
+                    </div>
                   );
                 })}
-              </div>
-              {weekDays.map((day) => (
-                <DayColumn
-                  key={day.toISOString()}
-                  day={day}
-                  slots={slots}
-                  startMinutes={startMinutes}
-                  officeTimeZone={officeTimeZone}
-                  schedule={schedule.data!}
-                  currentUserId={user.id}
-                  onCreate={setDraft}
-                  onBooking={setSelectedBooking}
-                />
-              ))}
+                <div className="time-column">
+                  {slots.map((minutes, index) => {
+                    const instant = officeLocalToInstant(
+                      weekDays[0],
+                      Math.floor(minutes / 60),
+                      minutes % 60,
+                      officeTimeZone,
+                    );
+                    return (
+                      <span
+                        key={minutes}
+                        style={{ top: index * SLOT_HEIGHT - 7 }}
+                      >
+                        {new Intl.DateTimeFormat(
+                          locale === "uk" ? "uk-UA" : "en-GB",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                            timeZone: localTimeZone,
+                          },
+                        ).format(instant)}
+                      </span>
+                    );
+                  })}
+                </div>
+                {weekDays.map((day) => (
+                  <DayColumn
+                    key={day.toISOString()}
+                    day={day}
+                    slots={slots}
+                    startMinutes={startMinutes}
+                    workStartMinutes={workStartMinutes}
+                    workEndMinutes={workEndMinutes}
+                    officeTimeZone={officeTimeZone}
+                    schedule={schedule.data!}
+                    currentUserId={user.id}
+                    onCreate={setDraft}
+                    onBooking={setSelectedBooking}
+                  />
+                ))}
                 {showCurrentTime && (
                   <div
                     className="current-time-line"
                     style={{
                       top:
-                        58 +
-                        ((nowMinutes - startMinutes) / 30) * SLOT_HEIGHT
+                        58 + ((nowMinutes - startMinutes) / 30) * SLOT_HEIGHT,
                     }}
                   >
                     <span>{currentTimeLabel}</span>
@@ -410,6 +418,14 @@ export function CalendarPage({ user }: { user: User }) {
               <div>
                 <span className="legend-swatch legend-swatch--open" />
                 Відкриті події
+              </div>
+              <div>
+                <span className="legend-swatch legend-swatch--maintenance" />
+                Недоступність
+              </div>
+              <div>
+                <span className="legend-swatch legend-swatch--closed" />
+                Поза робочими годинами
               </div>
               <span className="calendar-legend__hint">
                 Натисніть на вільний час, щоб забронювати
@@ -469,7 +485,7 @@ export function CalendarPage({ user }: { user: User }) {
             roomName: room.name,
             startsAt: cancellingBooking.startsAt,
             endsAt: cancellingBooking.endsAt,
-            participantCount: cancellingBooking.participants.length
+            participantCount: cancellingBooking.participants.length,
           }}
           pending={cancel.isPending}
           error={cancel.error}
@@ -488,15 +504,19 @@ function DayColumn({
   day,
   slots,
   startMinutes,
+  workStartMinutes,
+  workEndMinutes,
   officeTimeZone,
   schedule,
   currentUserId,
   onCreate,
-  onBooking
+  onBooking,
 }: {
   day: Date;
   slots: number[];
   startMinutes: number;
+  workStartMinutes: number;
+  workEndMinutes: number;
   officeTimeZone: string;
   schedule: Schedule;
   currentUserId: string;
@@ -505,41 +525,55 @@ function DayColumn({
 }) {
   const key = dateKeyInZone(
     officeLocalToInstant(day, 12, 0, officeTimeZone),
-    officeTimeZone
+    officeTimeZone,
   );
   const bookings = schedule.bookings.filter(
     (booking) =>
-      dateKeyInZone(new Date(booking.startsAt), officeTimeZone) === key
+      dateKeyInZone(new Date(booking.startsAt), officeTimeZone) === key,
   );
   const blocks = schedule.blocks.filter(
-    (block) => dateKeyInZone(new Date(block.startsAt), officeTimeZone) === key
+    (block) => dateKeyInZone(new Date(block.startsAt), officeTimeZone) === key,
   );
 
   return (
     <div className="day-column">
       {slots.map((minutes) => {
+        const outsideWorkingHours =
+          minutes < workStartMinutes || minutes >= workEndMinutes;
         const start = officeLocalToInstant(
           day,
           Math.floor(minutes / 60),
           minutes % 60,
-          officeTimeZone
+          officeTimeZone,
         );
         return (
           <button
-            className="calendar-slot"
+            className={`calendar-slot${
+              outsideWorkingHours ? " calendar-slot--closed" : ""
+            }`}
             key={minutes}
-            onClick={() =>
-              onCreate({
-                startsAt: start,
-                endsAt: new Date(start.getTime() + 30 * 60_000)
-              })
+            disabled={outsideWorkingHours}
+            onClick={() => {
+              if (!outsideWorkingHours) {
+                onCreate({
+                  startsAt: start,
+                  endsAt: new Date(start.getTime() + 30 * 60_000),
+                });
+              }
+            }}
+            aria-label={
+              outsideWorkingHours
+                ? `Кімната не працює ${start.toISOString()}`
+                : `Вільний слот ${start.toISOString()}`
             }
-            aria-label={`Вільний слот ${start.toISOString()}`}
           />
         );
       })}
       {blocks.map((block) => {
-        const localStart = toZonedTime(new Date(block.startsAt), officeTimeZone);
+        const localStart = toZonedTime(
+          new Date(block.startsAt),
+          officeTimeZone,
+        );
         const minutes = localStart.getHours() * 60 + localStart.getMinutes();
         const duration =
           (new Date(block.endsAt).getTime() -
@@ -547,13 +581,18 @@ function DayColumn({
           60_000;
         return (
           <div
-            className="booking-block booking-block--maintenance"
+            className={`booking-block booking-block--maintenance${
+              block.seriesId ? " booking-block--recurring" : ""
+            }`}
             style={{
               top: ((minutes - startMinutes) / 30) * SLOT_HEIGHT + 2,
-              height: Math.max(28, (duration / 30) * SLOT_HEIGHT - 4)
+              height: Math.max(28, (duration / 30) * SLOT_HEIGHT - 4),
             }}
             key={block.id}
           >
+            <small>
+              {block.seriesId ? "Повторювана недоступність" : "Недоступність"}
+            </small>
             <span>{block.title}</span>
           </div>
         );
@@ -561,7 +600,7 @@ function DayColumn({
       {bookings.map((booking) => {
         const localStart = toZonedTime(
           new Date(booking.startsAt),
-          officeTimeZone
+          officeTimeZone,
         );
         const minutes = localStart.getHours() * 60 + localStart.getMinutes();
         const duration =
@@ -576,7 +615,7 @@ function DayColumn({
             }${booking.participationMode === "OPEN" ? " booking-block--open" : ""}`}
             style={{
               top: ((minutes - startMinutes) / 30) * SLOT_HEIGHT + 2,
-              height: Math.max(28, (duration / 30) * SLOT_HEIGHT - 4)
+              height: Math.max(28, (duration / 30) * SLOT_HEIGHT - 4),
             }}
             key={booking.id}
             onClick={() => onBooking(booking)}
@@ -585,7 +624,7 @@ function DayColumn({
               {new Intl.DateTimeFormat("uk-UA", {
                 hour: "2-digit",
                 minute: "2-digit",
-                hour12: false
+                hour12: false,
               }).format(new Date(booking.startsAt))}
             </small>
             <strong>{booking.title}</strong>
@@ -603,7 +642,7 @@ function BookingDrawer({
   onClose,
   onEdit,
   onCancel,
-  cancelling
+  cancelling,
 }: {
   booking: Booking;
   currentUserId: string;
@@ -614,14 +653,21 @@ function BookingDrawer({
 }) {
   return (
     <div className="drawer-backdrop" onMouseDown={onClose}>
-      <aside className="drawer" onMouseDown={(event) => event.stopPropagation()}>
+      <aside
+        className="drawer"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <div className="drawer__header">
           <span
             className={`event-dot${
               booking.organizer.id === currentUserId ? " event-dot--own" : ""
             }`}
           />
-          <button className="icon-button" onClick={onClose} aria-label="Закрити">
+          <button
+            className="icon-button"
+            onClick={onClose}
+            aria-label="Закрити"
+          >
             ×
           </button>
         </div>
@@ -634,7 +680,7 @@ function BookingDrawer({
         <div className="drawer-time">
           {new Intl.DateTimeFormat("uk-UA", {
             dateStyle: "full",
-            timeStyle: "short"
+            timeStyle: "short",
           }).format(new Date(booking.startsAt))}
         </div>
         <hr />
