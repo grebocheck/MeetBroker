@@ -2667,6 +2667,7 @@ hr {
   background: color-mix(in srgb, var(--surface-muted) 58%, var(--surface-raised));
   grid-template-columns: 52px minmax(0, 1fr) auto;
   gap: 12px;
+  container-type: inline-size;
 }
 
 .room-admin-row__copy {
@@ -2694,6 +2695,14 @@ hr {
 
 .room-hours-editor__heading {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 12px;
+}
+
+.room-hours-editor__heading > div {
+  display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 2px;
@@ -2712,19 +2721,22 @@ hr {
 .room-hours-editor__controls {
   display: grid;
   align-items: center;
-  grid-template-columns: 102px auto 102px auto;
+  justify-content: start;
+  grid-template-columns: 76px auto 76px;
   gap: 7px;
 }
 
 .room-hours-editor input {
-  width: 102px;
+  width: 76px;
   min-height: 34px;
-  padding: 5px 9px;
+  padding: 5px 8px;
   border: 1px solid var(--border);
   border-radius: 3px 9px 3px 9px;
   background: var(--surface-muted);
   color: var(--text);
   font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .room-hours-editor > small {
@@ -2767,6 +2779,20 @@ hr {
   color: var(--text-muted);
   font-size: 0.66rem;
   line-height: 1.45;
+}
+
+@container (max-width: 420px) {
+  .room-admin-row__copy {
+    grid-column: 2;
+  }
+
+  .room-image-actions {
+    grid-column: 2;
+  }
+
+  .room-hours-editor {
+    grid-column: 1 / -1;
+  }
 }
 
 .recurrence-segmented {
@@ -3165,6 +3191,12 @@ hr {
   animation: pulse 1.4s infinite alternate;
 }
 
+@media (max-width: 1280px) {
+  .admin-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1050px) {
   .app-layout {
     grid-template-columns: 82px minmax(0, 1fr);
@@ -3232,8 +3264,7 @@ hr {
     flex-direction: column;
   }
 
-  .settings-layout,
-  .admin-columns {
+  .settings-layout {
     grid-template-columns: 1fr;
   }
 
@@ -3451,10 +3482,6 @@ hr {
 
   .room-hours-editor input {
     width: 100%;
-  }
-
-  .room-hours-editor__controls .button {
-    grid-column: 1 / -1;
   }
 
   .recurrence-segmented {

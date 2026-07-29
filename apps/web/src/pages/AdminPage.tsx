@@ -1261,6 +1261,10 @@ function RoomHoursEditor({ room }: { room: Room }) {
   const [workStart, setWorkStart] = useState(room.workStart);
   const [workEnd, setWorkEnd] = useState(room.workEnd);
   const changed = workStart !== room.workStart || workEnd !== room.workEnd;
+  const validHours =
+    /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(workStart) &&
+    /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(workEnd) &&
+    workStart < workEnd;
   const update = useMutation({
     mutationFn: () =>
       api<void>(`/api/admin/rooms/${room.id}`, {
@@ -1277,15 +1281,27 @@ function RoomHoursEditor({ room }: { room: Room }) {
   return (
     <div className="room-hours-editor">
       <div className="room-hours-editor__heading">
-        <strong>Робочі години</strong>
-        <small>Бронювання поза цим часом недоступне</small>
+        <div>
+          <strong>Робочі години</strong>
+          <small>Бронювання поза цим часом недоступне</small>
+        </div>
+        <Button
+          size="small"
+          disabled={!changed || !validHours || update.isPending}
+          onClick={() => update.mutate()}
+        >
+          {update.isPending ? "…" : "Зберегти"}
+        </Button>
       </div>
       <div className="room-hours-editor__controls">
         <label>
           <span className="sr-only">Початок роботи {room.name}</span>
           <input
-            type="time"
-            step={1800}
+            type="text"
+            inputMode="numeric"
+            maxLength={5}
+            placeholder="09:00"
+            aria-label={`Початок роботи ${room.name}, формат ГГ:ХХ`}
             value={workStart}
             onChange={(event) => {
               setWorkStart(event.target.value);
@@ -1297,8 +1313,11 @@ function RoomHoursEditor({ room }: { room: Room }) {
         <label>
           <span className="sr-only">Завершення роботи {room.name}</span>
           <input
-            type="time"
-            step={1800}
+            type="text"
+            inputMode="numeric"
+            maxLength={5}
+            placeholder="19:00"
+            aria-label={`Завершення роботи ${room.name}, формат ГГ:ХХ`}
             value={workEnd}
             onChange={(event) => {
               setWorkEnd(event.target.value);
@@ -1306,14 +1325,12 @@ function RoomHoursEditor({ room }: { room: Room }) {
             }}
           />
         </label>
-        <Button
-          size="small"
-          disabled={!changed || update.isPending}
-          onClick={() => update.mutate()}
-        >
-          {update.isPending ? "…" : "Зберегти"}
-        </Button>
       </div>
+      {changed && !validHours && (
+        <small className="field-error">
+          Вкажіть час у форматі 09:00–19:00; завершення має бути пізніше.
+        </small>
+      )}
       {update.error && (
         <small className="field-error">
           {update.error instanceof ApiError
