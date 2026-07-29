@@ -1,0 +1,125 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { ComponentType, SVGProps } from "react";
+import { api } from "../lib/api";
+import { useI18n } from "../lib/i18n";
+import { Link, navigate } from "../lib/router";
+import type { User } from "../types";
+import { AdminPage } from "../pages/AdminPage";
+import { BookingListPage } from "../pages/BookingListPage";
+import { CalendarPage } from "../pages/CalendarPage";
+import { EventsPage } from "../pages/EventsPage";
+import { NotificationsPage } from "../pages/NotificationsPage";
+import { ProfilePage } from "../pages/ProfilePage";
+import { Avatar } from "./Avatar";
+import {
+  BellIcon,
+  CalendarIcon,
+  ListIcon,
+  LogOutIcon,
+  SettingsIcon,
+  ShieldIcon,
+  UsersIcon
+} from "./Icons";
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  admin?: boolean;
+}
+
+function currentRoute(path: string): string {
+  return path.split("?")[0];
+}
+
+export function AppShell({ user, path }: { user: User; path: string }) {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const logout = useMutation({
+    mutationFn: () => api<void>("/api/auth/logout", { method: "POST" }),
+    onSuccess: () => {
+      queryClient.clear();
+      navigate("/login", true);
+    }
+  });
+  const route = currentRoute(path);
+  const items: NavItem[] = [
+    { href: "/calendar", label: t("calendar"), icon: CalendarIcon },
+    { href: "/bookings", label: t("myBookings"), icon: ListIcon },
+    { href: "/events", label: t("openEvents"), icon: UsersIcon },
+    {
+      href: "/notifications",
+      label: t("notifications"),
+      icon: BellIcon
+    },
+    { href: "/profile", label: t("profile"), icon: SettingsIcon },
+    {
+      href: "/admin",
+      label: t("administration"),
+      icon: ShieldIcon,
+      admin: true
+    }
+  ];
+
+  let content = <CalendarPage user={user} />;
+  if (route === "/bookings") content = <BookingListPage user={user} />;
+  if (route === "/events") content = <EventsPage user={user} />;
+  if (route === "/notifications") content = <NotificationsPage />;
+  if (route === "/profile") content = <ProfilePage user={user} />;
+  if (route.startsWith("/admin") && user.role === "ADMIN") {
+    content = <AdminPage />;
+  }
+
+  return (
+    <div className="app-layout">
+      <aside className="sidebar">
+        <Link className="brand" href="/calendar">
+          <span className="brand-mark">M</span>
+          <span>MeetBroker</span>
+        </Link>
+
+        <nav className="main-nav" aria-label="Основна навігація">
+          {items
+            .filter((item) => !item.admin || user.role === "ADMIN")
+            .map((item) => {
+              const Icon = item.icon;
+              const active =
+                route === item.href ||
+                (item.href === "/admin" && route.startsWith("/admin"));
+              return (
+                <Link
+                  href={item.href}
+                  className={`nav-item${active ? " nav-item--active" : ""}`}
+                  key={item.href}
+                >
+                  <Icon />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+        </nav>
+
+        <div className="sidebar-profile">
+          <Avatar
+            name={user.name}
+            preset={user.avatarPreset}
+            url={user.avatarUrl}
+          />
+          <div className="sidebar-profile__copy">
+            <strong>{user.name}</strong>
+            <span>{user.role === "ADMIN" ? "Адміністратор" : "Співробітник"}</span>
+          </div>
+          <button
+            className="icon-button"
+            onClick={() => logout.mutate()}
+            title={t("signOut")}
+            aria-label={t("signOut")}
+          >
+            <LogOutIcon />
+          </button>
+        </div>
+      </aside>
+      <main className="app-main">{content}</main>
+    </div>
+  );
+}
