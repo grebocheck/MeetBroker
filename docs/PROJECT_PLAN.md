@@ -46,6 +46,8 @@ MeetBroker — простий корпоративний застосунок д
 - **Frontend:** React і TypeScript.
 - **Backend:** NestJS із предметними модулями.
 - **Database:** PostgreSQL.
+- **Database tooling:** `node-pg-migrate` для версій схеми та поступовий
+  перехід runtime-запитів на Drizzle ORM без одноразового переписування API.
 - **Edge:** окремий Nginx як єдина зовнішня точка входу.
 - **Runtime:** Docker Compose для локального та перевірочного запуску.
 - **Authentication:** захищена cookie-сесія; поточний користувач визначається
