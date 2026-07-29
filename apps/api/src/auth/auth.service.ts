@@ -124,9 +124,11 @@ export class AuthService {
       throw error;
     }
 
-    process.stdout.write(
-      `[dev-email] Verify ${email}: /verify-email?token=${verificationToken}\n`
-    );
+    if (process.env.NODE_ENV !== "production") {
+      process.stdout.write(
+        `[dev-email] Verify ${email}: /verify-email?token=${verificationToken}\n`
+      );
+    }
 
     return {
       userId,

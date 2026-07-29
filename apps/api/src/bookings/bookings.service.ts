@@ -19,6 +19,7 @@ import {
 interface RoomRow {
   id: string;
   name: string;
+  floor: number;
   capacity: number;
   work_start: string;
   work_end: string;
@@ -63,7 +64,7 @@ export class BookingsService {
 
     const room = await this.database.query<RoomRow>(
       `
-        select id, name, capacity, work_start::text, work_end::text, active
+        select id, name, floor, capacity, work_start::text, work_end::text, active
         from rooms where id = $1
       `,
       [roomId]
@@ -149,6 +150,7 @@ export class BookingsService {
       room: {
         id: room.rows[0].id,
         name: room.rows[0].name,
+        floor: room.rows[0].floor,
         capacity: room.rows[0].capacity,
         workStart: room.rows[0].work_start.slice(0, 5),
         workEnd: room.rows[0].work_end.slice(0, 5)
@@ -199,7 +201,7 @@ export class BookingsService {
       ]);
       const roomResult = await client.query<RoomRow>(
         `
-          select id, name, capacity, work_start::text, work_end::text, active
+          select id, name, floor, capacity, work_start::text, work_end::text, active
           from rooms where id = $1
         `,
         [dto.roomId]
