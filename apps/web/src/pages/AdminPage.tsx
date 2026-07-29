@@ -5,6 +5,7 @@ import type { Booking, Room } from "../types";
 import { Avatar } from "../components/Avatar";
 import { BookingDialog } from "../components/BookingDialog";
 import { RoomVisual } from "../components/RoomVisual";
+import { Button } from "../components/ui/Button";
 
 interface AdminUser {
   id: string;
@@ -212,9 +213,9 @@ function BookingsAdmin() {
                 onChange={(event) => setSearchInput(event.target.value)}
               />
             </label>
-            <button className="button button--secondary button--small">
+            <Button type="submit" size="small">
               Знайти
-            </button>
+            </Button>
           </form>
           <span className="result-count">
             {bookings.data?.bookings.length ?? 0} бронювань
@@ -283,9 +284,8 @@ function BookingsAdmin() {
                       учасників
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    className="button button--secondary button--small"
+                  <Button
+                    size="small"
                     onClick={() => {
                       cancelBooking.reset();
                       setReason("");
@@ -293,7 +293,7 @@ function BookingsAdmin() {
                     }}
                   >
                     Деталі
-                  </button>
+                  </Button>
                 </article>
               );
             })}
@@ -535,33 +535,28 @@ function AdminBookingDialog({
         )}
 
         <div className="modal__actions">
-          <button
-            type="button"
-            className="button button--secondary button--slanted"
+          <Button
             onClick={onClose}
             disabled={pending}
           >
-            <span>Закрити</span>
-          </button>
+            Закрити
+          </Button>
           {canCancel && (
-            <button
-              type="button"
-              className="button button--secondary"
+            <Button
               onClick={onEdit}
               disabled={pending}
             >
               Змінити подію
-            </button>
+            </Button>
           )}
           {canCancel && (
-            <button
-              type="button"
-              className="button button--danger"
+            <Button
+              variant="danger"
               onClick={onCancel}
               disabled={pending || reason.trim().length < 3}
             >
               {pending ? "Скасовуємо…" : "Скасувати бронювання"}
-            </button>
+            </Button>
           )}
         </div>
       </section>
@@ -684,8 +679,9 @@ function UsersAdmin() {
                 {!user.approved &&
                   user.emailVerified &&
                   !user.accessRevoked && (
-                    <button
-                      className="button button--primary button--small"
+                    <Button
+                      variant="primary"
+                      size="small"
                       onClick={() =>
                         action.mutate({
                           path: `/api/admin/users/${user.id}/approve`,
@@ -693,18 +689,19 @@ function UsersAdmin() {
                       }
                     >
                       Схвалити
-                    </button>
+                    </Button>
                   )}
                 {user.approved && !user.accessRevoked && (
                   <>
-                    <button
-                      className="button button--secondary button--small"
+                    <Button
+                      size="small"
                       onClick={() => restrict(user)}
                     >
                       Обмежити
-                    </button>
-                    <button
-                      className="button button--ghost button--small"
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="small"
                       onClick={() => {
                         const reason = window.prompt(
                           "Причина відкликання доступу:",
@@ -718,7 +715,7 @@ function UsersAdmin() {
                       }}
                     >
                       Відкликати
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
@@ -871,7 +868,7 @@ function RoomsAdmin() {
               </div>
               <RoomHoursEditor room={room} />
               <div className="room-image-actions">
-                <label className="room-image-action">
+                <label className="button button--secondary button--slanted button--small room-image-action">
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -882,17 +879,19 @@ function RoomsAdmin() {
                       event.target.value = "";
                     }}
                   />
-                  {uploadRoomImage.isPending &&
-                  uploadRoomImage.variables?.roomId === room.id
-                    ? "Обробляємо…"
-                    : room.imageUrl
-                      ? "Замінити"
-                      : "Додати фото"}
+                  <span>
+                    {uploadRoomImage.isPending &&
+                    uploadRoomImage.variables?.roomId === room.id
+                      ? "Обробляємо…"
+                      : room.imageUrl
+                        ? "Замінити фото"
+                        : "Додати фото"}
+                  </span>
                 </label>
                 {room.imageUrl && (
-                  <button
-                    type="button"
-                    className="room-image-remove"
+                  <Button
+                    variant="ghost"
+                    size="small"
                     disabled={
                       removeRoomImage.isPending &&
                       removeRoomImage.variables === room.id
@@ -900,7 +899,7 @@ function RoomsAdmin() {
                     onClick={() => removeRoomImage.mutate(room.id)}
                   >
                     Прибрати
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -1009,7 +1008,7 @@ function RoomsAdmin() {
                     : "Не вдалося зберегти фото кімнати"}
             </div>
           )}
-          <button className="button button--secondary">Додати</button>
+          <Button type="submit">Додати</Button>
         </form>
       </section>
 
@@ -1043,9 +1042,9 @@ function RoomsAdmin() {
                     {block.roomName} · {formatRoomBlockRule(block)}
                   </small>
                 </div>
-                <button
-                  type="button"
-                  className="button button--ghost button--small"
+                <Button
+                  variant="ghost"
+                  size="small"
                   disabled={
                     cancelBlock.isPending &&
                     cancelBlock.variables?.id === block.id
@@ -1053,7 +1052,7 @@ function RoomsAdmin() {
                   onClick={() => cancelBlock.mutate(block)}
                 >
                   {block.kind === "SERIES" ? "Скасувати серію" : "Прибрати"}
-                </button>
+                </Button>
               </article>
             ))
           )}
@@ -1236,8 +1235,9 @@ function RoomsAdmin() {
                 : "Не вдалося створити блокування"}
             </div>
           )}
-          <button
-            className="button button--primary"
+          <Button
+            type="submit"
+            variant="primary"
             disabled={
               createBlock.isPending ||
               (blockForm.recurrence === "WEEKLY" &&
@@ -1249,7 +1249,7 @@ function RoomsAdmin() {
               : blockForm.recurrence === "NONE"
                 ? "Додати разовий виняток"
                 : "Створити серію"}
-          </button>
+          </Button>
         </form>
       </section>
     </div>
@@ -1276,39 +1276,44 @@ function RoomHoursEditor({ room }: { room: Room }) {
 
   return (
     <div className="room-hours-editor">
-      <label>
-        <span className="sr-only">Початок роботи {room.name}</span>
-        <input
-          type="time"
-          step={1800}
-          value={workStart}
-          onChange={(event) => {
-            setWorkStart(event.target.value);
-            update.reset();
-          }}
-        />
-      </label>
-      <span>—</span>
-      <label>
-        <span className="sr-only">Завершення роботи {room.name}</span>
-        <input
-          type="time"
-          step={1800}
-          value={workEnd}
-          onChange={(event) => {
-            setWorkEnd(event.target.value);
-            update.reset();
-          }}
-        />
-      </label>
-      <button
-        type="button"
-        className="button button--secondary button--small"
-        disabled={!changed || update.isPending}
-        onClick={() => update.mutate()}
-      >
-        {update.isPending ? "…" : "Зберегти"}
-      </button>
+      <div className="room-hours-editor__heading">
+        <strong>Робочі години</strong>
+        <small>Бронювання поза цим часом недоступне</small>
+      </div>
+      <div className="room-hours-editor__controls">
+        <label>
+          <span className="sr-only">Початок роботи {room.name}</span>
+          <input
+            type="time"
+            step={1800}
+            value={workStart}
+            onChange={(event) => {
+              setWorkStart(event.target.value);
+              update.reset();
+            }}
+          />
+        </label>
+        <span>—</span>
+        <label>
+          <span className="sr-only">Завершення роботи {room.name}</span>
+          <input
+            type="time"
+            step={1800}
+            value={workEnd}
+            onChange={(event) => {
+              setWorkEnd(event.target.value);
+              update.reset();
+            }}
+          />
+        </label>
+        <Button
+          size="small"
+          disabled={!changed || update.isPending}
+          onClick={() => update.mutate()}
+        >
+          {update.isPending ? "…" : "Зберегти"}
+        </Button>
+      </div>
       {update.error && (
         <small className="field-error">
           {update.error instanceof ApiError
@@ -1399,9 +1404,9 @@ function AuditAdmin() {
               onChange={(event) => setSearchInput(event.target.value)}
             />
           </label>
-          <button className="button button--secondary button--small">
+          <Button type="submit" size="small">
             Знайти
-          </button>
+          </Button>
         </form>
       </div>
 

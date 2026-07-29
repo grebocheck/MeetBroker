@@ -1,4 +1,5 @@
 import { ApiError } from "../lib/api";
+import { Button } from "./ui/Button";
 
 export interface CancelBookingDetails {
   title: string;
@@ -103,23 +104,20 @@ export function CancelBookingDialog({
         )}
 
         <div className="modal__actions">
-          <button
-            type="button"
-            className="button button--secondary button--slanted"
+          <Button
             onClick={onClose}
             disabled={pending}
             autoFocus
           >
-            <span>Залишити бронювання</span>
-          </button>
-          <button
-            type="button"
-            className="button button--danger"
+            Залишити бронювання
+          </Button>
+          <Button
+            variant="danger"
             onClick={onConfirm}
             disabled={pending}
           >
             {pending ? "Скасовуємо…" : "Так, скасувати"}
-          </button>
+          </Button>
         </div>
       </section>
     </div>

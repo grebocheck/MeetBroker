@@ -84,5 +84,6 @@ health, вхід, кімнати, створення/скасування бро
 - [Дизайн, локалізація та теми](docs/decisions/0003-design-localization-and-theming.md)
 - [Карта екранів](docs/design/SCREEN_MAP.md)
 - [Візуальні напрями](docs/design/DESIGN_DIRECTIONS.md)
+- [Канонічні UI-компоненти](docs/design/UI_COMPONENTS.md)
 - [Маніфест дизайн-концептів](docs/design/ASSET_MANIFEST.md)
 - [Журнал промптів](docs/prompt-journal/README.md)

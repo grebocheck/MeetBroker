@@ -656,6 +656,11 @@ hr {
   background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
 }
 
+.button--ghost {
+  border-color: transparent;
+  color: var(--text-muted);
+}
+
 .button--secondary.button--slanted {
   position: relative;
   border: 0;
@@ -2548,15 +2553,20 @@ hr {
 }
 
 .room-admin-list {
+  display: grid;
   margin: 18px 0 24px;
+  gap: 10px;
 }
 
 .room-admin-row {
-  display: flex;
+  display: grid;
   align-items: center;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px 18px 4px 18px;
+  background: color-mix(in srgb, var(--surface-muted) 58%, var(--surface-raised));
+  grid-template-columns: 52px minmax(0, 1fr) auto;
   gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
 }
 
 .room-admin-row__copy {
@@ -2574,20 +2584,47 @@ hr {
 
 .room-hours-editor {
   display: grid;
+  min-width: 0;
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+  grid-column: 2 / -1;
+  grid-template-columns: 1fr;
+  gap: 10px 14px;
+}
+
+.room-hours-editor__heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.room-hours-editor__heading strong {
+  font-size: 0.7rem;
+}
+
+.room-hours-editor__heading small {
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  line-height: 1.35;
+}
+
+.room-hours-editor__controls {
+  display: grid;
   align-items: center;
-  grid-template-columns: 72px auto 72px auto;
-  gap: 5px;
+  grid-template-columns: 102px auto 102px auto;
+  gap: 7px;
 }
 
 .room-hours-editor input {
-  width: 72px;
+  width: 102px;
   min-height: 34px;
-  padding: 5px 7px;
+  padding: 5px 9px;
   border: 1px solid var(--border);
   border-radius: 3px 9px 3px 9px;
   background: var(--surface-muted);
   color: var(--text);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
 }
 
 .room-hours-editor > small {
@@ -2669,14 +2706,7 @@ hr {
 
 .room-image-action {
   flex: 0 0 auto;
-  padding: 7px 9px;
-  border: 1px solid var(--border);
-  border-radius: 3px 10px 3px 10px;
-  color: var(--primary);
   cursor: pointer;
-  font-size: 0.66rem;
-  font-weight: 750;
-  transition: 160ms ease;
 }
 
 .room-image-actions {
@@ -2686,29 +2716,12 @@ hr {
   gap: 5px;
 }
 
-.room-image-action:hover {
-  border-color: var(--primary);
-  background: var(--surface-muted);
-}
-
 .room-image-action input {
   position: absolute;
   width: 1px;
   height: 1px;
   opacity: 0;
   pointer-events: none;
-}
-
-.room-image-remove {
-  padding: 7px 5px;
-  border: 0;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.62rem;
-}
-
-.room-image-remove:hover {
-  color: var(--danger);
 }
 
 .admin-form {
@@ -3319,16 +3332,29 @@ hr {
 
   .room-admin-row {
     align-items: flex-start;
-    flex-wrap: wrap;
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .room-image-actions {
+    grid-column: 2;
   }
 
   .room-hours-editor {
     width: 100%;
-    grid-template-columns: minmax(90px, 1fr) auto minmax(90px, 1fr) auto;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+  }
+
+  .room-hours-editor__controls {
+    grid-template-columns: minmax(90px, 1fr) auto minmax(90px, 1fr);
   }
 
   .room-hours-editor input {
     width: 100%;
+  }
+
+  .room-hours-editor__controls .button {
+    grid-column: 1 / -1;
   }
 
   .recurrence-segmented {
