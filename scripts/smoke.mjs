@@ -427,6 +427,137 @@ async function createUpdateAndCancelBooking(
   throw new Error("Could not find an available weekday smoke-test slot");
 }
 
+async function verifyCriticalBookingGuards(
+  ownerCookie,
+  otherCookie,
+  room,
+) {
+  const postBooking = (cookie, startsAt, endsAt, title) =>
+    fetch(`${baseUrl}/api/bookings`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie,
+      },
+      body: JSON.stringify({
+        roomId: room.id,
+        title,
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
+      }),
+    });
+
+  const pastStart = new Date(Date.now() - 24 * 60 * 60_000);
+  pastStart.setUTCMinutes(0, 0, 0);
+  const pastResponse = await postBooking(
+    ownerCookie,
+    pastStart,
+    new Date(pastStart.getTime() + 30 * 60_000),
+    "Past validation smoke",
+  );
+  const pastBody = await pastResponse.json();
+  check(
+    pastResponse.status === 400 && pastBody?.error?.code === "PAST",
+    "Past booking must be rejected by the API",
+  );
+
+  for (const startsAt of bookingCandidates(
+    process.env.OFFICE_TIME_ZONE ?? "Europe/Kyiv",
+  )) {
+    const outsideStart = new Date(startsAt.getTime() - 4 * 60 * 60_000);
+    const outsideResponse = await postBooking(
+      ownerCookie,
+      outsideStart,
+      new Date(outsideStart.getTime() + 30 * 60_000),
+      "Working hours validation smoke",
+    );
+    const outsideBody = await outsideResponse.json();
+    check(
+      outsideResponse.status === 400 &&
+        outsideBody?.error?.code === "OUTSIDE_WORKING_HOURS",
+      "Booking outside working hours must be rejected by the API",
+    );
+
+    const endsAt = new Date(startsAt.getTime() + 30 * 60_000);
+    const responses = await Promise.all([
+      postBooking(
+        ownerCookie,
+        startsAt,
+        endsAt,
+        `Concurrent owner smoke ${Date.now()}`,
+      ),
+      postBooking(
+        otherCookie,
+        startsAt,
+        endsAt,
+        `Concurrent contender smoke ${Date.now()}`,
+      ),
+    ]);
+    const results = await Promise.all(
+      responses.map(async (response, index) => ({
+        response,
+        body: await response.json(),
+        cookie: index === 0 ? ownerCookie : otherCookie,
+      })),
+    );
+    const created = results.filter(({ response }) => response.status === 201);
+    const conflicts = results.filter(({ response }) => response.status === 409);
+    if (created.length === 0 && conflicts.length === 2) continue;
+
+    if (created.length !== 1 || conflicts.length !== 1) {
+      for (const result of created) {
+        await fetch(`${baseUrl}/api/bookings/${result.body.id}`, {
+          method: "DELETE",
+          headers: {
+            "content-type": "application/json",
+            cookie: result.cookie,
+          },
+          body: JSON.stringify({ reason: "Concurrent smoke cleanup" }),
+        });
+      }
+      throw new Error(
+        `Concurrent booking expected one success and one conflict, received ${responses
+          .map((response) => response.status)
+          .join(", ")}`,
+      );
+    }
+    check(
+      conflicts[0].body?.error?.code === "SLOT_TAKEN",
+      "Concurrent loser must receive SLOT_TAKEN",
+    );
+
+    const winner = created[0];
+    const nonOwnerCookie =
+      winner.cookie === ownerCookie ? otherCookie : ownerCookie;
+    const forbidden = await fetch(
+      `${baseUrl}/api/bookings/${winner.body.id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+          cookie: nonOwnerCookie,
+        },
+        body: JSON.stringify({ reason: "Must not be allowed" }),
+      },
+    );
+    const forbiddenBody = await forbidden.json();
+    check(
+      forbidden.status === 403 &&
+        forbiddenBody?.error?.code === "NOT_BOOKING_OWNER",
+      "Another user must not be able to cancel a booking through the API",
+    );
+
+    await request(`/api/bookings/${winner.body.id}`, {
+      method: "DELETE",
+      headers: { cookie: winner.cookie },
+      body: JSON.stringify({ reason: "Critical guard smoke cleanup" }),
+    });
+    return;
+  }
+
+  throw new Error("Could not find an available slot for booking guard smoke");
+}
+
 async function main() {
   console.log(`Smoke checking ${baseUrl}`);
   await waitForReady();
@@ -439,6 +570,7 @@ async function main() {
 
   const userCookie = await login(userCredentials);
   const adminCookie = await login(adminCredentials);
+  const secondUserCookie = await login(securityCredentials);
   const adminMe = await request("/api/auth/me", {
     headers: { cookie: adminCookie },
   });
@@ -448,6 +580,11 @@ async function main() {
   check(
     roomsResult.body?.rooms?.length >= 2,
     "Expected at least two seeded rooms",
+  );
+  await verifyCriticalBookingGuards(
+    userCookie,
+    secondUserCookie,
+    roomsResult.body.rooms.at(-1),
   );
 
   const colleagues = await request("/api/users/colleagues", {
@@ -630,8 +767,9 @@ async function main() {
 
   console.log(
     `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/update/cancel, ` +
-      "colleagues, events, preferences, booking management, room image lifecycle " +
-      "working hours, recurring unavailability, account credentials and administration",
+      "critical booking guards and concurrency, colleagues, events, preferences, " +
+      "booking management, room image lifecycle, working hours, recurring " +
+      "unavailability, account credentials and administration",
   );
 }
 

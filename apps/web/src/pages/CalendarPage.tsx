@@ -101,21 +101,31 @@ export function CalendarPage({ user }: { user: User }) {
     },
   });
 
-  const weekTitle = new Intl.DateTimeFormat(
-    locale === "uk" ? "uk-UA" : "en-GB",
-    { day: "numeric", month: "long" },
-  );
   const localTimeZone =
     user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const dayDisplayInstants = weekDays.map((day) =>
+    officeLocalToInstant(
+      day,
+      Math.floor(workStartMinutes / 60),
+      workStartMinutes % 60,
+      officeTimeZone,
+    ),
+  );
+  const weekTitle = new Intl.DateTimeFormat(
+    locale === "uk" ? "uk-UA" : "en-GB",
+    {
+      day: "numeric",
+      month: "long",
+      timeZone: localTimeZone,
+    },
+  );
   const now = new Date();
   const officeNow = toZonedTime(now, officeTimeZone);
   const nowMinutes = officeNow.getHours() * 60 + officeNow.getMinutes();
-  const currentDayVisible = weekDays.some(
-    (day) =>
-      dateKeyInZone(
-        officeLocalToInstant(day, 12, 0, officeTimeZone),
-        officeTimeZone,
-      ) === dateKeyInZone(now, officeTimeZone),
+  const currentDayVisible = dayDisplayInstants.some(
+    (instant) =>
+      dateKeyInZone(instant, localTimeZone) ===
+      dateKeyInZone(now, localTimeZone),
   );
   const showCurrentTime =
     currentDayVisible && nowMinutes >= startMinutes && nowMinutes <= endMinutes;
@@ -125,7 +135,7 @@ export function CalendarPage({ user }: { user: User }) {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-      timeZone: officeTimeZone,
+      timeZone: localTimeZone,
     },
   ).format(now);
 
@@ -251,7 +261,8 @@ export function CalendarPage({ user }: { user: User }) {
               ›
             </button>
             <strong>
-              {weekTitle.format(weekDays[0])} — {weekTitle.format(weekDays[6])}
+              {weekTitle.format(dayDisplayInstants[0])} —{" "}
+              {weekTitle.format(dayDisplayInstants[6])}
             </strong>
           </div>
           <div className="timezone-note">
@@ -318,16 +329,11 @@ export function CalendarPage({ user }: { user: User }) {
                 }
               >
                 <div className="week-grid__corner" />
-                {weekDays.map((day) => {
-                  const instant = officeLocalToInstant(
-                    day,
-                    12,
-                    0,
-                    officeTimeZone,
-                  );
+                {weekDays.map((day, index) => {
+                  const instant = dayDisplayInstants[index];
                   const isToday =
-                    dateKeyInZone(instant, officeTimeZone) ===
-                    dateKeyInZone(new Date(), officeTimeZone);
+                    dateKeyInZone(instant, localTimeZone) ===
+                    dateKeyInZone(new Date(), localTimeZone);
                   return (
                     <div
                       className={`day-heading${isToday ? " is-today" : ""}`}
@@ -336,7 +342,7 @@ export function CalendarPage({ user }: { user: User }) {
                       <span>
                         {new Intl.DateTimeFormat(
                           locale === "uk" ? "uk-UA" : "en-GB",
-                          { weekday: "short", timeZone: officeTimeZone },
+                          { weekday: "short", timeZone: localTimeZone },
                         ).format(instant)}
                       </span>
                       <strong>
@@ -345,7 +351,7 @@ export function CalendarPage({ user }: { user: User }) {
                           {
                             day: "2-digit",
                             month: "2-digit",
-                            timeZone: officeTimeZone,
+                            timeZone: localTimeZone,
                           },
                         ).format(instant)}
                       </strong>
@@ -489,6 +495,7 @@ export function CalendarPage({ user }: { user: User }) {
           }}
           pending={cancel.isPending}
           error={cancel.error}
+          timeZone={localTimeZone}
           onClose={() => {
             cancel.reset();
             setCancellingBooking(null);

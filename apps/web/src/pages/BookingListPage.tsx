@@ -28,6 +28,8 @@ interface BookingPage {
 }
 
 export function BookingListPage({ user }: { user: User }) {
+  const timeZone =
+    user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [section, setSection] = useState<"future" | "past">("future");
   const [cancellingBooking, setCancellingBooking] =
     useState<MyBooking | null>(null);
@@ -139,12 +141,14 @@ export function BookingListPage({ user }: { user: User }) {
                 <div className="date-tile">
                   <strong>
                     {new Intl.DateTimeFormat("uk-UA", {
-                      day: "2-digit"
+                      day: "2-digit",
+                      timeZone
                     }).format(new Date(booking.startsAt))}
                   </strong>
                   <span>
                     {new Intl.DateTimeFormat("uk-UA", {
-                      month: "short"
+                      month: "short",
+                      timeZone
                     }).format(new Date(booking.startsAt))}
                   </span>
                 </div>
@@ -159,12 +163,14 @@ export function BookingListPage({ user }: { user: User }) {
                   <span className="booking-row__time">
                     {new Intl.DateTimeFormat("uk-UA", {
                       hour: "2-digit",
-                      minute: "2-digit"
+                      minute: "2-digit",
+                      timeZone
                     }).format(new Date(booking.startsAt))}
                     {" — "}
                     {new Intl.DateTimeFormat("uk-UA", {
                       hour: "2-digit",
-                      minute: "2-digit"
+                      minute: "2-digit",
+                      timeZone
                     }).format(new Date(booking.endsAt))}
                   </span>
                   <strong>{booking.title}</strong>
@@ -261,6 +267,7 @@ export function BookingListPage({ user }: { user: User }) {
           }}
           pending={cancel.isPending}
           error={cancel.error}
+          timeZone={timeZone}
           onClose={() => {
             cancel.reset();
             setCancellingBooking(null);

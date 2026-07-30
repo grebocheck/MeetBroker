@@ -14,23 +14,27 @@ export function CancelBookingDialog({
   booking,
   pending,
   error,
+  timeZone,
   onClose,
   onConfirm
 }: {
   booking: CancelBookingDetails;
   pending: boolean;
   error: unknown;
+  timeZone?: string;
   onClose: () => void;
   onConfirm: () => void;
 }) {
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
   const date = new Intl.DateTimeFormat("uk-UA", {
-    dateStyle: "full"
+    dateStyle: "full",
+    timeZone
   }).format(startsAt);
   const time = new Intl.DateTimeFormat("uk-UA", {
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
+    timeZone
   });
 
   return (
