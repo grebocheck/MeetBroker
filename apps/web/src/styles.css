@@ -1447,7 +1447,7 @@ hr {
 .calendar-toolbar__word {
   position: absolute;
   z-index: -1;
-  top: -22px;
+  top: 14px;
   right: 0;
   overflow: hidden;
   max-width: 64%;
@@ -3830,7 +3830,6 @@ hr {
 .admin-page {
   max-width: none;
   margin: 0;
-  padding-top: 28px;
 }
 
 .admin-page::after {
@@ -3850,7 +3849,7 @@ hr {
 }
 
 .admin-hero h1 {
-  font-size: clamp(2.55rem, 5vw, 5rem);
+  font-size: clamp(2rem, 3vw, 3.35rem);
 }
 
 .admin-hero__status {
@@ -3980,15 +3979,34 @@ hr {
   min-width: 0;
 }
 
+.admin-workspace:not(.admin-workspace--rooms) .admin-workspace__content {
+  width: min(1120px, 100%);
+}
+
 .admin-workspace .admin-card,
 .admin-workspace .room-management__bar {
   border-radius: 3px 20px 3px 20px;
   box-shadow: 0 18px 46px rgba(0, 11, 36, 0.24);
 }
 
+.admin-workspace:not(.admin-workspace--rooms) .admin-card {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .admin-workspace > .admin-workspace__content > .admin-card {
   min-height: 300px;
   padding: clamp(22px, 2.2vw, 34px);
+}
+
+.admin-workspace:not(.admin-workspace--rooms)
+  > .admin-workspace__content
+  > .admin-card {
+  min-height: 0;
+  padding: 0;
 }
 
 .admin-workspace .admin-card__toolbar {
@@ -4006,11 +4024,63 @@ hr {
     var(--surface-raised);
 }
 
+.admin-workspace:not(.admin-workspace--rooms) .admin-card__toolbar {
+  margin: 0 0 22px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 3px 18px 3px 18px;
+  background:
+    linear-gradient(
+      108deg,
+      color-mix(in srgb, var(--primary) 8%, var(--surface-raised)),
+      var(--surface-raised) 62%
+    );
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-workspace:not(.admin-workspace--rooms) .admin-user-list,
+.admin-workspace:not(.admin-workspace--rooms) .admin-booking-list,
+.admin-workspace:not(.admin-workspace--rooms) .activity-list {
+  position: relative;
+  padding-left: 22px;
+  gap: 12px;
+}
+
+.admin-workspace:not(.admin-workspace--rooms) .admin-user-list::before,
+.admin-workspace:not(.admin-workspace--rooms) .admin-booking-list::before,
+.admin-workspace:not(.admin-workspace--rooms) .activity-list::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 5px;
+  width: 1px;
+  background: linear-gradient(
+    var(--primary),
+    color-mix(in srgb, var(--cyan) 48%, var(--border)),
+    transparent
+  );
+  content: "";
+}
+
 .admin-workspace .admin-booking-row,
 .admin-workspace .admin-user-row,
 .admin-workspace .activity-row {
   position: relative;
   border-bottom-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+}
+
+.admin-workspace:not(.admin-workspace--rooms) .admin-booking-row,
+.admin-workspace:not(.admin-workspace--rooms) .admin-user-row,
+.admin-workspace:not(.admin-workspace--rooms) .activity-row {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 3px 18px 3px 18px;
+  background: linear-gradient(
+    112deg,
+    color-mix(in srgb, var(--surface-raised) 96%, transparent) 0 76%,
+    color-mix(in srgb, var(--primary) 7%, var(--surface-raised)) 76%
+  );
+  box-shadow: var(--shadow-sm);
 }
 
 .admin-workspace .admin-booking-row::before,
@@ -4041,6 +4111,22 @@ hr {
   );
 }
 
+.admin-workspace:not(.admin-workspace--rooms) .admin-booking-row:hover,
+.admin-workspace:not(.admin-workspace--rooms) .admin-user-row:hover,
+.admin-workspace:not(.admin-workspace--rooms) .activity-row:hover {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--primary) 8%, var(--surface-raised)),
+    var(--surface-raised)
+  );
+  transform: translateX(3px);
+}
+
+.admin-workspace:not(.admin-workspace--rooms) .pagination {
+  margin-left: 22px;
+}
+
 .admin-workspace .segmented {
   border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
   background: color-mix(in srgb, var(--primary) 7%, var(--surface-muted));
@@ -4063,8 +4149,8 @@ hr {
   background:
     linear-gradient(
       108deg,
-      var(--surface-raised) 0 68%,
-      color-mix(in srgb, var(--primary) 11%, var(--surface-raised)) 68%
+      var(--surface-raised) 0 62%,
+      color-mix(in srgb, var(--primary) 13%, var(--surface-raised)) 62%
     );
 }
 
@@ -4080,7 +4166,7 @@ hr {
 
 .admin-workspace .room-catalog,
 .admin-workspace .room-workspace {
-  border-radius: 0;
+  border-radius: 3px 20px 3px 20px;
 }
 
 .admin-workspace .room-catalog {
@@ -4323,14 +4409,14 @@ hr {
 .room-management__workspace {
   display: grid;
   align-items: start;
-  grid-template-columns: minmax(238px, 0.34fr) minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(270px, 340px) minmax(0, 1fr);
+  gap: 20px;
 }
 
 .room-catalog {
   position: sticky;
   top: 20px;
-  padding: 12px;
+  padding: 14px;
 }
 
 .room-catalog__heading {
@@ -4443,6 +4529,7 @@ hr {
 .room-workspace {
   display: grid;
   min-width: 0;
+  padding: clamp(22px, 2.2vw, 34px);
   grid-template-columns: minmax(0, 1fr);
   gap: 22px;
 }
@@ -4450,15 +4537,15 @@ hr {
 .room-workspace__hero {
   display: grid;
   align-items: center;
-  padding-bottom: 20px;
+  padding: 4px 4px 24px;
   border-bottom: 1px solid var(--border);
   grid-template-columns: 96px minmax(0, 1fr) auto;
   gap: 16px;
 }
 
 .room-workspace__hero .room-visual--hero {
-  width: 96px;
-  height: 72px;
+  width: 104px;
+  height: 78px;
 }
 
 .room-workspace__hero h2,
@@ -4479,14 +4566,14 @@ hr {
 .room-workspace__settings {
   display: grid;
   align-items: start;
-  padding: 20px;
+  padding: 22px;
   border: 1px solid color-mix(in srgb, var(--primary) 36%, var(--border));
   border-radius: 3px 16px 3px 16px;
   background:
     linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--primary) 8%, transparent),
-      transparent 42%
+      125deg,
+      color-mix(in srgb, var(--primary) 10%, transparent),
+      transparent 48%
     ),
     var(--surface-raised);
   gap: 16px;
@@ -4510,6 +4597,7 @@ hr {
 
 .room-workspace__blocks {
   display: grid;
+  padding: 2px 4px 4px;
   gap: 14px;
 }
 
@@ -5932,13 +6020,15 @@ hr {
     opacity: 0.7;
   }
 
-  .admin-workspace > .admin-workspace__content > .admin-card {
-    padding: 16px;
+  .admin-workspace:not(.admin-workspace--rooms)
+    > .admin-workspace__content
+    > .admin-card {
+    padding: 0;
   }
 
-  .admin-workspace .admin-card__toolbar {
-    margin: -16px -16px 18px;
-    padding: 16px;
+  .admin-workspace:not(.admin-workspace--rooms) .admin-card__toolbar {
+    margin: 0 0 18px;
+    padding: 14px;
   }
 
   .meetings-calendar-header,

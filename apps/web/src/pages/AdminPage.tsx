@@ -141,7 +141,7 @@ export function AdminPage() {
           </button>
         ))}
       </nav>
-      <div className="admin-workspace">
+      <div className={`admin-workspace admin-workspace--${section}`}>
         <div className="admin-workspace__caption" aria-hidden="true">
           <span>MeetBroker / Admin</span>
           <strong>
