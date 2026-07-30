@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ApiError } from "../lib/api";
+import { errorMessage } from "../lib/error-message";
 import { useI18n } from "../lib/i18n";
 import { Button } from "./ui/Button";
 import { ModalLayer } from "./ui/ModalLayer";
@@ -133,9 +133,7 @@ export function CancelBookingDialog({
 
         {Boolean(error) && (
           <div className="form-error" role="alert">
-            {error instanceof ApiError
-              ? error.message
-              : t("cancel.error")}
+            {errorMessage(error, t, "cancel.error")}
           </div>
         )}
 

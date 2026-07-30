@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError } from "../lib/api";
+import { api } from "../lib/api";
+import { errorMessage } from "../lib/error-message";
 import { useI18n } from "../lib/i18n";
 import type { User } from "../types";
 import { Avatar } from "../components/Avatar";
@@ -314,11 +315,7 @@ export function ProfilePage({ user }: { user: User }) {
               <div className="form-error">
                 {[save.error, upload.error]
                   .filter(Boolean)
-                  .map((error) =>
-                    error instanceof ApiError
-                      ? error.message
-                      : t("profile.saveError")
-                  )
+                  .map((error) => errorMessage(error, t, "profile.saveError"))
                   .join(". ")}
               </div>
             )}
@@ -409,9 +406,11 @@ export function ProfilePage({ user }: { user: User }) {
                   </label>
                   {changeEmail.error && (
                     <div className="form-error" role="alert">
-                      {changeEmail.error instanceof ApiError
-                        ? changeEmail.error.message
-                        : t("profile.emailError")}
+                      {errorMessage(
+                        changeEmail.error,
+                        t,
+                        "profile.emailError",
+                      )}
                     </div>
                   )}
                   {changeEmail.isSuccess && (
@@ -627,9 +626,11 @@ export function ProfilePage({ user }: { user: User }) {
                   </label>
                   {changePassword.error && (
                     <div className="form-error" role="alert">
-                      {changePassword.error instanceof ApiError
-                        ? changePassword.error.message
-                        : t("profile.passwordError")}
+                      {errorMessage(
+                        changePassword.error,
+                        t,
+                        "profile.passwordError",
+                      )}
                     </div>
                   )}
                   {changePassword.isSuccess && (

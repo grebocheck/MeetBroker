@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { api, ApiError } from "./lib/api";
-import { I18nProvider } from "./lib/i18n";
+import { I18nProvider, useI18n } from "./lib/i18n";
 import { navigate, usePath } from "./lib/router";
-import type { User } from "./types";
+import type { Locale, User } from "./types";
 import { AppShell } from "./components/AppShell";
 import { AuthPage } from "./pages/AuthPage";
 import { PendingApprovalPage } from "./pages/PendingApprovalPage";
@@ -18,6 +18,9 @@ export function App() {
       !(error instanceof ApiError && error.status === 401) && count < 1
   });
   const user = auth.data?.user;
+  const publicLocale: Locale = navigator.language.toLowerCase().startsWith("uk")
+    ? "uk"
+    : "en";
 
   useEffect(() => {
     if (user && (path.startsWith("/login") || path.startsWith("/register"))) {
@@ -27,18 +30,25 @@ export function App() {
 
   if (auth.isLoading) {
     return (
-      <div className="splash">
-        <BrandMark />
-        <div>
-          <strong>MeetBroker</strong>
-          <span>Готуємо ваш робочий простір…</span>
+      <I18nProvider locale={publicLocale}>
+        <div className="splash">
+          <BrandMark />
+          <div>
+            <strong>MeetBroker</strong>
+            <SplashMessage />
+          </div>
         </div>
-      </div>
+      </I18nProvider>
     );
   }
 
   if (!user) {
-    return <AuthPage path={path} />;
+    document.documentElement.lang = publicLocale;
+    return (
+      <I18nProvider locale={publicLocale}>
+        <AuthPage path={path} />
+      </I18nProvider>
+    );
   }
 
   const resolvedTheme =
@@ -59,4 +69,9 @@ export function App() {
       )}
     </I18nProvider>
   );
+}
+
+function SplashMessage() {
+  const { t } = useI18n();
+  return <span>{t("app.loadingWorkspace")}</span>;
 }

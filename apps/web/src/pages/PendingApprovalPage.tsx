@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { navigate } from "../lib/router";
+import { useI18n } from "../lib/i18n";
 import type { User } from "../types";
 import { Button } from "../components/ui/Button";
 
 export function PendingApprovalPage({ user }: { user: User }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const logout = useMutation({
     mutationFn: () => api<void>("/api/auth/logout", { method: "POST" }),
@@ -17,16 +19,16 @@ export function PendingApprovalPage({ user }: { user: User }) {
     <div className="status-page">
       <div className="status-card">
         <span className="status-icon">✓</span>
-        <span className="eyebrow">Корпоративний доступ</span>
+        <span className="eyebrow">{t("auth.corporateAccess")}</span>
         <h1>
           {user.emailVerified
-            ? "Профіль очікує схвалення"
-            : "Спочатку підтвердьте email"}
+            ? t("approval.title")
+            : t("approval.verifyTitle")}
         </h1>
         <p>
           {user.emailVerified
-            ? "Адміністратор перевірить обліковий запис. Внутрішній розклад та імена колег до цього залишаються закритими."
-            : "Ми надіслали посилання на корпоративну адресу. У dev-режимі воно також доступне в журналі API."}
+            ? t("approval.body")
+            : t("approval.verifyBody")}
         </p>
         <div className="status-card__meta">
           <span>{user.name}</span>
@@ -36,10 +38,10 @@ export function PendingApprovalPage({ user }: { user: User }) {
           <Button
             onClick={() => queryClient.invalidateQueries({ queryKey: ["me"] })}
           >
-            Оновити статус
+            {t("approval.refresh")}
           </Button>
           <Button variant="ghost" onClick={() => logout.mutate()}>
-            Вийти
+            {t("signOut")}
           </Button>
         </div>
       </div>

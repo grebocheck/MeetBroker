@@ -1,6 +1,8 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError } from "../lib/api";
+import { api } from "../lib/api";
+import { errorMessage } from "../lib/error-message";
+import { useI18n } from "../lib/i18n";
 import { Link, navigate } from "../lib/router";
 import type { User } from "../types";
 import { BrandMark } from "../components/BrandMark";
@@ -20,6 +22,7 @@ function AuthFrame({
   subtitle: string;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <div className="auth-layout">
       <section className="auth-story">
@@ -28,12 +31,9 @@ function AuthFrame({
           <span>MeetBroker</span>
         </div>
         <div className="auth-story__content">
-          <span className="eyebrow">Простір для спільної роботи</span>
-          <h1>Переговорна без зайвих повідомлень і накладок.</h1>
-          <p>
-            Побачте вільний час, запросіть колег і тримайте робочий день
-            упорядкованим.
-          </p>
+          <span className="eyebrow">{t("auth.storyEyebrow")}</span>
+          <h1>{t("auth.storyTitle")}</h1>
+          <p>{t("auth.storyBody")}</p>
         </div>
         <div className="auth-preview" aria-hidden="true">
           <div className="auth-preview__head">
@@ -52,7 +52,7 @@ function AuthFrame({
       <section className="auth-panel">
         <div className="auth-card">
           <div>
-            <span className="eyebrow">Корпоративний доступ</span>
+            <span className="eyebrow">{t("auth.corporateAccess")}</span>
             <h2>{title}</h2>
             <p>{subtitle}</p>
           </div>
@@ -64,6 +64,7 @@ function AuthFrame({
 }
 
 function Login() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("user@meetbroker.local");
   const [password, setPassword] = useState("User12345!");
@@ -86,8 +87,8 @@ function Login() {
 
   return (
     <AuthFrame
-      title="Раді бачити вас знову"
-      subtitle="Увійдіть із корпоративною адресою."
+      title={t("auth.loginTitle")}
+      subtitle={t("auth.loginSubtitle")}
     >
       <form className="form-stack" onSubmit={submit}>
         <label className="field">
@@ -101,7 +102,7 @@ function Login() {
           />
         </label>
         <label className="field">
-          <span>Пароль</span>
+          <span>{t("auth.password")}</span>
           <input
             type="password"
             value={password}
@@ -113,24 +114,23 @@ function Login() {
         </label>
         {login.error && (
           <div className="form-error" role="alert">
-            {login.error instanceof ApiError
-              ? login.error.message
-              : "Не вдалося увійти"}
+            {errorMessage(login.error, t, "auth.loginError")}
           </div>
         )}
         <button className="button button--primary button--wide" disabled={login.isPending}>
-          {login.isPending ? "Входимо…" : "Увійти"}
+          {login.isPending ? t("auth.signingIn") : t("auth.signIn")}
         </button>
       </form>
       <p className="auth-switch">
-        Ще немає облікового запису?{" "}
-        <Link href="/register">Зареєструватися</Link>
+        {t("auth.noAccount")}{" "}
+        <Link href="/register">{t("auth.register")}</Link>
       </p>
     </AuthFrame>
   );
 }
 
 function Register() {
+  const { t } = useI18n();
   const [values, setValues] = useState({
     name: "",
     email: "",
@@ -154,8 +154,8 @@ function Register() {
 
   return (
     <AuthFrame
-      title="Створіть профіль"
-      subtitle="Після email-підтвердження адміністратор схвалить доступ."
+      title={t("auth.registerTitle")}
+      subtitle={t("auth.registerSubtitle")}
     >
       <form
         className="form-stack"
@@ -168,10 +168,10 @@ function Register() {
           <label className="field" key={field}>
             <span>
               {field === "name"
-                ? "Ім’я"
+                ? t("auth.name")
                 : field === "email"
                   ? "Email"
-                  : "Пароль"}
+                  : t("auth.password")}
             </span>
             <input
               type={field === "password" ? "password" : field}
@@ -187,26 +187,25 @@ function Register() {
         ))}
         {register.error && (
           <div className="form-error" role="alert">
-            {register.error instanceof ApiError
-              ? register.error.message
-              : "Не вдалося зареєструватися"}
+            {errorMessage(register.error, t, "auth.registerError")}
           </div>
         )}
         <button
           className="button button--primary button--wide"
           disabled={register.isPending}
         >
-          {register.isPending ? "Створюємо…" : "Зареєструватися"}
+          {register.isPending ? t("auth.creating") : t("auth.register")}
         </button>
       </form>
       <p className="auth-switch">
-        Уже маєте профіль? <Link href="/login">Увійти</Link>
+        {t("auth.haveAccount")} <Link href="/login">{t("auth.signIn")}</Link>
       </p>
     </AuthFrame>
   );
 }
 
 function VerifyEmail() {
+  const { t } = useI18n();
   const token = new URLSearchParams(window.location.search).get("token");
   const verification = useMutation({
     mutationFn: () =>
@@ -218,24 +217,26 @@ function VerifyEmail() {
 
   return (
     <AuthFrame
-      title="Підтвердження email"
-      subtitle="Останній крок перед адміністративним схваленням."
+      title={t("auth.verifyTitle")}
+      subtitle={t("auth.verifySubtitle")}
     >
       {verification.isSuccess ? (
         <div className="success-panel">
-          <strong>Email підтверджено</strong>
-          <span>Тепер можна увійти й очікувати схвалення.</span>
+          <strong>{t("auth.verifiedTitle")}</strong>
+          <span>{t("auth.verifiedBody")}</span>
           <Link className="button button--primary" href="/login">
-            До входу
+            {t("auth.toLogin")}
           </Link>
         </div>
       ) : (
         <div className="form-stack">
           {verification.error && (
             <div className="form-error">
-              {verification.error instanceof ApiError
-                ? verification.error.message
-                : "Посилання недійсне"}
+              {errorMessage(
+                verification.error,
+                t,
+                "auth.invalidVerification",
+              )}
             </div>
           )}
           <button
@@ -243,7 +244,9 @@ function VerifyEmail() {
             disabled={!token || verification.isPending}
             onClick={() => verification.mutate()}
           >
-            {verification.isPending ? "Перевіряємо…" : "Підтвердити email"}
+            {verification.isPending
+              ? t("auth.verifying")
+              : t("auth.verifyEmail")}
           </button>
         </div>
       )}

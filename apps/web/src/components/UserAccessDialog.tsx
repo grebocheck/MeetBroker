@@ -1,38 +1,48 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError } from "../lib/api";
+import { api } from "../lib/api";
+import { errorMessage } from "../lib/error-message";
+import { useI18n, type Translator } from "../lib/i18n";
+import type { MessageKey } from "../locales/uk";
 import type { ActiveRestriction, Capability, Room } from "../types";
 import { Button } from "./ui/Button";
 import { ModalLayer } from "./ui/ModalLayer";
 
-const capabilityLabels: Record<Capability, string> = {
-  BOOKING_CREATE: "Створення бронювань",
-  BOOKING_CANCEL_OWN: "Скасування власних бронювань",
-  SCHEDULE_VIEW: "Перегляд розкладу",
-  ACCOUNT_LOGIN: "Вхід до облікового запису",
+const capabilityLabelKeys: Record<Capability, MessageKey> = {
+  BOOKING_CREATE: "capability.BOOKING_CREATE",
+  BOOKING_CANCEL_OWN: "capability.BOOKING_CANCEL_OWN",
+  SCHEDULE_VIEW: "capability.SCHEDULE_VIEW",
+  ACCOUNT_LOGIN: "capability.ACCOUNT_LOGIN",
 };
 
-const capabilityHints: Record<Capability, string> = {
-  BOOKING_CREATE: "Користувач бачитиме розклад, але не зможе бронювати.",
-  BOOKING_CANCEL_OWN: "Створені бронювання не можна буде скасувати самостійно.",
-  SCHEDULE_VIEW: "Розклад вибраної кімнати або всіх кімнат буде недоступний.",
-  ACCOUNT_LOGIN: "Усі активні сесії втратять доступ до завершення обмеження.",
+const capabilityHintKeys: Record<Capability, MessageKey> = {
+  BOOKING_CREATE: "accessDialog.hintCreate",
+  BOOKING_CANCEL_OWN: "accessDialog.hintCancel",
+  SCHEDULE_VIEW: "accessDialog.hintSchedule",
+  ACCOUNT_LOGIN: "accessDialog.hintLogin",
 };
 
 function toIso(value: string): string | undefined {
   return value ? new Date(value).toISOString() : undefined;
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return "безстроково";
-  return new Intl.DateTimeFormat("uk-UA", {
+function formatDate(
+  value: string | null,
+  dateLocale: string,
+  t: Translator,
+): string {
+  if (!value) return t("access.unlimited");
+  return new Intl.DateTimeFormat(dateLocale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
 }
 
-export function capabilityLabel(capability: Capability): string {
-  return capabilityLabels[capability];
+export function capabilityLabel(
+  capability: Capability,
+  t: Translator,
+): string {
+  return t(capabilityLabelKeys[capability]);
 }
 
 export function UserAccessDialog({
@@ -47,6 +57,7 @@ export function UserAccessDialog({
   };
   onClose: () => void;
 }) {
+  const { dateLocale, t } = useI18n();
   const queryClient = useQueryClient();
   const [capability, setCapability] =
     useState<Capability>("BOOKING_CREATE");
@@ -117,11 +128,11 @@ export function UserAccessDialog({
     event.preventDefault();
     setLocalError("");
     if (reason.trim().length < 3) {
-      setLocalError("Опишіть причину щонайменше трьома символами.");
+      setLocalError(t("accessDialog.reasonLength"));
       return;
     }
     if (startsAt && expiresAt && new Date(expiresAt) <= new Date(startsAt)) {
-      setLocalError("Завершення має бути пізніше за початок.");
+      setLocalError(t("accessDialog.invalidRange"));
       return;
     }
     createRestriction.mutate();
@@ -144,8 +155,8 @@ export function UserAccessDialog({
       >
         <div className="modal__header">
           <div>
-            <span className="eyebrow">Політики доступу</span>
-            <h2 id="access-dialog-title">Керування доступом</h2>
+            <span className="eyebrow">{t("accessDialog.eyebrow")}</span>
+            <h2 id="access-dialog-title">{t("accessDialog.title")}</h2>
             <p>
               {user.name} · {user.email}
             </p>
@@ -153,7 +164,7 @@ export function UserAccessDialog({
           <button
             className="icon-button"
             onClick={onClose}
-            aria-label="Закрити"
+            aria-label={t("close")}
             disabled={pending}
           >
             ×
@@ -163,27 +174,43 @@ export function UserAccessDialog({
         <div className="access-dialog__section">
           <div className="access-dialog__heading">
             <div>
-              <strong>Чинні та заплановані обмеження</strong>
-              <span>Кожну політику можна відкликати окремо.</span>
+              <strong>{t("accessDialog.current")}</strong>
+              <span>{t("accessDialog.currentHint")}</span>
             </div>
             <span className="result-count">{user.restrictions.length}</span>
           </div>
           <div className="access-policy-list">
             {user.restrictions.length === 0 ? (
-              <div className="subtle-box">Додаткових обмежень немає.</div>
+              <div className="subtle-box">{t("accessDialog.empty")}</div>
             ) : (
               user.restrictions.map((restriction) => (
                 <article className="access-policy" key={restriction.id}>
                   <div>
-                    <strong>{capabilityLabel(restriction.capability)}</strong>
+                    <strong>
+                      {capabilityLabel(restriction.capability, t)}
+                    </strong>
                     <span>
                       {restriction.roomId
-                        ? `Кімната: ${roomNames.get(restriction.roomId) ?? "вибрана"}`
-                        : "Уся система"}
+                        ? t("accessDialog.roomScope", {
+                            room:
+                              roomNames.get(restriction.roomId) ??
+                              t("accessDialog.selectedRoom"),
+                          })
+                        : t("accessDialog.systemScope")}
                     </span>
                     <span>
-                      Від {formatDate(restriction.startsAt)} · до{" "}
-                      {formatDate(restriction.expiresAt)}
+                      {t("accessDialog.period", {
+                        start: formatDate(
+                          restriction.startsAt,
+                          dateLocale,
+                          t,
+                        ),
+                        end: formatDate(
+                          restriction.expiresAt,
+                          dateLocale,
+                          t,
+                        ),
+                      })}
                     </span>
                     <p>{restriction.reason}</p>
                   </div>
@@ -192,7 +219,7 @@ export function UserAccessDialog({
                     onClick={() => removeRestriction.mutate(restriction.id)}
                     disabled={pending}
                   >
-                    Відкликати
+                    {t("accessDialog.revoke")}
                   </Button>
                 </article>
               ))
@@ -203,12 +230,12 @@ export function UserAccessDialog({
         <form className="form-stack access-dialog__section" onSubmit={submit}>
           <div className="access-dialog__heading">
             <div>
-              <strong>Нове обмеження</strong>
-              <span>Період і область дії налаштовуються незалежно.</span>
+              <strong>{t("accessDialog.new")}</strong>
+              <span>{t("accessDialog.newHint")}</span>
             </div>
           </div>
           <label>
-            Функція
+            {t("accessDialog.capability")}
             <select
               value={capability}
               onChange={(event) => {
@@ -217,22 +244,24 @@ export function UserAccessDialog({
                 if (next === "ACCOUNT_LOGIN") setRoomId("");
               }}
             >
-              {Object.entries(capabilityLabels).map(([value, label]) => (
+              {Object.keys(capabilityLabelKeys).map((value) => (
                 <option value={value} key={value}>
-                  {label}
+                  {capabilityLabel(value as Capability, t)}
                 </option>
               ))}
             </select>
-            <small className="field-hint">{capabilityHints[capability]}</small>
+            <small className="field-hint">
+              {t(capabilityHintKeys[capability])}
+            </small>
           </label>
           <label>
-            Область дії
+            {t("accessDialog.scope")}
             <select
               value={roomId}
               onChange={(event) => setRoomId(event.target.value)}
               disabled={capability === "ACCOUNT_LOGIN"}
             >
-              <option value="">Усі кімнати</option>
+              <option value="">{t("accessDialog.allRooms")}</option>
               {rooms.data?.rooms.map((room) => (
                 <option value={room.id} key={room.id}>
                   {room.name}
@@ -241,45 +270,49 @@ export function UserAccessDialog({
             </select>
             {capability === "ACCOUNT_LOGIN" && (
               <small className="field-hint">
-                Обмеження входу завжди діє на весь обліковий запис.
+                {t("accessDialog.loginScopeHint")}
               </small>
             )}
           </label>
           <div className="form-grid">
             <label>
-              Початок
+              {t("accessDialog.start")}
               <input
                 type="datetime-local"
                 value={startsAt}
                 onChange={(event) => setStartsAt(event.target.value)}
               />
-              <small className="field-hint">Порожньо — відразу</small>
+              <small className="field-hint">
+                {t("accessDialog.startHint")}
+              </small>
             </label>
             <label>
-              Завершення
+              {t("accessDialog.end")}
               <input
                 type="datetime-local"
                 value={expiresAt}
                 onChange={(event) => setExpiresAt(event.target.value)}
               />
-              <small className="field-hint">Порожньо — безстроково</small>
+              <small className="field-hint">{t("accessDialog.endHint")}</small>
             </label>
           </div>
           <label>
-            Причина
+            {t("accessDialog.reason")}
             <textarea
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               maxLength={300}
-              placeholder="Користувач побачить цю причину та строк дії"
+              placeholder={t("accessDialog.reasonPlaceholder")}
             />
           </label>
           {(localError || requestError) && (
             <div className="form-error" role="alert">
               {localError ||
-                (requestError instanceof ApiError
-                  ? requestError.message
-                  : "Не вдалося змінити політику доступу")}
+                errorMessage(
+                  requestError,
+                  t,
+                  "accessDialog.changeError",
+                )}
             </div>
           )}
           <Button
@@ -287,33 +320,35 @@ export function UserAccessDialog({
             variant="primary"
             disabled={pending || reason.trim().length < 3}
           >
-            {createRestriction.isPending ? "Застосовуємо…" : "Додати обмеження"}
+            {createRestriction.isPending
+              ? t("accessDialog.applying")
+              : t("accessDialog.add")}
           </Button>
         </form>
 
         <div className="access-dialog__danger">
           <div>
-            <strong>Повністю відкликати корпоративний доступ</strong>
-            <span>Сесії буде завершено, а вхід заблоковано безстроково.</span>
+            <strong>{t("accessDialog.revokeAllTitle")}</strong>
+            <span>{t("accessDialog.revokeAllHint")}</span>
           </div>
           <textarea
             value={revokeReason}
             onChange={(event) => setRevokeReason(event.target.value)}
             maxLength={300}
-            placeholder="Причина незворотної адміністративної дії"
+            placeholder={t("accessDialog.revokeAllPlaceholder")}
           />
           <Button
             variant="danger"
             onClick={() => revokeAccess.mutate()}
             disabled={pending || revokeReason.trim().length < 3}
           >
-            Відкликати весь доступ
+            {t("accessDialog.revokeAll")}
           </Button>
         </div>
 
         <div className="modal__actions">
           <Button onClick={onClose} disabled={pending}>
-            Закрити
+            {t("close")}
           </Button>
         </div>
       </section>

@@ -1,4 +1,5 @@
 import { Button } from "./Button";
+import { useI18n } from "../../lib/i18n";
 
 interface PaginationProps {
   page: number;
@@ -15,17 +16,18 @@ export function Pagination({
   onPageChange,
   itemLabel,
 }: PaginationProps) {
+  const { t } = useI18n();
   if (totalPages <= 1) return null;
 
   return (
-    <nav className="pagination" aria-label="Навігація сторінками">
+    <nav className="pagination" aria-label={t("pagination.navigation")}>
       <Button
         variant="secondary"
         size="small"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
       >
-        Назад
+        {t("pagination.previous")}
       </Button>
       <span className="pagination__status" aria-live="polite">
         <strong>
@@ -41,7 +43,7 @@ export function Pagination({
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
       >
-        Далі
+        {t("pagination.next")}
       </Button>
     </nav>
   );

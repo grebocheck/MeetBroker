@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
+import { errorMessage } from "../lib/error-message";
 import { toDateTimeLocal } from "../lib/date";
 import { useI18n, type Translator } from "../lib/i18n";
 import type { Booking, Person, Room } from "../types";
@@ -134,7 +135,7 @@ function bookingError(
   return (
     errors[error.code] ?? {
       target: "form",
-      message: error.message
+      message: errorMessage(error, t)
     }
   );
 }

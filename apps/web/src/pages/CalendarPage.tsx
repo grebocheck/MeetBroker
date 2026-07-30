@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { addDays } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError } from "../lib/api";
+import { api } from "../lib/api";
+import { errorMessage } from "../lib/error-message";
 import {
   dateKeyInZone,
   officeDateWindow,
@@ -325,9 +326,7 @@ export function CalendarPage({ user }: { user: User }) {
           <div className="state-panel state-panel--error">
             <strong>{t("calendar.roomsLoadError")}</strong>
             <span>
-              {rooms.error instanceof ApiError
-                ? rooms.error.message
-                : t("calendar.serverUnavailable")}
+              {errorMessage(rooms.error, t, "calendar.roomsLoadError")}
             </span>
             <button
               className="button button--secondary"
@@ -352,9 +351,7 @@ export function CalendarPage({ user }: { user: User }) {
           <div className="state-panel state-panel--error">
             <strong>{t("calendar.scheduleLoadError")}</strong>
             <span>
-              {schedule.error instanceof ApiError
-                ? schedule.error.message
-                : t("calendar.serverUnavailable")}
+              {errorMessage(schedule.error, t, "calendar.scheduleLoadError")}
             </span>
             <button
               className="button button--secondary"

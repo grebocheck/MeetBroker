@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError } from "../lib/api";
+import { api } from "../lib/api";
+import { errorMessage } from "../lib/error-message";
 import type { ActiveRestriction, Booking, Room } from "../types";
 import { Avatar } from "../components/Avatar";
 import { BookingDialog } from "../components/BookingDialog";
@@ -12,6 +13,8 @@ import {
 import { Button } from "../components/ui/Button";
 import { ModalLayer } from "../components/ui/ModalLayer";
 import { Pagination } from "../components/ui/Pagination";
+import { useI18n } from "../lib/i18n";
+import type { MessageKey } from "../locales/uk";
 
 interface AdminUser {
   id: string;
@@ -87,6 +90,7 @@ interface AdminRoomBlock {
 }
 
 export function AdminPage() {
+  const { t } = useI18n();
   const [section, setSection] = useState<
     "users" | "bookings" | "rooms" | "audit"
   >("users");
@@ -94,9 +98,9 @@ export function AdminPage() {
     <div className="page admin-page">
       <header className="page-header">
         <div>
-          <span className="eyebrow">Керування простором</span>
-          <h1>Адміністрування</h1>
-          <p>Доступ, кімнати й важливі дії без прихованих змін.</p>
+          <span className="eyebrow">{t("admin.eyebrow")}</span>
+          <h1>{t("administration")}</h1>
+          <p>{t("admin.subtitle")}</p>
         </div>
       </header>
       <div className="tabs">
@@ -104,25 +108,25 @@ export function AdminPage() {
           className={section === "users" ? "is-active" : ""}
           onClick={() => setSection("users")}
         >
-          Користувачі
+          {t("admin.users")}
         </button>
         <button
           className={section === "bookings" ? "is-active" : ""}
           onClick={() => setSection("bookings")}
         >
-          Бронювання
+          {t("admin.bookings")}
         </button>
         <button
           className={section === "rooms" ? "is-active" : ""}
           onClick={() => setSection("rooms")}
         >
-          Кімнати
+          {t("admin.rooms")}
         </button>
         <button
           className={section === "audit" ? "is-active" : ""}
           onClick={() => setSection("audit")}
         >
-          Журнал подій
+          {t("admin.audit")}
         </button>
       </div>
       {section === "users" && <UsersAdmin />}
@@ -134,6 +138,7 @@ export function AdminPage() {
 }
 
 function BookingsAdmin() {
+  const { dateLocale, t } = useI18n();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState("upcoming");
   const [searchInput, setSearchInput] = useState("");
@@ -184,10 +189,10 @@ function BookingsAdmin() {
         <div className="admin-card__toolbar admin-booking-toolbar">
           <div className="segmented">
             {[
-              ["upcoming", "Майбутні"],
-              ["past", "Минулі"],
-              ["cancelled", "Скасовані"],
-              ["", "Усі"],
+              ["upcoming", t("admin.upcoming")],
+              ["past", t("admin.past")],
+              ["cancelled", t("admin.cancelled")],
+              ["", t("admin.all")],
             ].map(([value, label]) => (
               <button
                 key={value}
@@ -207,34 +212,34 @@ function BookingsAdmin() {
             }}
           >
             <label className="field">
-              <span className="sr-only">Пошук бронювань</span>
+              <span className="sr-only">{t("admin.searchBookings")}</span>
               <input
                 type="search"
-                placeholder="Назва, кімната або організатор"
+                placeholder={t("admin.bookingSearchPlaceholder")}
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
               />
             </label>
             <Button type="submit" size="small">
-              Знайти
+              {t("admin.search")}
             </Button>
           </form>
           <span className="result-count">
-            {bookings.data?.bookings.length ?? 0} бронювань
+            {t("admin.bookingCount", {
+              count: bookings.data?.bookings.length ?? 0,
+            })}
           </span>
         </div>
 
         {bookings.isLoading ? (
-          <div className="subtle-box">Завантажуємо бронювання…</div>
+          <div className="subtle-box">{t("admin.loadingBookings")}</div>
         ) : bookings.error ? (
           <div className="form-error">
-            {bookings.error instanceof ApiError
-              ? bookings.error.message
-              : "Не вдалося завантажити бронювання"}
+            {errorMessage(bookings.error, t, "admin.bookingsLoadError")}
           </div>
         ) : bookings.data?.bookings.length === 0 ? (
           <div className="empty-inline">
-            За цими умовами бронювань не знайдено.
+            {t("admin.bookingsEmpty")}
           </div>
         ) : (
           <div className="admin-booking-list">
@@ -246,18 +251,18 @@ function BookingsAdmin() {
                 <article className="admin-booking-row" key={booking.id}>
                   <time dateTime={booking.startsAt}>
                     <strong>
-                      {new Intl.DateTimeFormat("uk-UA", {
+                      {new Intl.DateTimeFormat(dateLocale, {
                         day: "2-digit",
                         month: "short",
                       }).format(startsAt)}
                     </strong>
                     <span>
-                      {new Intl.DateTimeFormat("uk-UA", {
+                      {new Intl.DateTimeFormat(dateLocale, {
                         hour: "2-digit",
                         minute: "2-digit",
                       }).format(startsAt)}
                       {" — "}
-                      {new Intl.DateTimeFormat("uk-UA", {
+                      {new Intl.DateTimeFormat(dateLocale, {
                         hour: "2-digit",
                         minute: "2-digit",
                       }).format(endsAt)}
@@ -272,20 +277,23 @@ function BookingsAdmin() {
                         }`}
                       >
                         {booking.cancelledAt
-                          ? "Скасовано"
+                          ? t("admin.statusCancelled")
                           : isPast
-                            ? "Завершено"
+                            ? t("admin.statusFinished")
                             : booking.seriesId
-                              ? "Подія із серії"
+                              ? t("admin.statusSeries")
                             : booking.participationMode === "OPEN"
-                              ? "Відкрита подія"
-                              : "Запрошення"}
+                              ? t("admin.statusOpen")
+                              : t("admin.statusInvitation")}
                       </span>
                     </div>
                     <span>
-                      {booking.room.name}, {booking.room.floor} поверх ·{" "}
-                      {booking.organizer.name} · {booking.participants.length}{" "}
-                      учасників
+                      {t("admin.bookingMeta", {
+                        room: booking.room.name,
+                        floor: booking.room.floor,
+                        organizer: booking.organizer.name,
+                        count: booking.participants.length,
+                      })}
                     </span>
                   </div>
                   <Button
@@ -296,7 +304,7 @@ function BookingsAdmin() {
                       setSelected(booking);
                     }}
                   >
-                    Деталі
+                    {t("admin.details")}
                   </Button>
                 </article>
               );
@@ -385,20 +393,21 @@ function AdminBookingDialog({
   onEdit: () => void;
   onCancel: () => void;
 }) {
+  const { dateLocale, t } = useI18n();
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
   const canCancel = !booking.cancelledAt && endsAt > new Date();
-  const date = new Intl.DateTimeFormat("uk-UA", {
+  const date = new Intl.DateTimeFormat(dateLocale, {
     dateStyle: "full",
   }).format(startsAt);
-  const time = new Intl.DateTimeFormat("uk-UA", {
+  const time = new Intl.DateTimeFormat(dateLocale, {
     hour: "2-digit",
     minute: "2-digit",
   });
   const statusLabels = {
-    INVITED: "Запрошено",
-    ACCEPTED: "Бере участь",
-    DECLINED: "Відмовився",
+    INVITED: t("admin.participantInvited"),
+    ACCEPTED: t("admin.participantAccepted"),
+    DECLINED: t("admin.participantDeclined"),
   };
 
   return (
@@ -421,14 +430,16 @@ function AdminBookingDialog({
         <div className="modal__header">
           <div>
             <span className={`eyebrow ${canCancel ? "eyebrow--danger" : ""}`}>
-              {canCancel ? "Адміністративна дія" : "Деталі бронювання"}
+              {canCancel
+                ? t("admin.administrativeAction")
+                : t("admin.bookingDetails")}
             </span>
             <h2 id="admin-booking-title">{booking.title}</h2>
           </div>
           <button
             className="icon-button"
             onClick={onClose}
-            aria-label="Закрити"
+            aria-label={t("close")}
             disabled={pending}
           >
             ×
@@ -438,23 +449,23 @@ function AdminBookingDialog({
         <div className="cancel-summary">
           <dl>
             <div>
-              <dt>Кімната</dt>
+              <dt>{t("room")}</dt>
               <dd>{booking.room.name}</dd>
             </div>
             <div>
-              <dt>Формат</dt>
+              <dt>{t("admin.format")}</dt>
               <dd>
                 {booking.participationMode === "OPEN"
-                  ? "Відкрита подія"
-                  : "За запрошенням"}
+                  ? t("admin.statusOpen")
+                  : t("admin.inviteOnly")}
               </dd>
             </div>
             <div>
-              <dt>Дата</dt>
+              <dt>{t("admin.date")}</dt>
               <dd>{date}</dd>
             </div>
             <div>
-              <dt>Час</dt>
+              <dt>{t("admin.time")}</dt>
               <dd>
                 {time.format(startsAt)} — {time.format(endsAt)}
               </dd>
@@ -469,16 +480,20 @@ function AdminBookingDialog({
             url={booking.organizer.avatarUrl}
           />
           <div>
-            <span>Організатор</span>
+            <span>{t("admin.organizer")}</span>
             <strong>{booking.organizer.name}</strong>
             <small>{booking.organizer.email}</small>
           </div>
         </div>
 
         <div className="admin-booking-participants">
-          <strong>Учасники · {booking.participants.length}</strong>
+          <strong>
+            {t("admin.participantsCount", {
+              count: booking.participants.length,
+            })}
+          </strong>
           {booking.participants.length === 0 ? (
-            <span>Додаткових учасників немає.</span>
+            <span>{t("admin.noParticipants")}</span>
           ) : (
             booking.participants.map((participant) => (
               <div key={participant.id}>
@@ -496,46 +511,44 @@ function AdminBookingDialog({
 
         {booking.overrideReason && (
           <div className="subtle-box">
-            <strong>Причина обходу недоступності:</strong>{" "}
+            <strong>{t("admin.overrideReason")}:</strong>{" "}
             {booking.overrideReason}
           </div>
         )}
 
         {booking.cancelledAt && (
           <div className="subtle-box">
-            <strong>Скасовано:</strong>{" "}
-            {new Intl.DateTimeFormat("uk-UA", {
+            <strong>{t("admin.cancelledAt")}:</strong>{" "}
+            {new Intl.DateTimeFormat(dateLocale, {
               dateStyle: "medium",
               timeStyle: "short",
             }).format(new Date(booking.cancelledAt))}
             {booking.cancelledByName ? ` · ${booking.cancelledByName}` : ""}
             {booking.cancellationReason
-              ? ` · Причина: ${booking.cancellationReason}`
+              ? ` · ${t("admin.reason")}: ${booking.cancellationReason}`
               : ""}
           </div>
         )}
 
         {canCancel && (
           <label className="field">
-            <span>Причина примусового скасування</span>
+            <span>{t("admin.forcedCancellationReason")}</span>
             <textarea
               value={reason}
               onChange={(event) => onReasonChange(event.target.value)}
               maxLength={300}
-              placeholder="Наприклад, бронювання порушує правила використання кімнати"
+              placeholder={t("admin.cancellationPlaceholder")}
               required
             />
             <small>
-              Організатор і учасники отримають цю причину в сповіщенні.
+              {t("admin.cancellationHint")}
             </small>
           </label>
         )}
 
         {Boolean(error) && (
           <div className="form-error" role="alert">
-            {error instanceof ApiError
-              ? error.message
-              : "Не вдалося скасувати бронювання"}
+            {errorMessage(error, t, "admin.cancelBookingError")}
           </div>
         )}
 
@@ -544,14 +557,14 @@ function AdminBookingDialog({
             onClick={onClose}
             disabled={pending}
           >
-            Закрити
+            {t("close")}
           </Button>
           {canCancel && (
             <Button
               onClick={onEdit}
               disabled={pending}
             >
-              Змінити подію
+              {t("admin.editEvent")}
             </Button>
           )}
           {canCancel && (
@@ -560,7 +573,7 @@ function AdminBookingDialog({
               onClick={onCancel}
               disabled={pending || reason.trim().length < 3}
             >
-              {pending ? "Скасовуємо…" : "Скасувати бронювання"}
+              {pending ? t("admin.cancelling") : t("admin.cancelBooking")}
             </Button>
           )}
         </div>
@@ -570,6 +583,7 @@ function AdminBookingDialog({
 }
 
 function UsersAdmin() {
+  const { t } = useI18n();
   const [filter, setFilter] = useState("pending");
   const [managingUserId, setManagingUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -605,10 +619,10 @@ function UsersAdmin() {
       <div className="admin-card__toolbar">
         <div className="segmented">
           {[
-            ["pending", "Очікують"],
-            ["active", "Активні"],
-            ["revoked", "Відкликані"],
-            ["", "Усі"],
+            ["pending", t("admin.pending")],
+            ["active", t("admin.activePlural")],
+            ["revoked", t("admin.revokedPlural")],
+            ["", t("admin.all")],
           ].map(([value, label]) => (
             <button
               key={value}
@@ -620,21 +634,19 @@ function UsersAdmin() {
           ))}
         </div>
         <span className="result-count">
-          {users.data?.users.length ?? 0} користувачів
+          {t("admin.userCount", { count: users.data?.users.length ?? 0 })}
         </span>
       </div>
       {action.error && (
         <div className="form-error">
-          {action.error instanceof ApiError
-            ? action.error.message
-            : "Адміністративна дія не виконана"}
+          {errorMessage(action.error, t, "admin.actionError")}
         </div>
       )}
       <div className="admin-user-list">
         {users.isLoading ? (
-          <div className="subtle-box">Завантажуємо користувачів…</div>
+          <div className="subtle-box">{t("admin.loadingUsers")}</div>
         ) : users.data?.users.length === 0 ? (
-          <div className="empty-inline">У цій категорії нікого немає.</div>
+          <div className="empty-inline">{t("admin.usersEmpty")}</div>
         ) : (
           users.data?.users.map((user) => (
             <article className="admin-user-row" key={user.id}>
@@ -650,21 +662,21 @@ function UsersAdmin() {
               <div className="admin-user-row__status">
                 <span className="status-badge">
                   {!user.emailVerified
-                    ? "Email не підтверджено"
+                    ? t("admin.emailUnverified")
                     : user.accessRevoked
-                      ? "Доступ відкликано"
+                      ? t("admin.accessRevoked")
                       : user.approved
                         ? user.role === "ADMIN"
-                          ? "Адміністратор"
-                          : "Активний"
-                        : "Очікує схвалення"}
+                          ? t("shell.admin")
+                          : t("admin.active")
+                        : t("admin.awaitingApproval")}
                 </span>
                 {user.restrictions.map((restriction) => (
                   <span
                     className="status-badge status-badge--warning"
                     key={restriction.id}
                   >
-                    {capabilityLabel(restriction.capability)}
+                    {capabilityLabel(restriction.capability, t)}
                   </span>
                 ))}
               </div>
@@ -681,7 +693,7 @@ function UsersAdmin() {
                         })
                       }
                     >
-                      Схвалити
+                      {t("admin.approve")}
                     </Button>
                   )}
                 {user.approved && !user.accessRevoked && (
@@ -689,7 +701,7 @@ function UsersAdmin() {
                     size="small"
                     onClick={() => setManagingUserId(user.id)}
                   >
-                    Керувати доступом
+                    {t("admin.manageAccess")}
                   </Button>
                 )}
               </div>
@@ -708,6 +720,7 @@ function UsersAdmin() {
 }
 
 function RoomsAdmin() {
+  const { dateLocale, t } = useI18n();
   const queryClient = useQueryClient();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [editor, setEditor] = useState<"room" | "block" | null>(null);
@@ -730,7 +743,7 @@ function RoomsAdmin() {
   const [roomImage, setRoomImage] = useState<File | null>(null);
   const [blockForm, setBlockForm] = useState({
     roomId: "",
-    title: "Технічне обслуговування",
+    title: t("admin.maintenance"),
     privateNote: "",
     startsAt: "",
     endsAt: "",
@@ -849,22 +862,27 @@ function RoomsAdmin() {
     <div className="room-management">
       <div className="room-management__bar">
         <div>
-          <span className="eyebrow">Простори компанії</span>
-          <h2>Переговорні</h2>
-          <p>{roomList.length} кімнат · графіки, фото та недоступності</p>
+          <span className="eyebrow">{t("admin.companySpaces")}</span>
+          <h2>{t("admin.meetingRooms")}</h2>
+          <p>{t("admin.roomsSummary", { count: roomList.length })}</p>
         </div>
         <Button
           size="small"
           onClick={() => setEditor(editor === "room" ? null : "room")}
         >
-          {editor === "room" ? "Закрити форму" : "+ Додати кімнату"}
+          {editor === "room"
+            ? t("admin.closeForm")
+            : t("admin.addRoomWithPlus")}
         </Button>
       </div>
 
       <div className="room-management__workspace">
-        <aside className="admin-card room-catalog" aria-label="Переговорні">
+        <aside
+          className="admin-card room-catalog"
+          aria-label={t("admin.meetingRooms")}
+        >
           <div className="room-catalog__heading">
-            <strong>Усі кімнати</strong>
+            <strong>{t("admin.allRooms")}</strong>
             <span>{roomList.length}</span>
           </div>
           <div className="room-catalog__list">
@@ -889,7 +907,10 @@ function RoomsAdmin() {
                   <span className="room-catalog__copy">
                     <strong>{room.name}</strong>
                     <small>
-                      {room.floor} поверх · {room.capacity} місць
+                      {t("admin.roomMeta", {
+                        floor: room.floor,
+                        capacity: room.capacity,
+                      })}
                     </small>
                   </span>
                   <span className="room-catalog__meta">
@@ -912,19 +933,19 @@ function RoomsAdmin() {
             >
               <div className="room-workspace__form-heading">
                 <div>
-                  <span className="eyebrow">Новий простір</span>
-                  <h2>Додати кімнату</h2>
+                  <span className="eyebrow">{t("admin.newSpace")}</span>
+                  <h2>{t("admin.addRoom")}</h2>
                 </div>
                 <Button
                   variant="ghost"
                   size="small"
                   onClick={() => setEditor(null)}
                 >
-                  Скасувати
+                  {t("cancel")}
                 </Button>
               </div>
               <label className="field">
-                <span>Назва</span>
+                <span>{t("admin.name")}</span>
                 <input
                   value={roomForm.name}
                   onChange={(event) =>
@@ -935,7 +956,7 @@ function RoomsAdmin() {
               </label>
               <div className="form-grid">
                 <label className="field">
-                  <span>Поверх</span>
+                  <span>{t("admin.floor")}</span>
                   <input
                     type="number"
                     min={0}
@@ -949,7 +970,7 @@ function RoomsAdmin() {
                   />
                 </label>
                 <label className="field">
-                  <span>Місткість</span>
+                  <span>{t("admin.capacity")}</span>
                   <input
                     type="number"
                     min={1}
@@ -971,7 +992,7 @@ function RoomsAdmin() {
               />
               <div className="form-grid">
                 <label className="field">
-                  <span>Працює з</span>
+                  <span>{t("admin.opensAt")}</span>
                   <input
                     type="time"
                     step={1800}
@@ -983,7 +1004,7 @@ function RoomsAdmin() {
                   />
                 </label>
                 <label className="field">
-                  <span>Працює до</span>
+                  <span>{t("admin.closesAt")}</span>
                   <input
                     type="time"
                     step={1800}
@@ -997,8 +1018,8 @@ function RoomsAdmin() {
               </div>
               <label className="upload-box">
                 <span>
-                  <strong>Фото кімнати</strong>
-                  <small>JPG, PNG чи WebP — автоматично кадруємо</small>
+                  <strong>{t("admin.roomPhoto")}</strong>
+                  <small>{t("admin.roomPhotoHint")}</small>
                 </span>
                 <input
                   type="file"
@@ -1007,13 +1028,11 @@ function RoomsAdmin() {
                     setRoomImage(event.target.files?.[0] ?? null)
                   }
                 />
-                <em>{roomImage ? roomImage.name : "Обрати файл"}</em>
+                <em>{roomImage ? roomImage.name : t("admin.chooseFile")}</em>
               </label>
               {createRoom.error && (
                 <div className="form-error">
-                  {createRoom.error instanceof ApiError
-                    ? createRoom.error.message
-                    : "Не вдалося додати кімнату"}
+                  {errorMessage(createRoom.error, t, "admin.addRoomError")}
                 </div>
               )}
               <Button
@@ -1022,7 +1041,9 @@ function RoomsAdmin() {
                   createRoom.isPending || roomForm.workingDays.length === 0
                 }
               >
-                {createRoom.isPending ? "Додаємо…" : "Додати кімнату"}
+                {createRoom.isPending
+                  ? t("admin.adding")
+                  : t("admin.addRoom")}
               </Button>
             </form>
           ) : selectedRoom ? (
@@ -1030,10 +1051,13 @@ function RoomsAdmin() {
               <header className="room-workspace__hero">
                 <RoomVisual room={selectedRoom} />
                 <div>
-                  <span className="eyebrow">Вибрана кімната</span>
+                  <span className="eyebrow">{t("admin.selectedRoom")}</span>
                   <h2>{selectedRoom.name}</h2>
                   <p>
-                    {selectedRoom.floor} поверх · {selectedRoom.capacity} місць
+                    {t("admin.roomMeta", {
+                      floor: selectedRoom.floor,
+                      capacity: selectedRoom.capacity,
+                    })}
                   </p>
                 </div>
                 <div className="room-image-actions">
@@ -1053,10 +1077,10 @@ function RoomsAdmin() {
                     />
                     <span>
                       {uploadRoomImage.isPending
-                        ? "Обробляємо…"
+                        ? t("admin.processing")
                         : selectedRoom.imageUrl
-                          ? "Замінити фото"
-                          : "Додати фото"}
+                          ? t("admin.replacePhoto")
+                          : t("admin.addPhoto")}
                     </span>
                   </label>
                   {selectedRoom.imageUrl && (
@@ -1066,7 +1090,7 @@ function RoomsAdmin() {
                       disabled={removeRoomImage.isPending}
                       onClick={() => removeRoomImage.mutate(selectedRoom.id)}
                     >
-                      Прибрати
+                      {t("admin.remove")}
                     </Button>
                   )}
                 </div>
@@ -1074,19 +1098,19 @@ function RoomsAdmin() {
 
               {(uploadRoomImage.error || removeRoomImage.error) && (
                 <div className="form-error">
-                  {uploadRoomImage.error instanceof ApiError
-                    ? uploadRoomImage.error.message
-                    : removeRoomImage.error instanceof ApiError
-                      ? removeRoomImage.error.message
-                      : "Не вдалося змінити фото"}
+                  {errorMessage(
+                    uploadRoomImage.error ?? removeRoomImage.error,
+                    t,
+                    "admin.photoError",
+                  )}
                 </div>
               )}
 
               <div className="room-workspace__settings">
                 <div>
-                  <span className="eyebrow">Доступність</span>
-                  <h3>Робочі години</h3>
-                  <p>Регулярний час, коли кімнату можна бронювати.</p>
+                  <span className="eyebrow">{t("admin.availability")}</span>
+                  <h3>{t("admin.workingHours")}</h3>
+                  <p>{t("admin.workingHoursHint")}</p>
                 </div>
                 <RoomHoursEditor room={selectedRoom} />
               </div>
@@ -1094,8 +1118,8 @@ function RoomsAdmin() {
               <div className="room-workspace__blocks">
                 <div className="room-workspace__section-heading">
                   <div>
-                    <span className="eyebrow">Винятки з графіка</span>
-                    <h3>Недоступність</h3>
+                    <span className="eyebrow">{t("admin.scheduleExceptions")}</span>
+                    <h3>{t("admin.unavailability")}</h3>
                   </div>
                   <Button
                     size="small"
@@ -1108,14 +1132,14 @@ function RoomsAdmin() {
                       setEditor("block");
                     }}
                   >
-                    + Додати виняток
+                    {t("admin.addExceptionWithPlus")}
                   </Button>
                 </div>
                 {blocks.isLoading ? (
-                  <div className="subtle-box">Завантажуємо правила…</div>
+                  <div className="subtle-box">{t("admin.loadingRules")}</div>
                 ) : selectedBlocks.length === 0 ? (
                   <div className="empty-inline">
-                    Для цієї кімнати активних винятків немає.
+                    {t("admin.noRoomExceptions")}
                   </div>
                 ) : (
                   <div className="room-block-list">
@@ -1129,10 +1153,14 @@ function RoomsAdmin() {
                                 : ""
                             }`}
                           >
-                            {block.kind === "SERIES" ? "Серія" : "Разово"}
+                            {block.kind === "SERIES"
+                              ? t("admin.series")
+                              : t("admin.once")}
                           </span>
                           <strong>{block.title}</strong>
-                          <small>{formatRoomBlockRule(block)}</small>
+                          <small>
+                            {formatRoomBlockRule(block, dateLocale, t)}
+                          </small>
                         </div>
                         <Button
                           variant="ghost"
@@ -1144,8 +1172,8 @@ function RoomsAdmin() {
                           onClick={() => cancelBlock.mutate(block)}
                         >
                           {block.kind === "SERIES"
-                            ? "Скасувати серію"
-                            : "Прибрати"}
+                            ? t("admin.cancelSeries")
+                            : t("admin.remove")}
                         </Button>
                       </article>
                     ))}
@@ -1163,22 +1191,22 @@ function RoomsAdmin() {
                 >
                   <div className="room-workspace__form-heading">
                     <div>
-                      <span className="eyebrow">Новий виняток</span>
-                      <h3>Обмежити доступність</h3>
+                      <span className="eyebrow">{t("admin.newException")}</span>
+                      <h3>{t("admin.limitAvailability")}</h3>
                     </div>
                     <Button
                       variant="ghost"
                       size="small"
                       onClick={() => setEditor(null)}
                     >
-                      Закрити
+                      {t("close")}
                     </Button>
                   </div>
                   <p className="room-block-editor__room">
-                    Кімната: <strong>{selectedRoom.name}</strong>
+                    {t("room")}: <strong>{selectedRoom.name}</strong>
                   </p>
                   <label className="field">
-                    <span>Публічна назва</span>
+                    <span>{t("admin.publicTitle")}</span>
                     <input
                       value={blockForm.title}
                       onChange={(event) =>
@@ -1191,7 +1219,7 @@ function RoomsAdmin() {
                     />
                   </label>
                   <label className="field">
-                    <span>Внутрішня примітка</span>
+                    <span>{t("admin.privateNote")}</span>
                     <textarea
                       value={blockForm.privateNote}
                       onChange={(event) =>
@@ -1201,12 +1229,12 @@ function RoomsAdmin() {
                         })
                       }
                       maxLength={300}
-                      placeholder="Не показується користувачам"
+                      placeholder={t("admin.privateNotePlaceholder")}
                     />
                   </label>
                   <div className="form-grid">
                     <label className="field">
-                      <span>Початок</span>
+                      <span>{t("admin.start")}</span>
                       <input
                         type="datetime-local"
                         value={blockForm.startsAt}
@@ -1220,7 +1248,7 @@ function RoomsAdmin() {
                       />
                     </label>
                     <label className="field">
-                      <span>Завершення</span>
+                      <span>{t("admin.end")}</span>
                       <input
                         type="datetime-local"
                         value={blockForm.endsAt}
@@ -1235,12 +1263,12 @@ function RoomsAdmin() {
                     </label>
                   </div>
                   <fieldset className="segmented-field">
-                    <legend>Повторення</legend>
+                    <legend>{t("admin.recurrence")}</legend>
                     <div className="segmented recurrence-segmented">
                       {[
-                        ["NONE", "Не повторюється"],
-                        ["DAILY", "Кожні N днів"],
-                        ["WEEKLY", "За днями тижня"],
+                        ["NONE", t("admin.noRecurrence")],
+                        ["DAILY", t("admin.everyNDays")],
+                        ["WEEKLY", t("admin.byWeekdays")],
                       ].map(([value, label]) => (
                         <button
                           type="button"
@@ -1270,10 +1298,10 @@ function RoomsAdmin() {
                       <div className="form-grid">
                         <label className="field">
                           <span>
-                            Інтервал у{" "}
+                            {t("admin.intervalIn")}{" "}
                             {blockForm.recurrence === "DAILY"
-                              ? "днях"
-                              : "тижнях"}
+                              ? t("admin.days")
+                              : t("admin.weeks")}
                           </span>
                           <input
                             type="number"
@@ -1290,7 +1318,7 @@ function RoomsAdmin() {
                           />
                         </label>
                         <label className="field">
-                          <span>Повторювати до</span>
+                          <span>{t("admin.repeatUntil")}</span>
                           <input
                             type="date"
                             value={blockForm.recurrenceUntil}
@@ -1306,15 +1334,15 @@ function RoomsAdmin() {
                       </div>
                       {blockForm.recurrence === "WEEKLY" && (
                         <fieldset className="weekday-picker">
-                          <legend>Дні тижня</legend>
+                          <legend>{t("admin.weekdays")}</legend>
                           {[
-                            [1, "Пн"],
-                            [2, "Вт"],
-                            [3, "Ср"],
-                            [4, "Чт"],
-                            [5, "Пт"],
-                            [6, "Сб"],
-                            [0, "Нд"],
+                            [1, t("weekday.mon")],
+                            [2, t("weekday.tue")],
+                            [3, t("weekday.wed")],
+                            [4, t("weekday.thu")],
+                            [5, t("weekday.fri")],
+                            [6, t("weekday.sat")],
+                            [0, t("weekday.sun")],
                           ].map(([value, label]) => {
                             const day = Number(value);
                             const checked = blockForm.weekdays.includes(day);
@@ -1345,9 +1373,11 @@ function RoomsAdmin() {
                   )}
                   {createBlock.error && (
                     <div className="form-error">
-                      {createBlock.error instanceof ApiError
-                        ? createBlock.error.message
-                        : "Не вдалося створити блокування"}
+                      {errorMessage(
+                        createBlock.error,
+                        t,
+                        "admin.createBlockError",
+                      )}
                     </div>
                   )}
                   <Button
@@ -1359,16 +1389,16 @@ function RoomsAdmin() {
                     }
                   >
                     {createBlock.isPending
-                      ? "Зберігаємо…"
+                      ? t("admin.saving")
                       : blockForm.recurrence === "NONE"
-                        ? "Додати виняток"
-                        : "Створити серію"}
+                        ? t("admin.addException")
+                        : t("admin.createSeries")}
                   </Button>
                 </form>
               )}
             </>
           ) : (
-            <div className="empty-inline">Додайте першу переговорну.</div>
+            <div className="empty-inline">{t("admin.addFirstRoom")}</div>
           )}
         </section>
       </div>
@@ -1377,6 +1407,7 @@ function RoomsAdmin() {
 }
 
 function RoomHoursEditor({ room }: { room: Room }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [workStart, setWorkStart] = useState(room.workStart);
   const [workEnd, setWorkEnd] = useState(room.workEnd);
@@ -1407,13 +1438,13 @@ function RoomHoursEditor({ room }: { room: Room }) {
     <div className="room-hours-editor">
       <div className="room-hours-editor__time">
         <label className="room-hours-editor__field">
-          <span>Відкриття</span>
+          <span>{t("admin.opening")}</span>
           <input
             type="text"
             inputMode="numeric"
             maxLength={5}
             placeholder="09:00"
-            aria-label={`Початок роботи ${room.name}, формат ГГ:ХХ`}
+            aria-label={t("admin.openingLabel", { room: room.name })}
             value={workStart}
             onChange={(event) => {
               setWorkStart(event.target.value);
@@ -1423,13 +1454,13 @@ function RoomHoursEditor({ room }: { room: Room }) {
         </label>
         <span className="room-hours-editor__separator">—</span>
         <label className="room-hours-editor__field">
-          <span>Закриття</span>
+          <span>{t("admin.closing")}</span>
           <input
             type="text"
             inputMode="numeric"
             maxLength={5}
             placeholder="19:00"
-            aria-label={`Завершення роботи ${room.name}, формат ГГ:ХХ`}
+            aria-label={t("admin.closingLabel", { room: room.name })}
             value={workEnd}
             onChange={(event) => {
               setWorkEnd(event.target.value);
@@ -1450,33 +1481,23 @@ function RoomHoursEditor({ room }: { room: Room }) {
         disabled={!changed || !validHours || update.isPending}
         onClick={() => update.mutate()}
       >
-        {update.isPending ? "…" : "Зберегти"}
+        {update.isPending ? "…" : t("save")}
       </Button>
       {changed && !validHours && (
         <small className="field-error">
-          Оберіть принаймні один день і коректний час відкриття та закриття.
+          {t("admin.invalidAvailability")}
         </small>
       )}
       {update.error && (
         <small className="field-error">
-          {update.error instanceof ApiError
-            ? update.error.message
-            : "Не вдалося оновити графік"}
+          {errorMessage(update.error, t, "admin.updateScheduleError")}
         </small>
       )}
     </div>
   );
 }
 
-const ROOM_WEEKDAYS = [
-  { value: 1, label: "Пн" },
-  { value: 2, label: "Вт" },
-  { value: 3, label: "Ср" },
-  { value: 4, label: "Чт" },
-  { value: 5, label: "Пт" },
-  { value: 6, label: "Сб" },
-  { value: 7, label: "Нд" },
-] as const;
+const ROOM_WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 
 function WorkingDayPicker({
   days,
@@ -1485,12 +1506,22 @@ function WorkingDayPicker({
   days: number[];
   onChange: (days: number[]) => void;
 }) {
+  const { t } = useI18n();
+  const labels = [
+    t("weekday.mon"),
+    t("weekday.tue"),
+    t("weekday.wed"),
+    t("weekday.thu"),
+    t("weekday.fri"),
+    t("weekday.sat"),
+    t("weekday.sun"),
+  ];
   return (
     <fieldset className="working-day-picker">
-      <legend>Робочі дні</legend>
+      <legend>{t("admin.workingDays")}</legend>
       <div>
-        {ROOM_WEEKDAYS.map((day) => {
-          const selected = days.includes(day.value);
+        {ROOM_WEEKDAYS.map((day, index) => {
+          const selected = days.includes(day);
           return (
             <button
               type="button"
@@ -1499,13 +1530,13 @@ function WorkingDayPicker({
               onClick={() =>
                 onChange(
                   selected
-                    ? days.filter((value) => value !== day.value)
-                    : [...days, day.value].sort((a, b) => a - b),
+                    ? days.filter((value) => value !== day)
+                    : [...days, day].sort((a, b) => a - b),
                 )
               }
-              key={day.value}
+              key={day}
             >
-              {day.label}
+              {labels[index]}
             </button>
           );
         })}
@@ -1514,8 +1545,12 @@ function WorkingDayPicker({
   );
 }
 
-function formatRoomBlockRule(block: AdminRoomBlock): string {
-  const time = new Intl.DateTimeFormat("uk-UA", {
+function formatRoomBlockRule(
+  block: AdminRoomBlock,
+  dateLocale: string,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  const time = new Intl.DateTimeFormat(dateLocale, {
     dateStyle: "medium",
     timeStyle: "short",
   });
@@ -1528,20 +1563,32 @@ function formatRoomBlockRule(block: AdminRoomBlock): string {
   const frequency =
     block.frequency === "DAILY"
       ? interval === 1
-        ? "щодня"
-        : `кожні ${interval} дн.`
+        ? t("admin.daily")
+        : t("admin.everyDays", { interval })
       : interval === 1
-        ? "щотижня"
-        : `кожні ${interval} тиж.`;
+        ? t("admin.weekly")
+        : t("admin.everyWeeks", { interval });
+  const dayLabels = [
+    t("weekday.sun"),
+    t("weekday.mon"),
+    t("weekday.tue"),
+    t("weekday.wed"),
+    t("weekday.thu"),
+    t("weekday.fri"),
+    t("weekday.sat"),
+  ];
   const weekdays = block.weekdays?.length
     ? ` · ${block.weekdays
-        .map((day) => ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"][day])
+        .map((day) => dayLabels[day])
         .join(", ")}`
     : "";
-  return `${frequency}${weekdays} · ${block.occurrenceCount} майбутніх входжень`;
+  return `${frequency}${weekdays} · ${t("admin.futureOccurrences", {
+    count: block.occurrenceCount,
+  })}`;
 }
 
 function AuditAdmin() {
+  const { dateLocale, t } = useI18n();
   const [category, setCategory] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -1568,16 +1615,16 @@ function AuditAdmin() {
     <section className="admin-card">
       <div className="admin-card__toolbar activity-toolbar">
         <div>
-          <span className="eyebrow">Хронологія системи</span>
-          <h2>Журнал подій</h2>
-          <p>Бронювання, доступ і зміни кімнат із зазначенням виконавця.</p>
+          <span className="eyebrow">{t("admin.auditEyebrow")}</span>
+          <h2>{t("admin.audit")}</h2>
+          <p>{t("admin.auditSubtitle")}</p>
         </div>
         <div className="segmented">
           {[
-            ["", "Усі"],
-            ["booking", "Бронювання"],
-            ["access", "Доступ"],
-            ["room", "Кімнати"],
+            ["", t("admin.all")],
+            ["booking", t("admin.bookings")],
+            ["access", t("admin.access")],
+            ["room", t("admin.rooms")],
           ].map(([value, label]) => (
             <button
               key={value}
@@ -1601,47 +1648,45 @@ function AuditAdmin() {
           }}
         >
           <label className="field">
-            <span className="sr-only">Пошук у журналі подій</span>
+            <span className="sr-only">{t("admin.searchAudit")}</span>
             <input
               type="search"
-              placeholder="Подія, користувач або об’єкт"
+              placeholder={t("admin.auditSearchPlaceholder")}
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
             />
           </label>
           <Button type="submit" size="small">
-            Знайти
+            {t("admin.search")}
           </Button>
         </form>
       </div>
 
       {logs.isLoading ? (
-        <div className="subtle-box">Завантажуємо журнал подій…</div>
+        <div className="subtle-box">{t("admin.loadingAudit")}</div>
       ) : logs.error ? (
         <div className="form-error">
-          {logs.error instanceof ApiError
-            ? logs.error.message
-            : "Не вдалося завантажити журнал подій"}
+          {errorMessage(logs.error, t, "admin.auditLoadError")}
         </div>
       ) : logs.data?.logs.length === 0 ? (
-        <div className="empty-inline">Подій за цими умовами не знайдено.</div>
+        <div className="empty-inline">{t("admin.auditEmpty")}</div>
       ) : (
         <>
           <div className="activity-list">
             {logs.data?.logs.map((log) => (
               <article className="activity-row" key={log.id}>
                 <time dateTime={log.createdAt}>
-                  {new Intl.DateTimeFormat("uk-UA", {
+                  {new Intl.DateTimeFormat(dateLocale, {
                     dateStyle: "medium",
                     timeStyle: "short",
                   }).format(new Date(log.createdAt))}
                 </time>
                 <div className="activity-row__main">
-                  <strong>{humanizeAction(log.action)}</strong>
+                  <strong>{humanizeAction(log.action, t)}</strong>
                   <span>
-                    {log.targetName ?? humanizeTarget(log.targetType)}
+                    {log.targetName ?? humanizeTarget(log.targetType, t)}
                     {" · "}
-                    {log.actorName ?? "Система"}
+                    {log.actorName ?? t("admin.system")}
                     {log.actorEmail ? ` (${log.actorEmail})` : ""}
                   </span>
                 </div>
@@ -1653,17 +1698,19 @@ function AuditAdmin() {
                   }`}
                 >
                   {log.action.includes("ADMIN")
-                    ? "Адміністратор"
-                    : humanizeTarget(log.targetType)}
+                    ? t("shell.admin")
+                    : humanizeTarget(log.targetType, t)}
                 </span>
                 {Object.keys(log.details ?? {}).length > 0 && (
                   <details className="activity-details">
-                    <summary>Деталі</summary>
+                    <summary>{t("admin.details")}</summary>
                     <dl>
                       {Object.entries(log.details).map(([key, value]) => (
                         <div key={key}>
-                          <dt>{humanizeDetailKey(key)}</dt>
-                          <dd>{formatActivityValue(value)}</dd>
+                          <dt>{humanizeDetailKey(key, t)}</dt>
+                          <dd>
+                            {formatActivityValue(value, dateLocale, t)}
+                          </dd>
                         </div>
                       ))}
                     </dl>
@@ -1677,7 +1724,7 @@ function AuditAdmin() {
               page={logs.data.pagination.page}
               totalPages={logs.data.pagination.totalPages}
               total={logs.data.pagination.total}
-              itemLabel="подій"
+              itemLabel={t("admin.auditItems")}
               onPageChange={setPage}
             />
           )}
@@ -1687,86 +1734,99 @@ function AuditAdmin() {
   );
 }
 
-function humanizeAction(action: string): string {
-  const actions: Record<string, string> = {
-    USER_APPROVED: "Схвалено користувача",
-    USER_ACCESS_REVOKED: "Відкликано доступ",
-    USER_RESTRICTED: "Додано обмеження",
-    USER_RESTRICTION_REVOKED: "Знято обмеження",
-    USER_ROLE_CHANGED: "Змінено роль",
-    EMAIL_CHANGE_REQUESTED: "Запитано зміну email",
-    EMAIL_CHANGED: "Змінено email",
-    PASSWORD_CHANGED: "Змінено пароль",
-    ROOM_CREATED: "Створено кімнату",
-    ROOM_UPDATED: "Оновлено кімнату",
-    ROOM_IMAGE_UPDATED: "Оновлено фото кімнати",
-    ROOM_IMAGE_REMOVED: "Прибрано фото кімнати",
-    ROOM_BLOCK_CREATED: "Заблоковано час кімнати",
-    ROOM_BLOCK_CANCELLED: "Прибрано недоступність кімнати",
-    ROOM_BLOCK_SERIES_CREATED: "Створено серію недоступності",
-    ROOM_BLOCK_SERIES_CANCELLED: "Скасовано серію недоступності",
-    BOOKING_CREATED: "Створено бронювання",
-    BOOKING_UPDATED: "Оновлено бронювання",
-    BOOKING_UPDATED_BY_ADMIN: "Адміністратор змінив бронювання",
-    BOOKING_CANCELLED: "Скасовано власне бронювання",
-    BOOKING_CANCELLED_BY_ADMIN: "Скасовано бронювання",
-    BOOKING_AVAILABILITY_OVERRIDE: "Обійдено недоступність",
-    BOOKING_INVITATION_ACCEPTED: "Прийнято запрошення",
-    BOOKING_INVITATION_DECLINED: "Відхилено запрошення",
-    OPEN_EVENT_JOINED: "Користувач долучився до відкритої події",
-    OPEN_EVENT_LEFT: "Користувач залишив відкриту подію",
+function humanizeAction(
+  action: string,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  const actions: Record<string, MessageKey> = {
+    USER_APPROVED: "audit.USER_APPROVED",
+    USER_ACCESS_REVOKED: "audit.USER_ACCESS_REVOKED",
+    USER_RESTRICTED: "audit.USER_RESTRICTED",
+    USER_RESTRICTION_REVOKED: "audit.USER_RESTRICTION_REVOKED",
+    USER_ROLE_CHANGED: "audit.USER_ROLE_CHANGED",
+    EMAIL_CHANGE_REQUESTED: "audit.EMAIL_CHANGE_REQUESTED",
+    EMAIL_CHANGED: "audit.EMAIL_CHANGED",
+    PASSWORD_CHANGED: "audit.PASSWORD_CHANGED",
+    ROOM_CREATED: "audit.ROOM_CREATED",
+    ROOM_UPDATED: "audit.ROOM_UPDATED",
+    ROOM_IMAGE_UPDATED: "audit.ROOM_IMAGE_UPDATED",
+    ROOM_IMAGE_REMOVED: "audit.ROOM_IMAGE_REMOVED",
+    ROOM_BLOCK_CREATED: "audit.ROOM_BLOCK_CREATED",
+    ROOM_BLOCK_CANCELLED: "audit.ROOM_BLOCK_CANCELLED",
+    ROOM_BLOCK_SERIES_CREATED: "audit.ROOM_BLOCK_SERIES_CREATED",
+    ROOM_BLOCK_SERIES_CANCELLED: "audit.ROOM_BLOCK_SERIES_CANCELLED",
+    BOOKING_CREATED: "audit.BOOKING_CREATED",
+    BOOKING_UPDATED: "audit.BOOKING_UPDATED",
+    BOOKING_UPDATED_BY_ADMIN: "audit.BOOKING_UPDATED_BY_ADMIN",
+    BOOKING_CANCELLED: "audit.BOOKING_CANCELLED",
+    BOOKING_CANCELLED_BY_ADMIN: "audit.BOOKING_CANCELLED_BY_ADMIN",
+    BOOKING_AVAILABILITY_OVERRIDE: "audit.BOOKING_AVAILABILITY_OVERRIDE",
+    BOOKING_INVITATION_ACCEPTED: "audit.BOOKING_INVITATION_ACCEPTED",
+    BOOKING_INVITATION_DECLINED: "audit.BOOKING_INVITATION_DECLINED",
+    OPEN_EVENT_JOINED: "audit.OPEN_EVENT_JOINED",
+    OPEN_EVENT_LEFT: "audit.OPEN_EVENT_LEFT",
   };
-  return actions[action] ?? action;
+  return actions[action] ? t(actions[action]) : action;
 }
 
-function humanizeTarget(target: string): string {
+function humanizeTarget(
+  target: string,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
   return (
     {
-      BOOKING: "Бронювання",
-      USER: "Користувач",
-      ROOM: "Кімната",
-      ROOM_BLOCK: "Недоступність кімнати",
-      ROOM_BLOCK_SERIES: "Серія недоступності",
+      BOOKING: t("admin.targetBooking"),
+      USER: t("admin.targetUser"),
+      ROOM: t("room"),
+      ROOM_BLOCK: t("admin.targetRoomBlock"),
+      ROOM_BLOCK_SERIES: t("admin.targetRoomBlockSeries"),
     }[target] ?? target
   );
 }
 
-function humanizeDetailKey(key: string): string {
-  const keys: Record<string, string> = {
-    reason: "Причина",
-    title: "Назва",
-    roomName: "Кімната",
-    startsAt: "Початок",
-    endsAt: "Завершення",
-    participationMode: "Формат",
-    participantCount: "Учасників",
-    addedParticipants: "Додано учасників",
-    removedParticipants: "Видалено учасників",
-    role: "Роль",
-    capability: "Обмеження",
-    expiresAt: "Діє до",
-    recurrence: "Повторення",
-    recurrenceInterval: "Інтервал",
-    weekdays: "Дні тижня",
-    recurrenceUntil: "Повторюється до",
-    occurrenceCount: "Створено інтервалів",
-    pendingEmail: "Нова email-адреса",
+function humanizeDetailKey(
+  key: string,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  const keys: Record<string, MessageKey> = {
+    reason: "admin.reason",
+    title: "admin.name",
+    roomName: "room",
+    startsAt: "admin.start",
+    endsAt: "admin.end",
+    participationMode: "admin.format",
+    participantCount: "admin.participants",
+    addedParticipants: "admin.addedParticipants",
+    removedParticipants: "admin.removedParticipants",
+    role: "admin.role",
+    capability: "admin.restriction",
+    expiresAt: "admin.expiresAt",
+    recurrence: "admin.recurrence",
+    recurrenceInterval: "admin.interval",
+    weekdays: "admin.weekdays",
+    recurrenceUntil: "admin.repeatUntil",
+    occurrenceCount: "admin.createdIntervals",
+    pendingEmail: "admin.pendingEmail",
   };
-  return keys[key] ?? key;
+  return keys[key] ? t(keys[key]) : key;
 }
 
-function formatActivityValue(value: unknown): string {
+function formatActivityValue(
+  value: unknown,
+  dateLocale: string,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "string") {
     const date = new Date(value);
     if (/^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(date.getTime())) {
-      return new Intl.DateTimeFormat("uk-UA", {
+      return new Intl.DateTimeFormat(dateLocale, {
         dateStyle: "medium",
         timeStyle: "short",
       }).format(date);
     }
-    if (value === "OPEN") return "Відкрита подія";
-    if (value === "INVITE_ONLY") return "За запрошенням";
+    if (value === "OPEN") return t("admin.statusOpen");
+    if (value === "INVITE_ONLY") return t("admin.inviteOnly");
     return value;
   }
   if (typeof value === "object") return JSON.stringify(value);

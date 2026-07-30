@@ -4,7 +4,8 @@ import {
   useMutation,
   useQueryClient
 } from "@tanstack/react-query";
-import { api, ApiError } from "../lib/api";
+import { api } from "../lib/api";
+import { errorMessage } from "../lib/error-message";
 import { useI18n } from "../lib/i18n";
 import { navigate } from "../lib/router";
 import type { User } from "../types";
@@ -111,9 +112,7 @@ export function BookingListPage({ user }: { user: User }) {
         <div className="state-panel state-panel--error">
           <strong>{t("bookings.loadError")}</strong>
           <span>
-            {bookings.error instanceof ApiError
-              ? bookings.error.message
-              : t("retry")}
+            {errorMessage(bookings.error, t, "bookings.loadError")}
           </span>
           <button className="button button--secondary" onClick={() => bookings.refetch()}>
             {t("retry")}

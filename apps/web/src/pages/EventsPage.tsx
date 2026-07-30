@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError } from "../lib/api";
+import { api } from "../lib/api";
+import { errorMessage } from "../lib/error-message";
 import { useI18n } from "../lib/i18n";
 import type { User } from "../types";
 
@@ -51,9 +52,7 @@ export function EventsPage({ user }: { user: User }) {
         <div className="state-panel state-panel--error">
           <strong>{t("events.loadError")}</strong>
           <span>
-            {events.error instanceof ApiError
-              ? events.error.message
-              : t("retry")}
+            {errorMessage(events.error, t, "events.loadError")}
           </span>
         </div>
       ) : events.data?.events.length === 0 ? (
