@@ -30,6 +30,7 @@ export interface NotificationOutboxPayload {
   category?: NotificationCategory;
   title: string;
   body: string;
+  activeBookingIds?: string[];
 }
 
 export const notifications = pgTable(

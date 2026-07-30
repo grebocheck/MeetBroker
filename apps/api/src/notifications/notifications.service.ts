@@ -21,6 +21,7 @@ export interface NotificationEvent {
   title: string;
   body: string;
   bookingId?: string;
+  activeBookingIds?: string[];
 }
 
 @Injectable()
@@ -58,7 +59,8 @@ export class NotificationsService {
           userId: event.userId,
           category: event.category,
           title: event.title,
-          body: event.body
+          body: event.body,
+          activeBookingIds: event.activeBookingIds
         })
       ]
     );

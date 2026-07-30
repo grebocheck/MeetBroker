@@ -48,7 +48,12 @@ export function categoryForEventType(
   eventType: string
 ): NotificationCategory {
   if (eventType === "BOOKING_INVITATION") return "INVITATIONS";
-  if (eventType === "BOOKING_REMINDER") return "REMINDERS";
+  if (
+    eventType === "BOOKING_REMINDER" ||
+    eventType === "BOOKING_END_WARNING"
+  ) {
+    return "REMINDERS";
+  }
   if (eventType.startsWith("ACCESS_")) return "ACCESS";
   return "CHANGES";
 }

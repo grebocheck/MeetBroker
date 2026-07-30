@@ -15,6 +15,7 @@ interface OutboxPayload {
   category?: NotificationCategory;
   title: string;
   body: string;
+  activeBookingIds?: string[];
 }
 
 interface OutboxRow {
@@ -41,7 +42,10 @@ export class NotificationWorkerService {
   }
 
   async processBatch(): Promise<number> {
-    await this.enqueueDueReminders();
+    await Promise.all([
+      this.enqueueDueStartReminders(),
+      this.enqueueDueEndWarnings()
+    ]);
     const jobs = await this.database.transaction(async (client) => {
       const result = await client.query<OutboxRow>(
         `
@@ -104,6 +108,19 @@ export class NotificationWorkerService {
     payload: OutboxPayload,
     eventType: string
   ): Promise<void> {
+    if (payload.activeBookingIds?.length) {
+      const bookingIds = [...new Set(payload.activeBookingIds)];
+      const active = await this.database.query<{ count: string }>(
+        `
+          select count(*)::text as count
+          from bookings
+          where id = any($1::uuid[])
+            and cancelled_at is null
+        `,
+        [bookingIds]
+      );
+      if (Number(active.rows[0]?.count ?? 0) !== bookingIds.length) return;
+    }
     const result = await this.database.query<{
       email: string;
       telegram_chat_id: string | null;
@@ -147,7 +164,7 @@ export class NotificationWorkerService {
     );
   }
 
-  private async enqueueDueReminders(): Promise<void> {
+  private async enqueueDueStartReminders(): Promise<void> {
     const result = await this.database.query<{
       booking_id: string;
       title: string;
@@ -207,7 +224,71 @@ export class NotificationWorkerService {
             reminder.locale === "en"
               ? `“${reminder.title}” starts at ${formatted}.`
               : `«${reminder.title}» починається о ${formatted}.`,
-          bookingId: reminder.booking_id
+          bookingId: reminder.booking_id,
+          activeBookingIds: [reminder.booking_id]
+        })
+      );
+    }
+  }
+
+  private async enqueueDueEndWarnings(): Promise<void> {
+    const result = await this.database.query<{
+      booking_id: string;
+      title: string;
+      ends_at: Date;
+      next_booking_id: string;
+      next_title: string;
+      user_id: string;
+      locale: "uk" | "en";
+      timezone: string | null;
+    }>(
+      `
+        select
+          current_booking.id as booking_id,
+          current_booking.title,
+          current_booking.ends_at,
+          next_booking.id as next_booking_id,
+          next_booking.title as next_title,
+          current_booking.organizer_id as user_id,
+          users.locale,
+          users.timezone
+        from bookings current_booking
+        join bookings next_booking
+          on next_booking.room_id = current_booking.room_id
+          and next_booking.starts_at = current_booking.ends_at
+          and next_booking.cancelled_at is null
+        join users on users.id = current_booking.organizer_id
+        where current_booking.cancelled_at is null
+          and current_booking.ends_at > now()
+          and current_booking.ends_at
+            <= now() + ($1 || ' minutes')::interval
+      `,
+      [String(this.notifyBeforeMinutes)]
+    );
+
+    for (const warning of result.rows) {
+      const locale = warning.locale === "en" ? "en-GB" : "uk-UA";
+      const formatted = new Intl.DateTimeFormat(locale, {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: warning.timezone ?? "Europe/Kyiv"
+      }).format(warning.ends_at);
+      await this.database.transaction((client) =>
+        this.notifications.enqueue(client, {
+          eventKey: `booking:${warning.booking_id}:end-warning:${warning.user_id}`,
+          userId: warning.user_id,
+          type: "BOOKING_END_WARNING",
+          category: "REMINDERS",
+          title:
+            warning.locale === "en"
+              ? "The next slot is occupied"
+              : "Наступний слот уже зайнятий",
+          body:
+            warning.locale === "en"
+              ? `“${warning.title}” ends at ${formatted}. “${warning.next_title}” starts immediately after it.`
+              : `«${warning.title}» завершується о ${formatted}. Одразу після неї починається «${warning.next_title}».`,
+          bookingId: warning.booking_id,
+          activeBookingIds: [warning.booking_id, warning.next_booking_id]
         })
       );
     }
