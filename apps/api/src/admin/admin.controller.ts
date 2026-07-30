@@ -47,8 +47,10 @@ export class AdminController {
   async users(
     @Query("status") status?: string,
     @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return { users: await this.admin.users(status, search) };
+    return this.admin.users(status, search, Number(page), Number(limit));
   }
 
   @Get("bookings")
@@ -56,10 +58,16 @@ export class AdminController {
     @Query("status") status?: string,
     @Query("search") search?: string,
     @Query("roomId") roomId?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return {
-      bookings: await this.admin.bookings(status, search, roomId),
-    };
+    return this.admin.bookings(
+      status,
+      search,
+      roomId,
+      Number(page),
+      Number(limit),
+    );
   }
 
   @Post("users/:id/approve")

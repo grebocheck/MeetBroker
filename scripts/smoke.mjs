@@ -427,7 +427,7 @@ async function createUpdateAndCancelBooking(
       headers: { cookie: notificationRecipientCookie },
       body: JSON.stringify({ reason: "Administrative smoke cancellation" }),
     });
-    return { id: body.id, startsAt };
+    return { id: body.id, startsAt, title: administrativeTitle };
   }
 
   throw new Error("Could not find an available weekday smoke-test slot");
@@ -953,10 +953,26 @@ async function main() {
     users.body?.users?.length >= 3,
     "Expected seeded users in admin response",
   );
+  check(
+    users.body?.pagination?.total >= users.body.users.length,
+    "Admin user pagination metadata is invalid",
+  );
   const managedUser = users.body.users.find(
     (user) => user.email === userCredentials.email,
   );
   check(managedUser, "Smoke user is missing from admin management");
+  const searchedUsers = await request(
+    `/api/admin/users?search=${encodeURIComponent(
+      userCredentials.email,
+    )}&page=1&limit=1`,
+    { headers: { cookie: adminCookie } },
+  );
+  check(
+    searchedUsers.body?.users?.length === 1 &&
+      searchedUsers.body.users[0].id === managedUser.id &&
+      searchedUsers.body.pagination?.total === 1,
+    "Admin user search and pagination are inconsistent",
+  );
   await verifyCapabilityPolicies({
     adminCookie,
     userCookie,
@@ -966,8 +982,16 @@ async function main() {
   await verifyRecurringBookings(userCookie, roomsResult.body.rooms.at(-1));
 
   const managedBookings = await request(
-    "/api/admin/bookings?status=cancelled&search=Admin%20adjusted%20MVP%20smoke",
+    `/api/admin/bookings?status=cancelled&search=${encodeURIComponent(
+      booking.title,
+    )}&page=1&limit=1`,
     { headers: { cookie: adminCookie } },
+  );
+  check(
+    managedBookings.body?.pagination?.page === 1 &&
+      managedBookings.body.pagination.limit === 1 &&
+      managedBookings.body.pagination.total >= 1,
+    "Admin booking pagination metadata is invalid",
   );
   const managedBooking = managedBookings.body?.bookings?.find(
     (item) => item.id === booking.id,

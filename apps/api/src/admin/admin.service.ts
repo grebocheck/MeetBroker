@@ -31,8 +31,21 @@ export class AdminService {
       config.get<string>("OFFICE_TIMEZONE") ?? "Europe/Kyiv";
   }
 
-  async users(status?: string, search?: string) {
-    const result = await this.database.query<{
+  async users(status?: string, search?: string, page = 1, limit = 12) {
+    const normalizedStatus = ["pending", "active", "revoked"].includes(
+      status ?? "",
+    )
+      ? status
+      : "";
+    const normalizedPage = Number.isFinite(page)
+      ? Math.max(Math.trunc(page), 1)
+      : 1;
+    const normalizedLimit = Number.isFinite(limit)
+      ? Math.min(Math.max(Math.trunc(limit), 1), 100)
+      : 12;
+    const filters = [normalizedStatus, search?.trim() ?? ""];
+    const [result, totals] = await Promise.all([
+      this.database.query<{
       id: string;
       name: string;
       email: string;
@@ -45,7 +58,7 @@ export class AdminService {
       access_revoked_at: Date | null;
       created_at: Date;
       restrictions: unknown;
-    }>(
+      }>(
       `
         select
           u.id,
@@ -91,34 +104,83 @@ export class AdminService {
         order by
           (u.approved_at is null and u.access_revoked_at is null) desc,
           u.created_at desc
-        limit 100
+        limit $3
+        offset $4
       `,
-      [status ?? "", search?.trim() ?? ""],
-    );
+      [
+        ...filters,
+        normalizedLimit,
+        (normalizedPage - 1) * normalizedLimit,
+      ],
+      ),
+      this.database.query<{ total: string }>(
+        `
+          select count(*)::text as total
+          from users u
+          where
+            ($1 = '' or
+              ($1 = 'pending' and u.email_verified_at is not null
+                and u.approved_at is null and u.access_revoked_at is null) or
+              ($1 = 'active' and u.approved_at is not null
+                and u.access_revoked_at is null) or
+              ($1 = 'revoked' and u.access_revoked_at is not null))
+            and ($2 = '' or u.name ilike '%' || $2 || '%'
+              or u.email ilike '%' || $2 || '%')
+        `,
+        filters,
+      ),
+    ]);
 
-    return result.rows.map((user) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      bio: user.bio,
-      avatarPreset: user.avatar_preset,
-      avatarUrl: user.avatar_path ? `/uploads/${user.avatar_path}` : null,
-      emailVerified: Boolean(user.email_verified_at),
-      approved: Boolean(user.approved_at),
-      accessRevoked: Boolean(user.access_revoked_at),
-      restrictions: user.restrictions,
-      createdAt: user.created_at,
-    }));
+    const total = Number(totals.rows[0]?.total ?? 0);
+    return {
+      users: result.rows.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bio: user.bio,
+        avatarPreset: user.avatar_preset,
+        avatarUrl: user.avatar_path ? `/uploads/${user.avatar_path}` : null,
+        emailVerified: Boolean(user.email_verified_at),
+        approved: Boolean(user.approved_at),
+        accessRevoked: Boolean(user.access_revoked_at),
+        restrictions: user.restrictions,
+        createdAt: user.created_at,
+      })),
+      pagination: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        total,
+        totalPages: Math.max(Math.ceil(total / normalizedLimit), 1),
+      },
+    };
   }
 
-  async bookings(status?: string, search?: string, roomId?: string) {
+  async bookings(
+    status?: string,
+    search?: string,
+    roomId?: string,
+    page = 1,
+    limit = 15,
+  ) {
     const normalizedStatus = ["upcoming", "past", "cancelled"].includes(
       status ?? "",
     )
       ? status
       : "";
-    const result = await this.database.query<{
+    const normalizedPage = Number.isFinite(page)
+      ? Math.max(Math.trunc(page), 1)
+      : 1;
+    const normalizedLimit = Number.isFinite(limit)
+      ? Math.min(Math.max(Math.trunc(limit), 1), 100)
+      : 15;
+    const filters = [
+      normalizedStatus,
+      search?.trim() ?? "",
+      roomId?.trim() ?? "",
+    ];
+    const [result, totals] = await Promise.all([
+      this.database.query<{
       id: string;
       title: string;
       starts_at: Date;
@@ -138,7 +200,7 @@ export class AdminService {
       organizer_avatar_preset: string;
       organizer_avatar_path: string | null;
       participants: unknown;
-    }>(
+      }>(
       `
         select
           b.id,
@@ -214,38 +276,79 @@ export class AdminService {
           case when b.cancelled_at is null and b.ends_at > now() then 0 else 1 end,
           case when b.cancelled_at is null and b.ends_at > now() then b.starts_at end asc,
           b.starts_at desc
-        limit 100
+        limit $4
+        offset $5
       `,
-      [normalizedStatus, search?.trim() ?? "", roomId?.trim() ?? ""],
-    );
+      [
+        ...filters,
+        normalizedLimit,
+        (normalizedPage - 1) * normalizedLimit,
+      ],
+      ),
+      this.database.query<{ total: string }>(
+        `
+          select count(*)::text as total
+          from bookings b
+          join rooms r on r.id = b.room_id
+          join users organizer on organizer.id = b.organizer_id
+          where
+            (
+              $1 = ''
+              or ($1 = 'upcoming' and b.cancelled_at is null
+                and b.ends_at > now())
+              or ($1 = 'past' and b.cancelled_at is null
+                and b.ends_at <= now())
+              or ($1 = 'cancelled' and b.cancelled_at is not null)
+            )
+            and (
+              $2 = ''
+              or b.title ilike '%' || $2 || '%'
+              or r.name ilike '%' || $2 || '%'
+              or organizer.name ilike '%' || $2 || '%'
+              or organizer.email ilike '%' || $2 || '%'
+            )
+            and ($3 = '' or r.id::text = $3)
+        `,
+        filters,
+      ),
+    ]);
 
-    return result.rows.map((booking) => ({
-      id: booking.id,
-      title: booking.title,
-      startsAt: booking.starts_at,
-      endsAt: booking.ends_at,
-      participationMode: booking.participation_mode,
-      seriesId: booking.series_id,
-      overrideReason: booking.override_reason,
-      cancelledAt: booking.cancelled_at,
-      cancellationReason: booking.cancellation_reason,
-      cancelledByName: booking.cancelled_by_name,
-      room: {
-        id: booking.room_id,
-        name: booking.room_name,
-        floor: booking.room_floor,
+    const total = Number(totals.rows[0]?.total ?? 0);
+    return {
+      bookings: result.rows.map((booking) => ({
+        id: booking.id,
+        title: booking.title,
+        startsAt: booking.starts_at,
+        endsAt: booking.ends_at,
+        participationMode: booking.participation_mode,
+        seriesId: booking.series_id,
+        overrideReason: booking.override_reason,
+        cancelledAt: booking.cancelled_at,
+        cancellationReason: booking.cancellation_reason,
+        cancelledByName: booking.cancelled_by_name,
+        room: {
+          id: booking.room_id,
+          name: booking.room_name,
+          floor: booking.room_floor,
+        },
+        organizer: {
+          id: booking.organizer_id,
+          name: booking.organizer_name,
+          email: booking.organizer_email,
+          avatarPreset: booking.organizer_avatar_preset,
+          avatarUrl: booking.organizer_avatar_path
+            ? `/uploads/${booking.organizer_avatar_path}`
+            : null,
+        },
+        participants: booking.participants,
+      })),
+      pagination: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        total,
+        totalPages: Math.max(Math.ceil(total / normalizedLimit), 1),
       },
-      organizer: {
-        id: booking.organizer_id,
-        name: booking.organizer_name,
-        email: booking.organizer_email,
-        avatarPreset: booking.organizer_avatar_preset,
-        avatarUrl: booking.organizer_avatar_path
-          ? `/uploads/${booking.organizer_avatar_path}`
-          : null,
-      },
-      participants: booking.participants,
-    }));
+    };
   }
 
   async approve(actorId: string, userId: string): Promise<void> {
