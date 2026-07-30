@@ -3051,10 +3051,15 @@ hr {
   align-items: center;
   width: 100%;
   min-width: 0;
+  min-height: 74px;
   padding: 10px;
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   border-radius: 3px 14px 3px 14px;
-  background: transparent;
+  background: color-mix(
+    in srgb,
+    var(--surface-muted) 54%,
+    var(--surface-raised)
+  );
   color: var(--text);
   grid-template-columns: 52px minmax(0, 1fr) auto;
   gap: 10px;
@@ -3939,10 +3944,10 @@ hr {
   .room-catalog__list {
     display: grid;
     max-height: none;
-    overflow-x: auto;
-    padding: 0 0 5px;
-    grid-auto-columns: minmax(230px, 0.72fr);
-    grid-auto-flow: column;
+    overflow: visible;
+    padding: 0;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 8px;
   }
 }
 
