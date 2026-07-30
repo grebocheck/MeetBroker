@@ -666,7 +666,7 @@ hr {
 .editorial-page::before {
   position: absolute;
   z-index: -2;
-  top: 104px;
+  top: 42px;
   right: -1.5vw;
   max-width: 78%;
   overflow: hidden;
@@ -739,15 +739,38 @@ hr {
 }
 
 .bookings-page .booking-list {
-  display: grid;
+  position: relative;
+  display: flex;
+  width: min(1120px, 100%);
+  padding-left: 22px;
+  flex-direction: column;
   align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(min(430px, 100%), 1fr));
   gap: 12px;
+}
+
+.bookings-page .booking-list::before,
+.notifications-page .notification-list::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 5px;
+  width: 1px;
+  background: linear-gradient(
+    var(--primary),
+    color-mix(in srgb, var(--cyan) 48%, var(--border)),
+    transparent
+  );
+  content: "";
+}
+
+.bookings-page .booking-row,
+.notifications-page .notification-row {
+  width: 100%;
 }
 
 .bookings-page .load-more-row,
 .bookings-page .load-more-error {
-  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .bookings-page .booking-row {
@@ -793,10 +816,19 @@ hr {
 }
 
 .notifications-page .notification-list {
-  display: grid;
+  position: relative;
+  display: flex;
+  width: min(1120px, 100%);
+  padding-left: 22px;
+  flex-direction: column;
   align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr));
   gap: 12px;
+}
+
+.notifications-page .pagination,
+.notifications-page > .form-error,
+.bookings-page > .form-error {
+  width: min(1120px, 100%);
 }
 
 .notifications-page .notification-row {
@@ -1340,7 +1372,7 @@ hr {
 .calendar-toolbar {
   position: relative;
   align-items: center;
-  min-height: 148px;
+  min-height: 132px;
   margin-bottom: 18px;
   padding: 12px 0 24px;
   border-bottom: 1px solid color-mix(in srgb, var(--primary) 34%, var(--border));
@@ -1361,7 +1393,7 @@ hr {
 .calendar-toolbar__word {
   position: absolute;
   z-index: -1;
-  top: 8px;
+  top: -22px;
   right: 0;
   overflow: hidden;
   max-width: 64%;
@@ -1377,27 +1409,37 @@ hr {
   white-space: nowrap;
 }
 
-.calendar-toolbar .toolbar-actions {
-  position: relative;
+.schedule-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 66px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--primary) 8%, var(--surface-raised)),
+      var(--surface-raised) 54%
+    );
+}
+
+.schedule-controls .toolbar-actions {
   justify-content: flex-end;
   flex-wrap: wrap;
-  padding: 12px 16px 12px 24px;
-  background:
-    linear-gradient(118deg, #061a43, #0a3f82 72%, #075cb2);
-  box-shadow: 0 16px 38px rgba(3, 35, 84, 0.2);
-  clip-path: polygon(14px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
 }
 
-.calendar-toolbar .compact-select select {
-  border-color: rgba(142, 213, 255, 0.3);
-  background: rgba(4, 24, 61, 0.62);
-  color: #f4faff;
-  color-scheme: dark;
+.schedule-controls .compact-select select {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  border-radius: 3px 12px 3px 12px;
+  background: color-mix(in srgb, var(--surface-muted) 56%, var(--surface-raised));
+  color: var(--text);
+  color-scheme: light dark;
 }
 
-.calendar-toolbar .compact-select select:focus {
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 3px rgba(85, 217, 255, 0.16);
+.schedule-controls .compact-select select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
 }
 
 .capacity-filter select {
@@ -4622,7 +4664,7 @@ hr {
 .meetings-next::before {
   position: absolute;
   z-index: 1;
-  top: 58px;
+  top: 34px;
   right: -12px;
   color: color-mix(in srgb, var(--primary) 11%, transparent);
   font-family: "Unbounded Variable", sans-serif;
@@ -5245,7 +5287,7 @@ hr {
   }
 
   .calendar-toolbar__word {
-    top: 18px;
+    top: -4px;
     right: -10px;
     max-width: 72%;
     font-size: clamp(3.2rem, 17vw, 5.5rem);
@@ -5267,8 +5309,13 @@ hr {
     font-size: clamp(1.7rem, 9vw, 2.3rem);
   }
 
-  .calendar-toolbar .toolbar-actions {
-    padding: 12px 14px 12px 18px;
+  .schedule-controls {
+    padding: 10px 12px;
+  }
+
+  .schedule-controls .toolbar-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .schedule-stage {
@@ -5300,6 +5347,16 @@ hr {
     right: -34%;
     width: 100%;
     opacity: 0.7;
+  }
+
+  .bookings-page .booking-list,
+  .notifications-page .notification-list {
+    padding-left: 14px;
+  }
+
+  .bookings-page .booking-list::before,
+  .notifications-page .notification-list::before {
+    left: 2px;
   }
 
   .meetings-next {

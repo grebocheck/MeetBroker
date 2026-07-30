@@ -226,81 +226,6 @@ export function CalendarPage({ user }: { user: User }) {
             )}
           </div>
         </div>
-        <div className="toolbar-actions">
-          <label className="compact-select capacity-filter">
-            <span className="sr-only">{t("calendar.minimumCapacity")}</span>
-            <select
-              value={minCapacity}
-              onChange={(event) => {
-                setMinCapacity(Number(event.target.value));
-                setSelectedRoomId(null);
-              }}
-            >
-              <option value={0}>{t("calendar.anyCapacity")}</option>
-              {[4, 6, 8, 10, 12].map((count) => (
-                <option value={count} key={count}>
-                  {t("calendar.fromSeats", { count })}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="compact-select">
-            <span className="sr-only">{t("room")}</span>
-            <select
-              value={roomId ?? ""}
-              onChange={(event) => setSelectedRoomId(event.target.value)}
-              disabled={rooms.isLoading || roomOptions.length === 0}
-            >
-              {roomOptions.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} · {item.capacity}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="button button--primary"
-            disabled={!room}
-            onClick={() => {
-              if (!room) return;
-              const candidates = visibleDays.flatMap((day) => {
-                const weekday = day.getDay() === 0 ? 7 : day.getDay();
-                if (!room.workingDays.includes(weekday)) return [];
-                return slots
-                  .filter(
-                    (minutes) =>
-                      minutes >= workStartMinutes && minutes < workEndMinutes,
-                  )
-                  .map((minutes) =>
-                    officeLocalToInstant(
-                      day,
-                      Math.floor(minutes / 60),
-                      minutes % 60,
-                      officeTimeZone,
-                    ),
-                  );
-              });
-              const next =
-                candidates.find((candidate) => candidate > new Date()) ??
-                officeLocalToInstant(
-                  nextWorkingDate(
-                    visibleDays[visibleDays.length - 1],
-                    room.workingDays,
-                  ),
-                  Math.floor(workStartMinutes / 60),
-                  workStartMinutes % 60,
-                  officeTimeZone,
-                );
-              setDraft({
-                startsAt: next,
-                endsAt: new Date(next.getTime() + 3_600_000),
-              });
-            }}
-          >
-            <span className="button-plus">+</span>
-            {t("book")}
-          </button>
-        </div>
       </header>
 
       <div className="schedule-stage">
@@ -309,7 +234,87 @@ export function CalendarPage({ user }: { user: User }) {
           <strong>Live room plan</strong>
         </div>
         <section className="calendar-card" ref={calendarCardRef}>
-        <div className="calendar-card__toolbar">
+          <div className="schedule-controls">
+            <div className="toolbar-actions">
+              <label className="compact-select capacity-filter">
+                <span className="sr-only">
+                  {t("calendar.minimumCapacity")}
+                </span>
+                <select
+                  value={minCapacity}
+                  onChange={(event) => {
+                    setMinCapacity(Number(event.target.value));
+                    setSelectedRoomId(null);
+                  }}
+                >
+                  <option value={0}>{t("calendar.anyCapacity")}</option>
+                  {[4, 6, 8, 10, 12].map((count) => (
+                    <option value={count} key={count}>
+                      {t("calendar.fromSeats", { count })}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="compact-select">
+                <span className="sr-only">{t("room")}</span>
+                <select
+                  value={roomId ?? ""}
+                  onChange={(event) => setSelectedRoomId(event.target.value)}
+                  disabled={rooms.isLoading || roomOptions.length === 0}
+                >
+                  {roomOptions.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} · {item.capacity}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="button button--primary"
+                disabled={!room}
+                onClick={() => {
+                  if (!room) return;
+                  const candidates = visibleDays.flatMap((day) => {
+                    const weekday = day.getDay() === 0 ? 7 : day.getDay();
+                    if (!room.workingDays.includes(weekday)) return [];
+                    return slots
+                      .filter(
+                        (minutes) =>
+                          minutes >= workStartMinutes &&
+                          minutes < workEndMinutes,
+                      )
+                      .map((minutes) =>
+                        officeLocalToInstant(
+                          day,
+                          Math.floor(minutes / 60),
+                          minutes % 60,
+                          officeTimeZone,
+                        ),
+                      );
+                  });
+                  const next =
+                    candidates.find((candidate) => candidate > new Date()) ??
+                    officeLocalToInstant(
+                      nextWorkingDate(
+                        visibleDays[visibleDays.length - 1],
+                        room.workingDays,
+                      ),
+                      Math.floor(workStartMinutes / 60),
+                      workStartMinutes % 60,
+                      officeTimeZone,
+                    );
+                  setDraft({
+                    startsAt: next,
+                    endsAt: new Date(next.getTime() + 3_600_000),
+                  });
+                }}
+              >
+                <span className="button-plus">+</span>
+                {t("book")}
+              </button>
+            </div>
+          </div>
+          <div className="calendar-card__toolbar">
           <div className="week-nav">
             <button
               className="icon-button icon-button--bordered"

@@ -77,8 +77,8 @@ export function AppShell({ user, path }: { user: User; path: string }) {
       window.matchMedia("(prefers-color-scheme: dark)").matches);
   const route = currentRoute(path);
   const items: NavItem[] = [
-    { href: "/calendar", label: t("calendar"), icon: CalendarIcon },
     { href: "/my-calendar", label: t("myMeetings"), icon: CalendarIcon },
+    { href: "/calendar", label: t("calendar"), icon: CalendarIcon },
     { href: "/bookings", label: t("myBookings"), icon: ListIcon },
     { href: "/events", label: t("openEvents"), icon: UsersIcon },
     {
