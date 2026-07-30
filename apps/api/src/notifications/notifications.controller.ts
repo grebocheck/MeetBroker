@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req
 } from "@nestjs/common";
 import { Approved, Public } from "../auth/auth.decorators";
@@ -23,10 +24,23 @@ export class NotificationsController {
 
   @Approved()
   @Get()
-  async list(@Req() request: AuthenticatedRequest) {
-    return {
-      notifications: await this.notifications.list(request.user.id)
-    };
+  async list(
+    @Req() request: AuthenticatedRequest,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string
+  ) {
+    return this.notifications.list(
+      request.user.id,
+      Number(page),
+      Number(limit)
+    );
+  }
+
+  @Approved()
+  @Patch("read-all")
+  @HttpCode(204)
+  async markAllRead(@Req() request: AuthenticatedRequest): Promise<void> {
+    await this.notifications.markAllRead(request.user.id);
   }
 
   @Approved()

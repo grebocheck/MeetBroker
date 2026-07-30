@@ -181,7 +181,14 @@ export class AdminController {
   async auditLogs(
     @Query("category") category?: string,
     @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return { logs: await this.admin.auditLogs(category, search) };
+    return this.admin.auditLogs(
+      category,
+      search,
+      Number(page),
+      Number(limit),
+    );
   }
 }

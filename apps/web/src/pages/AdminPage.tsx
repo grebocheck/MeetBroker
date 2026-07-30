@@ -7,6 +7,7 @@ import { BookingDialog } from "../components/BookingDialog";
 import { RoomVisual } from "../components/RoomVisual";
 import { Button } from "../components/ui/Button";
 import { ModalLayer } from "../components/ui/ModalLayer";
+import { Pagination } from "../components/ui/Pagination";
 
 interface AdminUser {
   id: string;
@@ -1495,12 +1496,24 @@ function AuditAdmin() {
   const [category, setCategory] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const query = new URLSearchParams({ category });
   if (search) query.set("search", search);
+  query.set("page", String(page));
+  query.set("limit", "25");
   const logs = useQuery({
-    queryKey: ["audit", category, search],
+    queryKey: ["audit", category, search, page],
     queryFn: () =>
-      api<{ logs: AuditLog[] }>(`/api/admin/audit?${query.toString()}`),
+      api<{
+        logs: AuditLog[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      }>(`/api/admin/audit?${query.toString()}`),
+    placeholderData: (previousData) => previousData,
   });
   return (
     <section className="admin-card">
@@ -1520,7 +1533,10 @@ function AuditAdmin() {
             <button
               key={value}
               className={category === value ? "is-active" : ""}
-              onClick={() => setCategory(value)}
+              onClick={() => {
+                setCategory(value);
+                setPage(1);
+              }}
             >
               {label}
             </button>
@@ -1532,6 +1548,7 @@ function AuditAdmin() {
           onSubmit={(event) => {
             event.preventDefault();
             setSearch(searchInput.trim());
+            setPage(1);
           }}
         >
           <label className="field">
@@ -1560,49 +1577,62 @@ function AuditAdmin() {
       ) : logs.data?.logs.length === 0 ? (
         <div className="empty-inline">Подій за цими умовами не знайдено.</div>
       ) : (
-        <div className="activity-list">
-          {logs.data?.logs.map((log) => (
-            <article className="activity-row" key={log.id}>
-              <time dateTime={log.createdAt}>
-                {new Intl.DateTimeFormat("uk-UA", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                }).format(new Date(log.createdAt))}
-              </time>
-              <div className="activity-row__main">
-                <strong>{humanizeAction(log.action)}</strong>
-                <span>
-                  {log.targetName ?? humanizeTarget(log.targetType)}
-                  {" · "}
-                  {log.actorName ?? "Система"}
-                  {log.actorEmail ? ` (${log.actorEmail})` : ""}
+        <>
+          <div className="activity-list">
+            {logs.data?.logs.map((log) => (
+              <article className="activity-row" key={log.id}>
+                <time dateTime={log.createdAt}>
+                  {new Intl.DateTimeFormat("uk-UA", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(new Date(log.createdAt))}
+                </time>
+                <div className="activity-row__main">
+                  <strong>{humanizeAction(log.action)}</strong>
+                  <span>
+                    {log.targetName ?? humanizeTarget(log.targetType)}
+                    {" · "}
+                    {log.actorName ?? "Система"}
+                    {log.actorEmail ? ` (${log.actorEmail})` : ""}
+                  </span>
+                </div>
+                <span
+                  className={`status-badge ${
+                    log.action.includes("ADMIN")
+                      ? "status-badge--warning"
+                      : ""
+                  }`}
+                >
+                  {log.action.includes("ADMIN")
+                    ? "Адміністратор"
+                    : humanizeTarget(log.targetType)}
                 </span>
-              </div>
-              <span
-                className={`status-badge ${
-                  log.action.includes("ADMIN") ? "status-badge--warning" : ""
-                }`}
-              >
-                {log.action.includes("ADMIN")
-                  ? "Адміністратор"
-                  : humanizeTarget(log.targetType)}
-              </span>
-              {Object.keys(log.details ?? {}).length > 0 && (
-                <details className="activity-details">
-                  <summary>Деталі</summary>
-                  <dl>
-                    {Object.entries(log.details).map(([key, value]) => (
-                      <div key={key}>
-                        <dt>{humanizeDetailKey(key)}</dt>
-                        <dd>{formatActivityValue(value)}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </details>
-              )}
-            </article>
-          ))}
-        </div>
+                {Object.keys(log.details ?? {}).length > 0 && (
+                  <details className="activity-details">
+                    <summary>Деталі</summary>
+                    <dl>
+                      {Object.entries(log.details).map(([key, value]) => (
+                        <div key={key}>
+                          <dt>{humanizeDetailKey(key)}</dt>
+                          <dd>{formatActivityValue(value)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </details>
+                )}
+              </article>
+            ))}
+          </div>
+          {logs.data && (
+            <Pagination
+              page={logs.data.pagination.page}
+              totalPages={logs.data.pagination.totalPages}
+              total={logs.data.pagination.total}
+              itemLabel="подій"
+              onPageChange={setPage}
+            />
+          )}
+        </>
       )}
     </section>
   );

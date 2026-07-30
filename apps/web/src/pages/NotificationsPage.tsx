@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button } from "../components/ui/Button";
+import { Pagination } from "../components/ui/Pagination";
 import { api } from "../lib/api";
 import { navigate } from "../lib/router";
 
@@ -12,12 +15,25 @@ interface NotificationItem {
   createdAt: string;
 }
 
+interface NotificationsResponse {
+  notifications: NotificationItem[];
+  unreadCount: number;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export function NotificationsPage() {
+  const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
   const notifications = useQuery({
-    queryKey: ["notifications"],
+    queryKey: ["notifications", page],
     queryFn: () =>
-      api<{ notifications: NotificationItem[] }>("/api/notifications")
+      api<NotificationsResponse>(`/api/notifications?page=${page}&limit=12`),
+    placeholderData: (previousData) => previousData
   });
   const read = useMutation({
     mutationFn: (id: string) =>
@@ -25,6 +41,16 @@ export function NotificationsPage() {
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["notifications"] })
   });
+  const readAll = useMutation({
+    mutationFn: () =>
+      api<void>("/api/notifications/read-all", { method: "PATCH" }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["notifications"] })
+  });
+
+  const markRead = (item: NotificationItem) => {
+    if (!item.read && !read.isPending) read.mutate(item.id);
+  };
 
   return (
     <div className="page narrow-page">
@@ -34,12 +60,25 @@ export function NotificationsPage() {
           <h1>Сповіщення</h1>
           <p>Запрошення, зміни й важливі нагадування в одному місці.</p>
         </div>
-        <button
-          className="button button--secondary"
-          onClick={() => navigate("/profile?section=notifications")}
-        >
-          Налаштувати канали
-        </button>
+        <div className="page-header__actions">
+          <Button
+            variant="ghost"
+            size="small"
+            disabled={
+              !notifications.data?.unreadCount || readAll.isPending
+            }
+            onClick={() => readAll.mutate()}
+          >
+            {readAll.isPending ? "Позначаємо…" : "Прочитати всі"}
+          </Button>
+          <Button
+            variant="secondary"
+            size="small"
+            onClick={() => navigate("/profile?section=notifications")}
+          >
+            Налаштувати канали
+          </Button>
+        </div>
       </header>
       {notifications.isLoading ? (
         <div className="list-skeleton">
@@ -53,30 +92,61 @@ export function NotificationsPage() {
           <p>Нові запрошення й зміни з’являться тут.</p>
         </div>
       ) : (
-        <div className="notification-list">
-          {notifications.data?.notifications.map((item) => (
-            <button
-              key={item.id}
-              className={`notification-row${item.read ? "" : " is-unread"}`}
-              onClick={() => {
-                if (!item.read) read.mutate(item.id);
-                if (item.bookingId) navigate("/bookings");
-              }}
-            >
-              <span className="notification-row__dot" />
-              <span className="notification-row__copy">
-                <strong>{item.title}</strong>
-                <span>{item.body}</span>
-                <small>
-                  {new Intl.DateTimeFormat("uk-UA", {
-                    dateStyle: "medium",
-                    timeStyle: "short"
-                  }).format(new Date(item.createdAt))}
-                </small>
-              </span>
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="notification-list">
+            {notifications.data?.notifications.map((item) => (
+              <article
+                key={item.id}
+                className={`notification-row${item.read ? "" : " is-unread"}`}
+              >
+                <button
+                  type="button"
+                  className="notification-row__read"
+                  aria-label={
+                    item.read
+                      ? `${item.title}. Прочитане сповіщення`
+                      : `${item.title}. Позначити як прочитане`
+                  }
+                  onClick={() => markRead(item)}
+                >
+                  <span className="notification-row__dot" />
+                  <span className="notification-row__copy">
+                    <strong>{item.title}</strong>
+                    <span>{item.body}</span>
+                    <small>
+                      {new Intl.DateTimeFormat("uk-UA", {
+                        dateStyle: "medium",
+                        timeStyle: "short"
+                      }).format(new Date(item.createdAt))}
+                    </small>
+                  </span>
+                </button>
+                {item.bookingId && (
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    className="notification-row__action"
+                    onClick={() => {
+                      markRead(item);
+                      navigate("/bookings");
+                    }}
+                  >
+                    До бронювання
+                  </Button>
+                )}
+              </article>
+            ))}
+          </div>
+          {notifications.data && (
+            <Pagination
+              page={notifications.data.pagination.page}
+              totalPages={notifications.data.pagination.totalPages}
+              total={notifications.data.pagination.total}
+              itemLabel="сповіщень"
+              onPageChange={setPage}
+            />
+          )}
+        </>
       )}
     </div>
   );

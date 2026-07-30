@@ -890,12 +890,23 @@ export class AdminService {
     await this.audit(actorId, "ROOM_BLOCK_CANCELLED", "ROOM_BLOCK", id);
   }
 
-  async auditLogs(category?: string, search?: string) {
+  async auditLogs(
+    category?: string,
+    search?: string,
+    page = 1,
+    limit = 25,
+  ) {
     const normalizedCategory = ["booking", "access", "room"].includes(
       category ?? "",
     )
       ? category
       : "";
+    const normalizedPage = Number.isFinite(page)
+      ? Math.max(Math.trunc(page), 1)
+      : 1;
+    const normalizedLimit = Number.isFinite(limit)
+      ? Math.min(Math.max(Math.trunc(limit), 1), 100)
+      : 25;
     const result = await this.database.query<{
       id: string;
       action: string;
@@ -906,11 +917,13 @@ export class AdminService {
       created_at: Date;
       actor_name: string | null;
       actor_email: string | null;
+      total: string;
     }>(
       `
         select
           a.id, a.action, a.target_type, a.target_id, a.details,
           a.created_at, actor.name as actor_name, actor.email as actor_email,
+          count(*) over()::text as total,
           case
             when a.target_type = 'BOOKING' then target_booking.title
             when a.target_type = 'ROOM' then target_room.name
@@ -954,21 +967,36 @@ export class AdminService {
             or target_user.name ilike '%' || $2 || '%'
           )
         order by a.created_at desc
-        limit 200
+        limit $3
+        offset $4
       `,
-      [normalizedCategory, search?.trim() ?? ""],
+      [
+        normalizedCategory,
+        search?.trim() ?? "",
+        normalizedLimit,
+        (normalizedPage - 1) * normalizedLimit,
+      ],
     );
-    return result.rows.map((row) => ({
-      id: row.id,
-      action: row.action,
-      targetType: row.target_type,
-      targetId: row.target_id,
-      targetName: row.target_name,
-      details: row.details,
-      createdAt: row.created_at,
-      actorName: row.actor_name,
-      actorEmail: row.actor_email,
-    }));
+    const total = Number(result.rows[0]?.total ?? 0);
+    return {
+      logs: result.rows.map((row) => ({
+        id: row.id,
+        action: row.action,
+        targetType: row.target_type,
+        targetId: row.target_id,
+        targetName: row.target_name,
+        details: row.details,
+        createdAt: row.created_at,
+        actorName: row.actor_name,
+        actorEmail: row.actor_email,
+      })),
+      pagination: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        total,
+        totalPages: Math.max(Math.ceil(total / normalizedLimit), 1),
+      },
+    };
   }
 
   private assertWorkHours(start: string, end: string): void {

@@ -92,22 +92,48 @@ export class NotificationsService {
     );
   }
 
-  async list(userId: string, limit = 30) {
-    const rows = await this.database.orm
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy(desc(notifications.createdAt))
-      .limit(Math.min(Math.max(limit, 1), 100));
-    return rows.map((row) => ({
-      id: row.id,
-      type: row.type,
-      title: row.title,
-      body: row.body,
-      bookingId: row.bookingId,
-      read: Boolean(row.readAt),
-      createdAt: row.createdAt
-    }));
+  async list(userId: string, page = 1, limit = 12) {
+    const normalizedPage = Number.isFinite(page)
+      ? Math.max(Math.trunc(page), 1)
+      : 1;
+    const normalizedLimit = Number.isFinite(limit)
+      ? Math.min(Math.max(Math.trunc(limit), 1), 50)
+      : 12;
+    const [rows, totals] = await Promise.all([
+      this.database.orm
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, userId))
+        .orderBy(desc(notifications.createdAt))
+        .limit(normalizedLimit)
+        .offset((normalizedPage - 1) * normalizedLimit),
+      this.database.orm
+        .select({
+          total: sql<number>`count(*)::int`,
+          unread: sql<number>`count(*) filter (where ${notifications.readAt} is null)::int`
+        })
+        .from(notifications)
+        .where(eq(notifications.userId, userId))
+    ]);
+    const total = Number(totals[0]?.total ?? 0);
+    return {
+      notifications: rows.map((row) => ({
+        id: row.id,
+        type: row.type,
+        title: row.title,
+        body: row.body,
+        bookingId: row.bookingId,
+        read: Boolean(row.readAt),
+        createdAt: row.createdAt
+      })),
+      unreadCount: Number(totals[0]?.unread ?? 0),
+      pagination: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        total,
+        totalPages: Math.max(Math.ceil(total / normalizedLimit), 1)
+      }
+    };
   }
 
   async markRead(userId: string, notificationId: string): Promise<void> {
@@ -120,6 +146,13 @@ export class NotificationsService {
           eq(notifications.userId, userId)
         )
       );
+  }
+
+  async markAllRead(userId: string): Promise<void> {
+    await this.database.orm
+      .update(notifications)
+      .set({ readAt: sql`coalesce(${notifications.readAt}, now())` })
+      .where(eq(notifications.userId, userId));
   }
 
   async getPreferences(userId: string) {

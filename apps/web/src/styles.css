@@ -97,9 +97,16 @@ body,
 }
 
 html {
+  scrollbar-gutter: stable;
   scrollbar-color: color-mix(in srgb, var(--primary) 62%, var(--surface-strong))
     var(--surface-muted);
   scrollbar-width: thin;
+}
+
+@supports not (scrollbar-gutter: stable) {
+  html {
+    overflow-y: scroll;
+  }
 }
 
 *::-webkit-scrollbar {
@@ -600,6 +607,14 @@ hr {
 .page-header p {
   max-width: 630px;
   margin-bottom: 0;
+}
+
+.page-header__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .eyebrow {
@@ -2175,18 +2190,48 @@ hr {
 
 .notification-row {
   display: flex;
+  align-items: center;
   gap: 13px;
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: 3px 16px 3px 16px;
   background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
   box-shadow: var(--shadow-sm);
+  cursor: default;
   text-align: left;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
 }
 
 .notification-row.is-unread {
   border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
   background: color-mix(in srgb, var(--booking-own) 45%, var(--surface-raised));
+}
+
+.notification-row__read {
+  display: flex;
+  align-items: flex-start;
+  align-self: stretch;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  flex: 1;
+  gap: 13px;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+  font: inherit;
+  text-align: left;
+}
+
+.notification-row.is-unread .notification-row__read {
+  cursor: pointer;
+}
+
+.notification-row__read:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
 }
 
 .notification-row__dot {
@@ -2204,6 +2249,8 @@ hr {
 
 .notification-row__copy {
   display: flex;
+  min-width: 0;
+  flex: 1;
   flex-direction: column;
   gap: 5px;
 }
@@ -2218,6 +2265,36 @@ hr {
 .notification-row__copy small {
   margin-top: 4px;
   font-size: 0.65rem;
+}
+
+.notification-row__action {
+  flex: 0 0 auto;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 22px;
+  gap: 14px;
+}
+
+.pagination__status {
+  display: flex;
+  min-width: 94px;
+  flex-direction: column;
+  text-align: center;
+}
+
+.pagination__status strong {
+  font-family: "Unbounded Variable", sans-serif;
+  font-size: 0.72rem;
+}
+
+.pagination__status small {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 0.62rem;
 }
 
 .settings-layout {
@@ -3691,6 +3768,10 @@ hr {
     flex-direction: column;
   }
 
+  .page-header__actions {
+    justify-content: flex-start;
+  }
+
   .toolbar-actions {
     justify-content: space-between;
   }
@@ -3882,6 +3963,23 @@ hr {
 
   .activity-row {
     grid-template-columns: 1fr auto;
+  }
+
+  .notification-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .notification-row__copy {
+    min-width: 0;
+  }
+
+  .notification-row__read {
+    flex-basis: 100%;
+  }
+
+  .notification-row__action {
+    margin-left: 21px;
   }
 
   .activity-row > time,
