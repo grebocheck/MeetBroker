@@ -7,6 +7,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
   Max,
   MaxLength,
@@ -15,8 +16,18 @@ import {
 } from "class-validator";
 
 export class CreateBookingDto {
+  @IsOptional()
   @IsUUID()
-  roomId!: string;
+  roomId?: string;
+
+  @IsOptional()
+  @IsIn(["ROOM", "ONLINE"])
+  meetingType?: "ROOM" | "ONLINE";
+
+  @IsOptional()
+  @IsUrl({ protocols: ["https"], require_protocol: true })
+  @MaxLength(2048)
+  meetingUrl?: string;
 
   @IsString()
   @MinLength(1)
@@ -87,6 +98,11 @@ export class UpdateBookingDto {
   @ArrayMaxSize(50)
   @IsUUID("4", { each: true })
   participantIds!: string[];
+
+  @IsOptional()
+  @IsUrl({ protocols: ["https"], require_protocol: true })
+  @MaxLength(2048)
+  meetingUrl?: string;
 
   @IsOptional()
   @IsString()

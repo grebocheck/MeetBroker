@@ -58,6 +58,15 @@ export class BookingsController {
     );
   }
 
+  @Get("my-calendar")
+  myCalendar(
+    @Req() request: AuthenticatedRequest,
+    @Query("from") from: string,
+    @Query("to") to: string
+  ) {
+    return this.bookings.myCalendar(request.user.id, from, to);
+  }
+
   @Patch(":id")
   @HttpCode(204)
   async update(

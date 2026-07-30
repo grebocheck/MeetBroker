@@ -39,6 +39,43 @@ export function validateBookingRules(
     workEnd,
     workingDays,
   } = input;
+  const commonError = validateMeetingRules({
+    startsAt,
+    endsAt,
+    now,
+    officeTimeZone
+  });
+  if (commonError) return commonError;
+
+  const localStart = toZonedTime(startsAt, officeTimeZone);
+  const localEnd = toZonedTime(endsAt, officeTimeZone);
+  const isoWeekday = localStart.getDay() === 0 ? 7 : localStart.getDay();
+  if (!workingDays.includes(isoWeekday)) {
+    return "OUTSIDE_WORKING_DAYS";
+  }
+
+  const sameOfficeDay =
+    localStart.getFullYear() === localEnd.getFullYear() &&
+    localStart.getMonth() === localEnd.getMonth() &&
+    localStart.getDate() === localEnd.getDate();
+  if (
+    !sameOfficeDay ||
+    minutesOfDay(localStart) < parseClock(workStart) ||
+    minutesOfDay(localEnd) > parseClock(workEnd)
+  ) {
+    return "OUTSIDE_WORKING_HOURS";
+  }
+
+  return null;
+}
+
+export function validateMeetingRules(input: {
+  startsAt: Date;
+  endsAt: Date;
+  now: Date;
+  officeTimeZone: string;
+}): BookingRuleError | null {
+  const { startsAt, endsAt, now, officeTimeZone } = input;
   if (
     Number.isNaN(startsAt.getTime()) ||
     Number.isNaN(endsAt.getTime()) ||
@@ -64,23 +101,6 @@ export function validateBookingRules(
   }
   if (startsAt <= now) {
     return "PAST";
-  }
-
-  const isoWeekday = localStart.getDay() === 0 ? 7 : localStart.getDay();
-  if (!workingDays.includes(isoWeekday)) {
-    return "OUTSIDE_WORKING_DAYS";
-  }
-
-  const sameOfficeDay =
-    localStart.getFullYear() === localEnd.getFullYear() &&
-    localStart.getMonth() === localEnd.getMonth() &&
-    localStart.getDate() === localEnd.getDate();
-  if (
-    !sameOfficeDay ||
-    minutesOfDay(localStart) < parseClock(workStart) ||
-    minutesOfDay(localEnd) > parseClock(workEnd)
-  ) {
-    return "OUTSIDE_WORKING_HOURS";
   }
 
   return null;

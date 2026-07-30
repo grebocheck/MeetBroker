@@ -13,7 +13,11 @@ import type {
   RespondToInvitationDto,
   UpdateBookingDto,
 } from "./bookings.dto";
-import { BookingRuleError, validateBookingRules } from "./booking-rules";
+import {
+  BookingRuleError,
+  validateBookingRules,
+  validateMeetingRules,
+} from "./booking-rules";
 import {
   buildRecurrenceOccurrences,
   RecurrenceError,
@@ -261,6 +265,25 @@ export class BookingsService {
     }
     const startsAt = new Date(dto.startsAt);
     const endsAt = new Date(dto.endsAt);
+    const meetingType = dto.meetingType ?? "ROOM";
+    const meetingUrl =
+      meetingType === "ONLINE"
+        ? this.normalizeMeetingUrl(dto.meetingUrl)
+        : null;
+    if (meetingType === "ROOM" && !dto.roomId) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "ROOM_REQUIRED",
+        "A room is required for an in-person meeting",
+      );
+    }
+    if (meetingType === "ONLINE" && !meetingUrl) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "MEETING_URL_REQUIRED",
+        "An HTTPS meeting link is required for an online meeting",
+      );
+    }
     const participantIds = [
       ...new Set((dto.participantIds ?? []).filter((id) => id !== user.id)),
     ];
@@ -319,29 +342,33 @@ export class BookingsService {
     }
 
     return this.database.transaction(async (client) => {
-      await client.query("select pg_advisory_xact_lock(hashtext($1))", [
-        dto.roomId,
-      ]);
-      const roomResult = await client.query<RoomRow>(
-        `
-          select id, name, floor, capacity, work_start::text, work_end::text,
-            working_days, active
-          from rooms where id = $1
-        `,
-        [dto.roomId],
-      );
-      const room = roomResult.rows[0];
-      if (!room || !room.active) {
-        throw apiError(
-          HttpStatus.NOT_FOUND,
-          "ROOM_NOT_FOUND",
-          "Room was not found",
+      let room: RoomRow | null = null;
+      if (meetingType === "ROOM") {
+        await client.query("select pg_advisory_xact_lock(hashtext($1))", [
+          dto.roomId,
+        ]);
+        const roomResult = await client.query<RoomRow>(
+          `
+            select id, name, floor, capacity, work_start::text, work_end::text,
+              working_days, image_path, image_url, active
+            from rooms where id = $1
+          `,
+          [dto.roomId],
         );
+        room = roomResult.rows[0] ?? null;
+        if (!room || !room.active) {
+          throw apiError(
+            HttpStatus.NOT_FOUND,
+            "ROOM_NOT_FOUND",
+            "Room was not found",
+          );
+        }
       }
 
-      await this.assertCanCreate(client, user.id, room.id);
-      const overrideReason = dto.overrideReason?.trim();
-      if (participantIds.length + 1 > room.capacity) {
+      await this.assertCanCreate(client, user.id, room?.id);
+      const overrideReason =
+        meetingType === "ROOM" ? dto.overrideReason?.trim() : undefined;
+      if (room && participantIds.length + 1 > room.capacity) {
         throw apiError(
           HttpStatus.BAD_REQUEST,
           "ROOM_CAPACITY_EXCEEDED",
@@ -369,14 +396,15 @@ export class BookingsService {
           `
             insert into booking_series (
               id, organizer_id, room_id, frequency, recurrence_interval,
-              weekdays, starts_at, ends_at, recurrence_until, timezone
+              weekdays, starts_at, ends_at, recurrence_until, timezone,
+              meeting_type, meeting_url
             )
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           `,
           [
             seriesId,
             user.id,
-            room.id,
+            room?.id ?? null,
             recurrence,
             recurrenceInterval,
             weekdays,
@@ -384,21 +412,30 @@ export class BookingsService {
             endsAt,
             dto.recurrenceUntil!.slice(0, 10),
             recurrenceTimeZone,
+            meetingType,
+            meetingUrl,
           ],
         );
       }
 
       const bookingIds: string[] = [];
       for (const [occurrenceIndex, occurrence] of occurrences.entries()) {
-        const ruleError = validateBookingRules({
-          startsAt: occurrence.startsAt,
-          endsAt: occurrence.endsAt,
-          now: new Date(),
-          officeTimeZone: this.officeTimeZone,
-          workStart: room.work_start,
-          workEnd: room.work_end,
-          workingDays: room.working_days,
-        });
+        const ruleError = room
+          ? validateBookingRules({
+              startsAt: occurrence.startsAt,
+              endsAt: occurrence.endsAt,
+              now: new Date(),
+              officeTimeZone: this.officeTimeZone,
+              workStart: room.work_start,
+              workEnd: room.work_end,
+              workingDays: room.working_days,
+            })
+          : validateMeetingRules({
+              startsAt: occurrence.startsAt,
+              endsAt: occurrence.endsAt,
+              now: new Date(),
+              officeTimeZone: this.officeTimeZone,
+            });
         if (
           ruleError &&
           !(
@@ -411,25 +448,27 @@ export class BookingsService {
           throw this.ruleException(ruleError);
         }
 
-        const block = await client.query(
-          `
-            select id
-            from room_blocks
-            where room_id = $1
-              and cancelled_at is null
-              and starts_at < $3
-              and ends_at > $2
-            limit 1
-          `,
-          [room.id, occurrence.startsAt, occurrence.endsAt],
-        );
-        if (block.rowCount && !(user.role === "ADMIN" && overrideReason)) {
-          throw apiError(
-            HttpStatus.CONFLICT,
-            "ROOM_UNAVAILABLE",
-            "Room is unavailable during one of the requested events",
-            { startsAt: occurrence.startsAt },
+        if (room) {
+          const block = await client.query(
+            `
+              select id
+              from room_blocks
+              where room_id = $1
+                and cancelled_at is null
+                and starts_at < $3
+                and ends_at > $2
+              limit 1
+            `,
+            [room.id, occurrence.startsAt, occurrence.endsAt],
           );
+          if (block.rowCount && !(user.role === "ADMIN" && overrideReason)) {
+            throw apiError(
+              HttpStatus.CONFLICT,
+              "ROOM_UNAVAILABLE",
+              "Room is unavailable during one of the requested events",
+              { startsAt: occurrence.startsAt },
+            );
+          }
         }
 
         const bookingId = randomUUID();
@@ -438,13 +477,16 @@ export class BookingsService {
             `
               insert into bookings (
                 id, room_id, organizer_id, title, starts_at, ends_at,
-                participation_mode, override_reason, series_id, occurrence_index
+                participation_mode, override_reason, series_id,
+                occurrence_index, meeting_type, meeting_url
               )
-              values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+              values (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+              )
             `,
             [
               bookingId,
-              room.id,
+              room?.id ?? null,
               user.id,
               title,
               occurrence.startsAt,
@@ -453,6 +495,8 @@ export class BookingsService {
               overrideReason || null,
               seriesId,
               seriesId ? occurrenceIndex : null,
+              meetingType,
+              meetingUrl,
             ],
           );
         } catch (error) {
@@ -483,7 +527,7 @@ export class BookingsService {
           const invitation = this.invitationCopy(
             user.name,
             title,
-            room.name,
+            room?.name ?? null,
             occurrence.startsAt,
             participant,
           );
@@ -522,7 +566,9 @@ export class BookingsService {
           bookingId,
           {
             title,
-            roomName: room.name,
+            roomName: room?.name ?? null,
+            meetingType,
+            meetingUrl,
             startsAt: occurrence.startsAt,
             endsAt: occurrence.endsAt,
             participationMode: dto.participationMode ?? "INVITE_ONLY",
@@ -565,15 +611,17 @@ export class BookingsService {
         starts_at: Date;
         ends_at: Date;
         participation_mode: "INVITE_ONLY" | "OPEN";
+        meeting_type: "ROOM" | "ONLINE";
+        meeting_url: string | null;
         organizer_id: string;
         cancelled_at: Date | null;
-        room_id: string;
-        room_name: string;
-        capacity: number;
-        work_start: string;
-        work_end: string;
-        working_days: number[];
-        active: boolean;
+        room_id: string | null;
+        room_name: string | null;
+        capacity: number | null;
+        work_start: string | null;
+        work_end: string | null;
+        working_days: number[] | null;
+        active: boolean | null;
       }>(
         `
           select
@@ -582,6 +630,8 @@ export class BookingsService {
             b.starts_at,
             b.ends_at,
             b.participation_mode,
+            b.meeting_type,
+            b.meeting_url,
             b.organizer_id,
             b.cancelled_at,
             r.id as room_id,
@@ -592,14 +642,18 @@ export class BookingsService {
             r.working_days,
             r.active
           from bookings b
-          join rooms r on r.id = b.room_id
+          left join rooms r on r.id = b.room_id
           where b.id = $1
           for update of b
         `,
         [bookingId],
       );
       const booking = bookingResult.rows[0];
-      if (!booking || booking.cancelled_at || !booking.active) {
+      if (
+        !booking ||
+        booking.cancelled_at ||
+        (booking.meeting_type === "ROOM" && !booking.active)
+      ) {
         throw apiError(
           HttpStatus.NOT_FOUND,
           "BOOKING_NOT_FOUND",
@@ -630,18 +684,35 @@ export class BookingsService {
         (id) => id !== booking.organizer_id,
       );
 
-      await client.query("select pg_advisory_xact_lock(hashtext($1))", [
-        booking.room_id,
-      ]);
-      const ruleError = validateBookingRules({
-        startsAt,
-        endsAt,
-        now: new Date(),
-        officeTimeZone: this.officeTimeZone,
-        workStart: booking.work_start,
-        workEnd: booking.work_end,
-        workingDays: booking.working_days,
-      });
+      const meetingUrl =
+        booking.meeting_type === "ONLINE"
+          ? this.normalizeMeetingUrl(dto.meetingUrl ?? booking.meeting_url)
+          : null;
+      if (booking.meeting_type === "ROOM" && booking.room_id) {
+        await client.query("select pg_advisory_xact_lock(hashtext($1))", [
+          booking.room_id,
+        ]);
+      }
+      const ruleError =
+        booking.meeting_type === "ROOM" &&
+        booking.work_start &&
+        booking.work_end &&
+        booking.working_days
+          ? validateBookingRules({
+              startsAt,
+              endsAt,
+              now: new Date(),
+              officeTimeZone: this.officeTimeZone,
+              workStart: booking.work_start,
+              workEnd: booking.work_end,
+              workingDays: booking.working_days,
+            })
+          : validateMeetingRules({
+              startsAt,
+              endsAt,
+              now: new Date(),
+              officeTimeZone: this.officeTimeZone,
+            });
       if (
         ruleError &&
         !(
@@ -654,26 +725,32 @@ export class BookingsService {
         throw this.ruleException(ruleError);
       }
 
-      const block = await client.query(
-        `
-          select id
-          from room_blocks
-          where room_id = $1
-            and cancelled_at is null
-            and starts_at < $3
-            and ends_at > $2
-          limit 1
-        `,
-        [booking.room_id, startsAt, endsAt],
-      );
-      if (block.rowCount && !(user.role === "ADMIN" && adminReason)) {
-        throw apiError(
-          HttpStatus.CONFLICT,
-          "ROOM_UNAVAILABLE",
-          "Room is unavailable during this time",
+      if (booking.meeting_type === "ROOM" && booking.room_id) {
+        const block = await client.query(
+          `
+            select id
+            from room_blocks
+            where room_id = $1
+              and cancelled_at is null
+              and starts_at < $3
+              and ends_at > $2
+            limit 1
+          `,
+          [booking.room_id, startsAt, endsAt],
         );
+        if (block.rowCount && !(user.role === "ADMIN" && adminReason)) {
+          throw apiError(
+            HttpStatus.CONFLICT,
+            "ROOM_UNAVAILABLE",
+            "Room is unavailable during this time",
+          );
+        }
       }
-      if (participantIds.length + 1 > booking.capacity) {
+      if (
+        booking.meeting_type === "ROOM" &&
+        booking.capacity !== null &&
+        participantIds.length + 1 > booking.capacity
+      ) {
         throw apiError(
           HttpStatus.BAD_REQUEST,
           "ROOM_CAPACITY_EXCEEDED",
@@ -736,7 +813,8 @@ export class BookingsService {
         booking.title !== title ||
         booking.starts_at.getTime() !== startsAt.getTime() ||
         booking.ends_at.getTime() !== endsAt.getTime() ||
-        booking.participation_mode !== dto.participationMode;
+        booking.participation_mode !== dto.participationMode ||
+        booking.meeting_url !== meetingUrl;
       if (!detailsChanged && !added.length && !removed.length) return;
 
       try {
@@ -748,10 +826,18 @@ export class BookingsService {
               starts_at = $3,
               ends_at = $4,
               participation_mode = $5,
+              meeting_url = $6,
               updated_at = now()
             where id = $1
           `,
-          [bookingId, title, startsAt, endsAt, dto.participationMode],
+          [
+            bookingId,
+            title,
+            startsAt,
+            endsAt,
+            dto.participationMode,
+            meetingUrl,
+          ],
         );
       } catch (error) {
         if (
@@ -788,10 +874,11 @@ export class BookingsService {
       }
 
       const editId = randomUUID();
+      const locationName = booking.room_name;
       for (const participant of retained) {
         const copy = this.changeCopy(
           title,
-          booking.room_name,
+          locationName,
           startsAt,
           participant,
         );
@@ -829,7 +916,7 @@ export class BookingsService {
         const copy = this.invitationCopy(
           user.name,
           title,
-          booking.room_name,
+          locationName,
           startsAt,
           participant,
         );
@@ -842,7 +929,7 @@ export class BookingsService {
             ? "Адміністратор запросив вас на зустріч"
             : copy.title,
           body: isAdministrativeUpdate
-            ? `Адміністратор ${user.name} запросив вас на зустріч «${title}» у кімнаті ${booking.room_name}. Причина зміни: ${adminReason}.`
+            ? `Адміністратор ${user.name} запросив вас на зустріч «${title}» (${locationName ?? "онлайн"}). Причина зміни: ${adminReason}.`
             : copy.body,
           bookingId,
         });
@@ -867,6 +954,8 @@ export class BookingsService {
         {
           title,
           roomName: booking.room_name,
+          meetingType: booking.meeting_type,
+          meetingUrl,
           startsAt,
           endsAt,
           addedParticipants: added.length,
@@ -887,8 +976,10 @@ export class BookingsService {
       title: string;
       starts_at: Date;
       ends_at: Date;
-      room_id: string;
-      room_name: string;
+      meeting_type: "ROOM" | "ONLINE";
+      meeting_url: string | null;
+      room_id: string | null;
+      room_name: string | null;
       organizer_id: string;
       participation_mode: string;
       series_id: string | null;
@@ -900,6 +991,8 @@ export class BookingsService {
           b.title,
           b.starts_at,
           b.ends_at,
+          b.meeting_type,
+          b.meeting_url,
           r.id as room_id,
           r.name as room_name,
           b.organizer_id,
@@ -907,7 +1000,7 @@ export class BookingsService {
           b.series_id,
           bp.status as participant_status
         from bookings b
-        join rooms r on r.id = b.room_id
+        left join rooms r on r.id = b.room_id
         left join booking_participants bp
           on bp.booking_id = b.id and bp.user_id = $1
         where b.cancelled_at is null
@@ -924,7 +1017,9 @@ export class BookingsService {
       title: row.title,
       startsAt: row.starts_at,
       endsAt: row.ends_at,
-      room: { id: row.room_id, name: row.room_name },
+      meetingType: row.meeting_type,
+      meetingUrl: row.meeting_url,
+      room: row.room_id ? { id: row.room_id, name: row.room_name } : null,
       organizerId: row.organizer_id,
       participationMode: row.participation_mode,
       seriesId: row.series_id,
@@ -937,14 +1032,134 @@ export class BookingsService {
     };
   }
 
+  async myCalendar(userId: string, fromRaw: string, toRaw: string) {
+    const from = new Date(fromRaw);
+    const to = new Date(toRaw);
+    if (
+      Number.isNaN(from.getTime()) ||
+      Number.isNaN(to.getTime()) ||
+      from >= to ||
+      to.getTime() - from.getTime() > 32 * 24 * 60 * 60 * 1000
+    ) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "INVALID_RANGE",
+        "Calendar range is invalid",
+      );
+    }
+    await this.accessPolicies.assertAllowed(
+      this.database,
+      userId,
+      "SCHEDULE_VIEW",
+    );
+    const result = await this.database.query<{
+      id: string;
+      title: string;
+      starts_at: Date;
+      ends_at: Date;
+      meeting_type: "ROOM" | "ONLINE";
+      meeting_url: string | null;
+      room_id: string | null;
+      room_name: string | null;
+      organizer_id: string;
+      organizer_name: string;
+      organizer_avatar_preset: string;
+      organizer_avatar_path: string | null;
+      participation_mode: "INVITE_ONLY" | "OPEN";
+      series_id: string | null;
+      participant_status: "INVITED" | "ACCEPTED" | null;
+      participants: unknown;
+    }>(
+      `
+        select
+          b.id,
+          b.title,
+          b.starts_at,
+          b.ends_at,
+          b.meeting_type,
+          b.meeting_url,
+          r.id as room_id,
+          r.name as room_name,
+          organizer.id as organizer_id,
+          organizer.name as organizer_name,
+          organizer.avatar_preset as organizer_avatar_preset,
+          organizer.avatar_path as organizer_avatar_path,
+          b.participation_mode,
+          b.series_id,
+          mine.status as participant_status,
+          coalesce(
+            jsonb_agg(
+              jsonb_build_object(
+                'id', participant.id,
+                'name', participant.name,
+                'status', all_participants.status,
+                'avatarPreset', participant.avatar_preset,
+                'avatarUrl', case when participant.avatar_path is null
+                  then null else '/uploads/' || participant.avatar_path end
+              )
+            ) filter (where participant.id is not null),
+            '[]'::jsonb
+          ) as participants
+        from bookings b
+        join users organizer on organizer.id = b.organizer_id
+        left join rooms r on r.id = b.room_id
+        left join booking_participants mine
+          on mine.booking_id = b.id and mine.user_id = $1
+        left join booking_participants all_participants
+          on all_participants.booking_id = b.id
+        left join users participant
+          on participant.id = all_participants.user_id
+        where b.cancelled_at is null
+          and b.starts_at < $3
+          and b.ends_at > $2
+          and (
+            b.organizer_id = $1
+            or mine.status in ('INVITED', 'ACCEPTED')
+          )
+        group by b.id, r.id, organizer.id, mine.status
+        order by b.starts_at
+      `,
+      [userId, from, to],
+    );
+    return {
+      officeTimeZone: this.officeTimeZone,
+      meetings: result.rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at,
+        meetingType: row.meeting_type,
+        meetingUrl: row.meeting_url,
+        room: row.room_id
+          ? { id: row.room_id, name: row.room_name }
+          : null,
+        participationMode: row.participation_mode,
+        seriesId: row.series_id,
+        organizer: {
+          id: row.organizer_id,
+          name: row.organizer_name,
+          avatarPreset: row.organizer_avatar_preset,
+          avatarUrl: row.organizer_avatar_path
+            ? `/uploads/${row.organizer_avatar_path}`
+            : null,
+        },
+        participants: row.participants,
+        myRole: row.organizer_id === userId ? "ORGANIZER" : "PARTICIPANT",
+        participantStatus: row.participant_status,
+      })),
+    };
+  }
+
   async openEvents(userId: string) {
     const result = await this.database.query<{
       id: string;
       title: string;
       starts_at: Date;
       ends_at: Date;
-      room_id: string;
-      room_name: string;
+      meeting_type: "ROOM" | "ONLINE";
+      meeting_url: string | null;
+      room_id: string | null;
+      room_name: string | null;
       capacity: number;
       organizer_id: string;
       organizer_name: string;
@@ -958,9 +1173,11 @@ export class BookingsService {
           b.title,
           b.starts_at,
           b.ends_at,
+          b.meeting_type,
+          b.meeting_url,
           r.id as room_id,
           r.name as room_name,
-          r.capacity,
+          coalesce(r.capacity, 51) as capacity,
           u.id as organizer_id,
           u.name as organizer_name,
           b.series_id,
@@ -968,7 +1185,7 @@ export class BookingsService {
             as participant_count,
           max(bp.status) filter (where bp.user_id = $1) as my_status
         from bookings b
-        join rooms r on r.id = b.room_id
+        left join rooms r on r.id = b.room_id
         join users u on u.id = b.organizer_id
         left join booking_participants bp on bp.booking_id = b.id
         where b.participation_mode = 'OPEN'
@@ -985,11 +1202,18 @@ export class BookingsService {
       title: row.title,
       startsAt: row.starts_at,
       endsAt: row.ends_at,
-      room: {
-        id: row.room_id,
-        name: row.room_name,
-        capacity: row.capacity,
-      },
+      meetingType: row.meeting_type,
+      meetingUrl:
+        row.organizer_id === userId || row.my_status === "ACCEPTED"
+          ? row.meeting_url
+          : null,
+      room: row.room_id
+        ? {
+            id: row.room_id,
+            name: row.room_name,
+            capacity: row.capacity,
+          }
+        : null,
       organizer: { id: row.organizer_id, name: row.organizer_name },
       seriesId: row.series_id,
       participantCount: Number(row.participant_count) + 1,
@@ -1084,12 +1308,12 @@ export class BookingsService {
       }>(
         `
           select
-            r.capacity,
+            coalesce(r.capacity, 51) as capacity,
             b.organizer_id,
             count(bp.user_id) filter (where bp.status = 'ACCEPTED')::text
               as participant_count
           from bookings b
-          join rooms r on r.id = b.room_id
+          left join rooms r on r.id = b.room_id
           left join booking_participants bp on bp.booking_id = b.id
           where b.id = $1
             and b.participation_mode = 'OPEN'
@@ -1184,7 +1408,7 @@ export class BookingsService {
         id: string;
         title: string;
         organizer_id: string;
-        room_id: string;
+        room_id: string | null;
         series_id: string | null;
         starts_at: Date;
         cancelled_at: Date | null;
@@ -1214,7 +1438,7 @@ export class BookingsService {
           client,
           user.id,
           "BOOKING_CANCEL_OWN",
-          booking.room_id,
+          booking.room_id ?? undefined,
         );
       }
       const isAdministrativeCancellation =
@@ -1342,7 +1566,7 @@ export class BookingsService {
   private async assertCanCreate(
     client: PoolClient,
     userId: string,
-    roomId: string,
+    roomId?: string,
   ): Promise<void> {
     await this.accessPolicies.assertAllowed(
       client,
@@ -1350,6 +1574,20 @@ export class BookingsService {
       "BOOKING_CREATE",
       roomId,
     );
+  }
+
+  private normalizeMeetingUrl(
+    value: string | null | undefined,
+  ): string | null {
+    const trimmed = value?.trim();
+    if (!trimmed) return null;
+    try {
+      const url = new URL(trimmed);
+      if (url.protocol !== "https:" || !url.hostname) return null;
+      return url.toString();
+    } catch {
+      return null;
+    }
   }
 
   private async lockAttendees(
@@ -1508,7 +1746,7 @@ export class BookingsService {
 
   private changeCopy(
     bookingTitle: string,
-    roomName: string,
+    roomName: string | null,
     startsAt: Date,
     participant: ParticipantRow,
   ): { title: string; body: string } {
@@ -1521,12 +1759,16 @@ export class BookingsService {
     if (participant.locale === "en") {
       return {
         title: "Meeting details changed",
-        body: `“${bookingTitle}” is now scheduled in “${roomName}” on ${date}.`,
+        body: roomName
+          ? `“${bookingTitle}” is now scheduled in “${roomName}” on ${date}.`
+          : `The online meeting “${bookingTitle}” is now scheduled for ${date}.`,
       };
     }
     return {
       title: "Деталі зустрічі змінено",
-      body: `Зустріч «${bookingTitle}» тепер запланована в кімнаті «${roomName}»: ${date}.`,
+      body: roomName
+        ? `Зустріч «${bookingTitle}» тепер запланована в кімнаті «${roomName}»: ${date}.`
+        : `Онлайн-зустріч «${bookingTitle}» тепер запланована на ${date}.`,
     };
   }
 
@@ -1549,7 +1791,7 @@ export class BookingsService {
   private invitationCopy(
     organizer: string,
     bookingTitle: string,
-    roomName: string,
+    roomName: string | null,
     startsAt: Date,
     participant: ParticipantRow,
   ): { title: string; body: string } {
@@ -1562,12 +1804,16 @@ export class BookingsService {
     if (participant.locale === "en") {
       return {
         title: "New meeting invitation",
-        body: `${organizer} invited you to “${bookingTitle}” in “${roomName}” on ${date}.`,
+        body: roomName
+          ? `${organizer} invited you to “${bookingTitle}” in “${roomName}” on ${date}.`
+          : `${organizer} invited you to the online meeting “${bookingTitle}” on ${date}.`,
       };
     }
     return {
       title: "Нове запрошення",
-      body: `${organizer} запрошує вас на зустріч «${bookingTitle}» у кімнаті «${roomName}»: ${date}.`,
+      body: roomName
+        ? `${organizer} запрошує вас на зустріч «${bookingTitle}» у кімнаті «${roomName}»: ${date}.`
+        : `${organizer} запрошує вас на онлайн-зустріч «${bookingTitle}»: ${date}.`,
     };
   }
 

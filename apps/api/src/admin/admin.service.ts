@@ -185,15 +185,17 @@ export class AdminService {
       title: string;
       starts_at: Date;
       ends_at: Date;
+      meeting_type: "ROOM" | "ONLINE";
+      meeting_url: string | null;
       participation_mode: "INVITE_ONLY" | "OPEN";
       series_id: string | null;
       override_reason: string | null;
       cancelled_at: Date | null;
       cancellation_reason: string | null;
       cancelled_by_name: string | null;
-      room_id: string;
-      room_name: string;
-      room_floor: number;
+      room_id: string | null;
+      room_name: string | null;
+      room_floor: number | null;
       organizer_id: string;
       organizer_name: string;
       organizer_email: string;
@@ -207,6 +209,8 @@ export class AdminService {
           b.title,
           b.starts_at,
           b.ends_at,
+          b.meeting_type,
+          b.meeting_url,
           b.participation_mode,
           b.series_id,
           b.override_reason,
@@ -245,7 +249,7 @@ export class AdminService {
             '[]'::jsonb
           ) as participants
         from bookings b
-        join rooms r on r.id = b.room_id
+        left join rooms r on r.id = b.room_id
         join users organizer on organizer.id = b.organizer_id
         left join users canceller on canceller.id = b.cancelled_by
         left join lateral (
@@ -267,7 +271,7 @@ export class AdminService {
           and (
             $2 = ''
             or b.title ilike '%' || $2 || '%'
-            or r.name ilike '%' || $2 || '%'
+            or coalesce(r.name, 'онлайн') ilike '%' || $2 || '%'
             or organizer.name ilike '%' || $2 || '%'
             or organizer.email ilike '%' || $2 || '%'
           )
@@ -289,7 +293,7 @@ export class AdminService {
         `
           select count(*)::text as total
           from bookings b
-          join rooms r on r.id = b.room_id
+          left join rooms r on r.id = b.room_id
           join users organizer on organizer.id = b.organizer_id
           where
             (
@@ -303,7 +307,7 @@ export class AdminService {
             and (
               $2 = ''
               or b.title ilike '%' || $2 || '%'
-              or r.name ilike '%' || $2 || '%'
+              or coalesce(r.name, 'онлайн') ilike '%' || $2 || '%'
               or organizer.name ilike '%' || $2 || '%'
               or organizer.email ilike '%' || $2 || '%'
             )
@@ -320,17 +324,21 @@ export class AdminService {
         title: booking.title,
         startsAt: booking.starts_at,
         endsAt: booking.ends_at,
+        meetingType: booking.meeting_type,
+        meetingUrl: booking.meeting_url,
         participationMode: booking.participation_mode,
         seriesId: booking.series_id,
         overrideReason: booking.override_reason,
         cancelledAt: booking.cancelled_at,
         cancellationReason: booking.cancellation_reason,
         cancelledByName: booking.cancelled_by_name,
-        room: {
-          id: booking.room_id,
-          name: booking.room_name,
-          floor: booking.room_floor,
-        },
+        room: booking.room_id
+          ? {
+              id: booking.room_id,
+              name: booking.room_name,
+              floor: booking.room_floor,
+            }
+          : null,
         organizer: {
           id: booking.organizer_id,
           name: booking.organizer_name,

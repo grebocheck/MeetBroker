@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { intervalsOverlap, validateBookingRules } from "./booking-rules";
+import {
+  intervalsOverlap,
+  validateBookingRules,
+  validateMeetingRules,
+} from "./booking-rules";
 
 describe("intervalsOverlap", () => {
   it("allows adjacent intervals", () => {
@@ -83,5 +87,29 @@ describe("validateBookingRules", () => {
         workingDays: [1, 2, 3, 4, 5]
       })
     ).toBe("OUTSIDE_WORKING_DAYS");
+  });
+});
+
+describe("validateMeetingRules", () => {
+  it("allows an online meeting outside room working hours", () => {
+    expect(
+      validateMeetingRules({
+        startsAt: new Date("2026-08-10T04:00:00Z"),
+        endsAt: new Date("2026-08-10T05:00:00Z"),
+        now: new Date("2026-08-01T00:00:00Z"),
+        officeTimeZone: "Europe/Kyiv",
+      }),
+    ).toBeNull();
+  });
+
+  it("still requires aligned slots and a supported duration", () => {
+    expect(
+      validateMeetingRules({
+        startsAt: new Date("2026-08-10T07:15:00Z"),
+        endsAt: new Date("2026-08-10T08:15:00Z"),
+        now: new Date("2026-08-01T00:00:00Z"),
+        officeTimeZone: "Europe/Kyiv",
+      }),
+    ).toBe("SLOT_ALIGNMENT");
   });
 });

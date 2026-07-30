@@ -27,7 +27,7 @@ export const notificationUsers = pgTable("users", {
 
 export const notificationBookings = pgTable("bookings", {
   id: uuid("id").primaryKey(),
-  roomId: uuid("room_id").notNull(),
+  roomId: uuid("room_id"),
   organizerId: uuid("organizer_id")
     .notNull()
     .references(() => notificationUsers.id),
