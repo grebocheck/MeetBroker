@@ -41,6 +41,10 @@ export const uk = {
   "auth.registerError": "Не вдалося зареєструватися.",
   "auth.creating": "Створюємо…",
   "auth.haveAccount": "Уже маєте профіль?",
+  "auth.registeredVerify":
+    "Профіль створено. Лист підтвердження поставлено в чергу — перевірте вхідні та папку «Спам».",
+  "auth.registeredReady":
+    "Профіль створено. Перевірка email вимкнена для цієї інсталяції — можна входити.",
   "auth.verifyTitle": "Підтвердження email",
   "auth.verifySubtitle": "Останній крок перед адміністративним схваленням.",
   "auth.verifiedTitle": "Email підтверджено",
@@ -54,7 +58,7 @@ export const uk = {
   "approval.body":
     "Адміністратор перевірить обліковий запис. Внутрішній розклад та імена колег до цього залишаються закритими.",
   "approval.verifyBody":
-    "Ми надіслали посилання на корпоративну адресу. У dev-режимі воно також доступне в журналі API.",
+    "Посилання надіслано на корпоративну адресу. Перевірте вхідні та папку «Спам».",
   "approval.refresh": "Оновити статус",
   "admin.eyebrow": "Керування простором",
   "admin.subtitle": "Доступ, кімнати й важливі дії без прихованих змін.",
@@ -535,13 +539,12 @@ export const uk = {
   "profile.newEmail": "Нова email-адреса",
   "profile.currentPassword": "Поточний пароль",
   "profile.emailError": "Не вдалося змінити email",
-  "profile.emailSent": "Надіслано підтвердження на нову адресу.",
-  "profile.sending": "Надсилаємо…",
+  "profile.emailQueued":
+    "Лист підтвердження поставлено в чергу. Перевірте нову адресу та папку «Спам».",
+  "profile.emailChanged":
+    "Email змінено одразу: підтвердження вимкнене для цієї інсталяції.",
+  "profile.changingEmail": "Змінюємо…",
   "profile.confirmChange": "Підтвердити зміну",
-  "profile.demoVerification":
-    "Demo-режим: підтвердження доступне одразу без поштового сервера.",
-  "profile.confirming": "Підтверджуємо…",
-  "profile.confirmEmail": "Підтвердити email",
   "profile.telegramConnected": "Бот підключено",
   "profile.telegramAvailable": "Отримуйте запрошення в один дотик",
   "profile.telegramUnavailable": "Бот не налаштований для цієї компанії",
@@ -584,6 +587,8 @@ export const uk = {
   "errors.CURRENT_PASSWORD_INCORRECT": "Поточний пароль указано неправильно.",
   "errors.DURATION": "Тривалість зустрічі має бути від 30 хвилин до 4 годин.",
   "errors.EMAIL_CHANGE_SUPERSEDED": "Цей запит на зміну email уже замінено новішим.",
+  "errors.EMAIL_DELIVERY_UNAVAILABLE":
+    "Підтвердження email обов’язкове, але поштовий сервер не налаштований. Зверніться до адміністратора.",
   "errors.EMAIL_TAKEN": "Ця email-адреса вже використовується.",
   "errors.EMAIL_UNCHANGED": "Нова email-адреса збігається з поточною.",
   "errors.EMAIL_VERIFICATION_REQUIRED": "Спочатку підтвердьте email-адресу.",

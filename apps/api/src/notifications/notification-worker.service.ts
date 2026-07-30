@@ -147,35 +147,49 @@ export class NotificationWorkerService {
       .limit(1);
     const target = targetRows[0];
     if (!target) return;
-    const subscriptions = await this.database.orm
-      .select({ channel: notificationSubscriptions.channel })
-      .from(notificationSubscriptions)
-      .where(
-        and(
-          eq(notificationSubscriptions.userId, payload.userId),
-          eq(
-            notificationSubscriptions.category,
-            payload.category ?? categoryForEventType(eventType)
-          ),
-          eq(notificationSubscriptions.enabled, true),
-          inArray(notificationSubscriptions.channel, ["EMAIL", "TELEGRAM"])
+    const enabledChannels = payload.forcedChannels?.length
+      ? [...new Set(payload.forcedChannels)]
+      : (
+          await this.database.orm
+            .select({ channel: notificationSubscriptions.channel })
+            .from(notificationSubscriptions)
+            .where(
+              and(
+                eq(notificationSubscriptions.userId, payload.userId),
+                eq(
+                  notificationSubscriptions.category,
+                  payload.category ?? categoryForEventType(eventType)
+                ),
+                eq(notificationSubscriptions.enabled, true),
+                inArray(notificationSubscriptions.channel, [
+                  "EMAIL",
+                  "TELEGRAM"
+                ])
+              )
+            )
         )
-      );
-    const enabledChannels = subscriptions
-      .map(({ channel }) => channel)
-      .filter(
-        (channel): channel is ExternalNotificationChannelName =>
-          channel === "EMAIL" || channel === "TELEGRAM"
-      );
+          .map(({ channel }) => channel)
+          .filter(
+            (channel): channel is ExternalNotificationChannelName =>
+              channel === "EMAIL" || channel === "TELEGRAM"
+          );
     const recipient: NotificationRecipient = {
       userId: payload.userId,
-      email: target.email,
+      email: payload.recipientEmail ?? target.email,
       telegramChatId: target.telegramChatId
     };
     await Promise.all(
       enabledChannels.map(async (name) => {
         const channel = this.channels.get(name);
-        if (!channel?.isAvailable() || !channel.canDeliver(recipient)) return;
+        const isForced = payload.forcedChannels?.includes(name) ?? false;
+        if (!channel?.isAvailable() || !channel.canDeliver(recipient)) {
+          if (isForced) {
+            throw new Error(
+              `${name} is unavailable for the required notification`
+            );
+          }
+          return;
+        }
         await channel.deliver(recipient, {
           title: payload.title,
           body: payload.body

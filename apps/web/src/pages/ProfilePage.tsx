@@ -60,9 +60,6 @@ export function ProfilePage({ user }: { user: User }) {
     email: user.pendingEmail ?? user.email,
     currentPassword: ""
   });
-  const [verificationToken, setVerificationToken] = useState<string | null>(
-    null
-  );
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -149,7 +146,11 @@ export function ProfilePage({ user }: { user: User }) {
   });
   const changeEmail = useMutation({
     mutationFn: () =>
-      api<{ pendingEmail: string; verificationToken?: string }>(
+      api<{
+        email: string;
+        pendingEmail: string | null;
+        verificationRequired: boolean;
+      }>(
         "/api/users/me/email-change",
         {
           method: "POST",
@@ -159,26 +160,13 @@ export function ProfilePage({ user }: { user: User }) {
           })
         }
       ),
-    onSuccess: ({ pendingEmail, verificationToken: token }) => {
-      setVerificationToken(token ?? null);
-      setEmailForm({ email: pendingEmail, currentPassword: "" });
+    onSuccess: ({ email, pendingEmail }) => {
+      setEmailForm({ email: pendingEmail ?? email, currentPassword: "" });
       queryClient.setQueryData<{ user: User }>(["me"], (current) =>
         current
-          ? { user: { ...current.user, pendingEmail } }
+          ? { user: { ...current.user, email, pendingEmail } }
           : current
       );
-    }
-  });
-  const confirmEmail = useMutation({
-    mutationFn: (token: string) =>
-      api<void>("/api/auth/verify-email", {
-        method: "POST",
-        body: JSON.stringify({ token })
-      }),
-    onSuccess: async () => {
-      setVerificationToken(null);
-      setShowEmailForm(false);
-      await queryClient.invalidateQueries({ queryKey: ["me"] });
     }
   });
   const changePassword = useMutation({
@@ -357,7 +345,6 @@ export function ProfilePage({ user }: { user: User }) {
                   size="small"
                   onClick={() => {
                     changeEmail.reset();
-                    confirmEmail.reset();
                     setShowEmailForm((visible) => !visible);
                   }}
                 >
@@ -415,7 +402,9 @@ export function ProfilePage({ user }: { user: User }) {
                   )}
                   {changeEmail.isSuccess && (
                     <div className="form-success" role="status">
-                      {t("profile.emailSent")}
+                      {changeEmail.data.verificationRequired
+                        ? t("profile.emailQueued")
+                        : t("profile.emailChanged")}
                     </div>
                   )}
                   <Button
@@ -429,25 +418,9 @@ export function ProfilePage({ user }: { user: User }) {
                     }
                   >
                     {changeEmail.isPending
-                      ? t("profile.sending")
+                      ? t("profile.changingEmail")
                       : t("profile.confirmChange")}
                   </Button>
-                  {verificationToken && (
-                    <div className="dev-verification">
-                      <small>
-                        {t("profile.demoVerification")}
-                      </small>
-                      <Button
-                        size="small"
-                        onClick={() => confirmEmail.mutate(verificationToken)}
-                        disabled={confirmEmail.isPending}
-                      >
-                        {confirmEmail.isPending
-                          ? t("profile.confirming")
-                          : t("profile.confirmEmail")}
-                      </Button>
-                    </div>
-                  )}
                 </form>
               )}
               <hr />

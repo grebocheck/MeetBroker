@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import * as argon2 from "argon2";
 import sharp from "sharp";
 import { createOpaqueToken, hashToken } from "../common/crypto";
+import { EmailVerificationPolicy } from "../common/email-verification";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
 import type { CurrentUser } from "../common/types";
@@ -35,6 +36,7 @@ interface ProfileRow {
 @Injectable()
 export class UsersService {
   private readonly uploadDir: string;
+  private readonly emailVerification: EmailVerificationPolicy;
 
   constructor(
     private readonly database: DatabaseService,
@@ -43,6 +45,7 @@ export class UsersService {
     this.uploadDir =
       config.get<string>("UPLOAD_DIR") ??
       resolve(process.cwd(), "storage/uploads");
+    this.emailVerification = new EmailVerificationPolicy(config);
   }
 
   async updateProfile(
@@ -149,7 +152,10 @@ export class UsersService {
       );
     }
 
-    const token = createOpaqueToken();
+    this.emailVerification.assertDeliveryConfigured();
+    const token = this.emailVerification.required
+      ? createOpaqueToken()
+      : null;
     await this.database.transaction(async (client) => {
       await client.query(
         `
@@ -161,39 +167,78 @@ export class UsersService {
         `,
         [userId]
       );
-      await client.query(
-        "update users set pending_email = $2, updated_at = now() where id = $1",
-        [userId, email]
-      );
-      await client.query(
-        `
-          insert into email_verification_tokens (
-            id, user_id, token_hash, pending_email, expires_at
-          )
-          values ($1, $2, $3, $4, now() + interval '24 hours')
-        `,
-        [randomUUID(), userId, hashToken(token), email]
-      );
+      if (token) {
+        const verificationId = randomUUID();
+        const message = this.emailVerification.message("CHANGE_EMAIL", token);
+        await client.query(
+          "update users set pending_email = $2, updated_at = now() where id = $1",
+          [userId, email]
+        );
+        await client.query(
+          `
+            insert into email_verification_tokens (
+              id, user_id, token_hash, pending_email, expires_at
+            )
+            values ($1, $2, $3, $4, now() + interval '24 hours')
+          `,
+          [verificationId, userId, hashToken(token), email]
+        );
+        await client.query(
+          `
+            insert into notification_outbox (
+              id, event_key, event_type, payload
+            )
+            values ($1, $2, 'EMAIL_CHANGE_VERIFICATION', $3::jsonb)
+          `,
+          [
+            randomUUID(),
+            `email-change-verification:${verificationId}`,
+            JSON.stringify({
+              userId,
+              title: message.title,
+              body: message.body,
+              forcedChannels: ["EMAIL"],
+              recipientEmail: email
+            })
+          ]
+        );
+      } else {
+        await client.query(
+          `
+            update users
+            set
+              email = $2,
+              pending_email = null,
+              email_verified_at = now(),
+              updated_at = now()
+            where id = $1
+          `,
+          [userId, email]
+        );
+      }
       await client.query(
         `
           insert into audit_logs
             (id, actor_id, action, target_type, target_id, details)
-          values ($1, $2, 'EMAIL_CHANGE_REQUESTED', 'USER', $2, $3::jsonb)
+          values ($1, $2, $3, 'USER', $2, $4::jsonb)
         `,
-        [randomUUID(), userId, JSON.stringify({ pendingEmail: email })]
+        [
+          randomUUID(),
+          userId,
+          token ? "EMAIL_CHANGE_REQUESTED" : "EMAIL_CHANGED",
+          JSON.stringify({
+            pendingEmail: token ? email : null,
+            email: token ? user.email : email,
+            verificationRequired: Boolean(token)
+          })
+        ]
       );
     });
 
-    if (process.env.NODE_ENV !== "production") {
-      process.stdout.write(
-        `[dev-email] Confirm ${email}: /verify-email?token=${token}\n`
-      );
-    }
     return {
-      pendingEmail: email,
-      ...(process.env.NODE_ENV !== "production"
-        ? { verificationToken: token }
-        : {})
+      email: token ? user.email : email,
+      pendingEmail: token ? email : null,
+      verificationRequired: Boolean(token)
     };
   }
 

@@ -276,35 +276,40 @@ async function verifyAccountCredentials() {
     }),
   });
   check(
-    emailChange.body?.pendingEmail === temporaryEmail &&
-      emailChange.body?.verificationToken,
-    "Email change did not create a pending verified address",
+    emailChange.body?.verificationRequired
+      ? emailChange.body?.pendingEmail === temporaryEmail &&
+          emailChange.body?.email === securityCredentials.email
+      : emailChange.body?.pendingEmail === null &&
+          emailChange.body?.email === temporaryEmail,
+    "Email change did not follow the configured verification policy",
   );
-  await request("/api/auth/verify-email", {
-    method: "POST",
-    body: JSON.stringify({ token: emailChange.body.verificationToken }),
-  });
   const changedAccount = await request("/api/auth/me", {
     headers: { cookie },
   });
   check(
-    changedAccount.body?.user?.email === temporaryEmail &&
-      changedAccount.body?.user?.pendingEmail === null,
-    "Verified email change was not applied to the active account",
+    emailChange.body.verificationRequired
+      ? changedAccount.body?.user?.email === securityCredentials.email &&
+          changedAccount.body?.user?.pendingEmail === temporaryEmail
+      : changedAccount.body?.user?.email === temporaryEmail &&
+          changedAccount.body?.user?.pendingEmail === null,
+    "Email change state does not match the configured verification policy",
   );
 
-  const restoreEmail = await request("/api/users/me/email-change", {
-    method: "POST",
-    headers: { cookie },
-    body: JSON.stringify({
-      email: securityCredentials.email,
-      currentPassword: securityCredentials.password,
-    }),
-  });
-  await request("/api/auth/verify-email", {
-    method: "POST",
-    body: JSON.stringify({ token: restoreEmail.body.verificationToken }),
-  });
+  if (!emailChange.body.verificationRequired) {
+    const restoreEmail = await request("/api/users/me/email-change", {
+      method: "POST",
+      headers: { cookie },
+      body: JSON.stringify({
+        email: securityCredentials.email,
+        currentPassword: securityCredentials.password,
+      }),
+    });
+    check(
+      restoreEmail.body?.email === securityCredentials.email &&
+        restoreEmail.body?.pendingEmail === null,
+      "Immediate email change could not restore the demo account",
+    );
+  }
 
   const temporaryPassword = `Smoke${Date.now()}!`;
   await request("/api/users/me/password-change", {

@@ -66,6 +66,9 @@ function AuthFrame({
 function Login() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const registrationStatus = new URLSearchParams(window.location.search).get(
+    "registered"
+  );
   const [email, setEmail] = useState("user@meetbroker.local");
   const [password, setPassword] = useState("User12345!");
   const login = useMutation({
@@ -91,6 +94,13 @@ function Login() {
       subtitle={t("auth.loginSubtitle")}
     >
       <form className="form-stack" onSubmit={submit}>
+        {registrationStatus && (
+          <div className="form-success" role="status">
+            {registrationStatus === "verify"
+              ? t("auth.registeredVerify")
+              : t("auth.registeredReady")}
+          </div>
+        )}
         <label className="field">
           <span>Email</span>
           <input
@@ -138,15 +148,15 @@ function Register() {
   });
   const register = useMutation({
     mutationFn: () =>
-      api<{ verificationToken?: string }>("/api/auth/register", {
+      api<{ verificationRequired: boolean }>("/api/auth/register", {
         method: "POST",
         body: JSON.stringify(values)
       }),
-    onSuccess: ({ verificationToken }) => {
+    onSuccess: ({ verificationRequired }) => {
       navigate(
-        verificationToken
-          ? `/verify-email?token=${encodeURIComponent(verificationToken)}`
-          : "/login",
+        verificationRequired
+          ? "/login?registered=verify"
+          : "/login?registered=ready",
         true
       );
     }

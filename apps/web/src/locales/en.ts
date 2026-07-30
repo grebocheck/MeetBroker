@@ -43,6 +43,10 @@ export const en = {
   "auth.registerError": "Could not register the account.",
   "auth.creating": "Creating…",
   "auth.haveAccount": "Already have a profile?",
+  "auth.registeredVerify":
+    "Profile created. The verification email is queued — check your inbox and spam folder.",
+  "auth.registeredReady":
+    "Profile created. Email verification is disabled for this installation, so you can sign in.",
   "auth.verifyTitle": "Email verification",
   "auth.verifySubtitle": "The final step before administrator approval.",
   "auth.verifiedTitle": "Email verified",
@@ -56,7 +60,7 @@ export const en = {
   "approval.body":
     "An administrator will review the account. The internal schedule and colleague names remain private until then.",
   "approval.verifyBody":
-    "We sent a link to your corporate address. In development it is also available in the API log.",
+    "We sent a link to your corporate address. Check your inbox and spam folder.",
   "approval.refresh": "Refresh status",
   "admin.eyebrow": "Workspace management",
   "admin.subtitle": "Access, rooms, and important actions without hidden changes.",
@@ -532,13 +536,12 @@ export const en = {
   "profile.newEmail": "New email address",
   "profile.currentPassword": "Current password",
   "profile.emailError": "Could not change email",
-  "profile.emailSent": "A confirmation was sent to the new address.",
-  "profile.sending": "Sending…",
+  "profile.emailQueued":
+    "The verification email is queued. Check the new address and its spam folder.",
+  "profile.emailChanged":
+    "Email changed immediately because verification is disabled for this installation.",
+  "profile.changingEmail": "Changing…",
   "profile.confirmChange": "Confirm change",
-  "profile.demoVerification":
-    "Demo mode: confirmation is available immediately without an email server.",
-  "profile.confirming": "Confirming…",
-  "profile.confirmEmail": "Confirm email",
   "profile.telegramConnected": "Bot connected",
   "profile.telegramAvailable": "Receive invitations in one tap",
   "profile.telegramUnavailable": "The bot is not configured for this company",
@@ -581,6 +584,8 @@ export const en = {
   "errors.CURRENT_PASSWORD_INCORRECT": "The current password is incorrect.",
   "errors.DURATION": "A meeting must last between 30 minutes and 4 hours.",
   "errors.EMAIL_CHANGE_SUPERSEDED": "This email change request has been replaced by a newer one.",
+  "errors.EMAIL_DELIVERY_UNAVAILABLE":
+    "Email verification is required, but mail delivery is not configured. Contact an administrator.",
   "errors.EMAIL_TAKEN": "This email address is already in use.",
   "errors.EMAIL_UNCHANGED": "The new email address matches the current one.",
   "errors.EMAIL_VERIFICATION_REQUIRED": "Verify your email address first.",

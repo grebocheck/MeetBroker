@@ -13,6 +13,7 @@ export class EmailNotificationChannel extends NotificationChannel {
   private readonly logger = new Logger(EmailNotificationChannel.name);
   private readonly transporter: Transporter | null;
   private readonly from: string;
+  private readonly allowDevelopmentLog: boolean;
 
   constructor(config: ConfigService) {
     super();
@@ -20,6 +21,8 @@ export class EmailNotificationChannel extends NotificationChannel {
     this.from =
       config.get<string>("SMTP_FROM") ??
       "MeetBroker <notifications@example.com>";
+    this.allowDevelopmentLog =
+      config.get<string>("NODE_ENV") !== "production";
     this.transporter = smtpHost
       ? nodemailer.createTransport({
           host: smtpHost,
@@ -38,7 +41,7 @@ export class EmailNotificationChannel extends NotificationChannel {
   }
 
   isAvailable(): boolean {
-    return true;
+    return Boolean(this.transporter) || this.allowDevelopmentLog;
   }
 
   canDeliver(recipient: NotificationRecipient): boolean {
@@ -50,6 +53,9 @@ export class EmailNotificationChannel extends NotificationChannel {
     message: NotificationMessage
   ): Promise<void> {
     if (!this.transporter) {
+      if (!this.allowDevelopmentLog) {
+        throw new Error("SMTP delivery is not configured");
+      }
       this.logger.log(
         `[dev-email] ${recipient.email}: ${message.title} — ${message.body}`
       );

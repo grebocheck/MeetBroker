@@ -10,6 +10,7 @@ import { AccessPoliciesService } from "../access-policies/access-policies.servic
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
 import { createOpaqueToken, hashToken } from "../common/crypto";
+import { EmailVerificationPolicy } from "../common/email-verification";
 import type { CurrentUser, Locale, Role, Theme } from "../common/types";
 import type { LoginDto, RegisterDto } from "./auth.dto";
 
@@ -40,6 +41,7 @@ export interface SessionResult {
 @Injectable()
 export class AuthService {
   private readonly sessionTtlDays: number;
+  private readonly emailVerification: EmailVerificationPolicy;
 
   constructor(
     private readonly database: DatabaseService,
@@ -47,11 +49,12 @@ export class AuthService {
     config: ConfigService
   ) {
     this.sessionTtlDays = Number(config.get("SESSION_TTL_DAYS") ?? 30);
+    this.emailVerification = new EmailVerificationPolicy(config);
   }
 
   async register(dto: RegisterDto): Promise<{
     userId: string;
-    verificationToken?: string;
+    verificationRequired: boolean;
   }> {
     const name = dto.name.trim();
     const email = dto.email.trim().toLowerCase();
@@ -71,6 +74,7 @@ export class AuthService {
         "Password must contain 8 to 72 characters"
       );
     }
+    this.emailVerification.assertDeliveryConfigured();
 
     const existing = await this.database.query(
       `
@@ -89,27 +93,67 @@ export class AuthService {
     }
 
     const userId = randomUUID();
-    const verificationToken = createOpaqueToken();
-    const verificationId = randomUUID();
+    const verificationToken = this.emailVerification.required
+      ? createOpaqueToken()
+      : null;
+    const verificationId = this.emailVerification.required
+      ? randomUUID()
+      : null;
     const passwordHash = await argon2.hash(dto.password);
 
     try {
       await this.database.transaction(async (client) => {
         await client.query(
           `
-            insert into users (id, name, email, password_hash)
-            values ($1, $2, $3, $4)
+            insert into users (
+              id, name, email, password_hash, email_verified_at
+            )
+            values (
+              $1, $2, $3, $4,
+              case when $5::boolean then null else now() end
+            )
           `,
-          [userId, name, email, passwordHash]
+          [
+            userId,
+            name,
+            email,
+            passwordHash,
+            this.emailVerification.required
+          ]
         );
-        await client.query(
-          `
-            insert into email_verification_tokens
-              (id, user_id, token_hash, expires_at)
-            values ($1, $2, $3, now() + interval '24 hours')
-          `,
-          [verificationId, userId, hashToken(verificationToken)]
-        );
+        if (verificationId && verificationToken) {
+          const message = this.emailVerification.message(
+            "REGISTER",
+            verificationToken
+          );
+          await client.query(
+            `
+              insert into email_verification_tokens
+                (id, user_id, token_hash, expires_at)
+              values ($1, $2, $3, now() + interval '24 hours')
+            `,
+            [verificationId, userId, hashToken(verificationToken)]
+          );
+          await client.query(
+            `
+              insert into notification_outbox (
+                id, event_key, event_type, payload
+              )
+              values ($1, $2, 'EMAIL_VERIFICATION', $3::jsonb)
+            `,
+            [
+              randomUUID(),
+              `email-verification:${verificationId}`,
+              JSON.stringify({
+                userId,
+                title: message.title,
+                body: message.body,
+                forcedChannels: ["EMAIL"],
+                recipientEmail: email
+              })
+            ]
+          );
+        }
         await client.query(
           `
             insert into notification_preferences (user_id)
@@ -150,15 +194,9 @@ export class AuthService {
       throw error;
     }
 
-    if (process.env.NODE_ENV !== "production") {
-      process.stdout.write(
-        `[dev-email] Verify ${email}: /verify-email?token=${verificationToken}\n`
-      );
-    }
-
     return {
       userId,
-      ...(process.env.NODE_ENV !== "production" ? { verificationToken } : {})
+      verificationRequired: this.emailVerification.required
     };
   }
 
@@ -248,6 +286,13 @@ export class AuthService {
         HttpStatus.FORBIDDEN,
         "ACCESS_REVOKED",
         "Corporate access has been revoked"
+      );
+    }
+    if (this.emailVerification.required && !row.email_verified_at) {
+      throw apiError(
+        HttpStatus.FORBIDDEN,
+        "EMAIL_VERIFICATION_REQUIRED",
+        "Verify the email address before signing in"
       );
     }
     await this.accessPolicies.assertAllowed(

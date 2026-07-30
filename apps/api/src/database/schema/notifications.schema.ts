@@ -13,6 +13,7 @@ import {
   varchar
 } from "drizzle-orm/pg-core";
 import type {
+  ExternalNotificationChannelName,
   NotificationCategory,
   NotificationChannelName
 } from "../../notifications/notification-channel";
@@ -42,6 +43,8 @@ export interface NotificationOutboxPayload {
   title: string;
   body: string;
   activeBookingIds?: string[];
+  forcedChannels?: ExternalNotificationChannelName[];
+  recipientEmail?: string;
 }
 
 export const notifications = pgTable(
