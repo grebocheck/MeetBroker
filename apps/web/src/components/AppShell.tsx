@@ -3,7 +3,8 @@ import type { ComponentType, SVGProps } from "react";
 import { api } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Link, navigate } from "../lib/router";
-import type { User } from "../types";
+import type { Capability, User } from "../types";
+import type { MessageKey } from "../locales/uk";
 import { AdminPage } from "../pages/AdminPage";
 import { BookingListPage } from "../pages/BookingListPage";
 import { CalendarPage } from "../pages/CalendarPage";
@@ -12,7 +13,6 @@ import { NotificationsPage } from "../pages/NotificationsPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { Avatar } from "./Avatar";
 import { BrandMark } from "./BrandMark";
-import { capabilityLabel } from "./UserAccessDialog";
 import {
   BellIcon,
   CalendarIcon,
@@ -37,8 +37,15 @@ function currentRoute(path: string): string {
   return path.split("?")[0];
 }
 
+const capabilityKeys: Record<Capability, MessageKey> = {
+  BOOKING_CREATE: "capability.BOOKING_CREATE",
+  BOOKING_CANCEL_OWN: "capability.BOOKING_CANCEL_OWN",
+  SCHEDULE_VIEW: "capability.SCHEDULE_VIEW",
+  ACCOUNT_LOGIN: "capability.ACCOUNT_LOGIN",
+};
+
 export function AppShell({ user, path }: { user: User; path: string }) {
-  const { locale, t } = useI18n();
+  const { dateLocale, locale, t } = useI18n();
   const queryClient = useQueryClient();
   const logout = useMutation({
     mutationFn: () => api<void>("/api/auth/logout", { method: "POST" }),
@@ -95,8 +102,8 @@ export function AppShell({ user, path }: { user: User; path: string }) {
           <span>MeetBroker</span>
         </Link>
 
-        <span className="nav-caption">Робочий простір</span>
-        <nav className="main-nav" aria-label="Основна навігація">
+        <span className="nav-caption">{t("shell.workspace")}</span>
+        <nav className="main-nav" aria-label={t("shell.mainNavigation")}>
           {items
             .filter((item) => !item.admin || user.role === "ADMIN")
             .map((item) => {
@@ -117,31 +124,36 @@ export function AppShell({ user, path }: { user: User; path: string }) {
             })}
         </nav>
 
-        <div className="sidebar-utilities" aria-label="Швидкі налаштування">
+        <div
+          className="sidebar-utilities"
+          aria-label={t("shell.quickSettings")}
+        >
           <button
             className="utility-control"
             disabled={quickSettings.isPending}
             onClick={() =>
               quickSettings.mutate({ theme: darkTheme ? "LIGHT" : "DARK" })
             }
-            title={darkTheme ? "Увімкнути світлу тему" : "Увімкнути темну тему"}
+            title={darkTheme ? t("shell.enableLight") : t("shell.enableDark")}
             aria-label={
-              darkTheme ? "Увімкнути світлу тему" : "Увімкнути темну тему"
+              darkTheme ? t("shell.enableLight") : t("shell.enableDark")
             }
           >
             {darkTheme ? <SunIcon /> : <MoonIcon />}
-            <span>{darkTheme ? "Світла" : "Темна"}</span>
+            <span>
+              {darkTheme ? t("shell.lightTheme") : t("shell.darkTheme")}
+            </span>
           </button>
           <details className="language-control">
             <summary
               className="utility-control"
-              title={locale === "uk" ? "Вибрати мову" : "Choose language"}
+              title={t("shell.chooseLanguage")}
             >
               <GlobeIcon />
               <span>{locale === "uk" ? "UA" : "EN"}</span>
             </summary>
             <div className="language-menu" role="menu">
-              <span>{locale === "uk" ? "Вибір мови" : "Choose language"}</span>
+              <span>{t("shell.chooseLanguage")}</span>
               <button
                 className={locale === "uk" ? "is-active" : ""}
                 disabled={quickSettings.isPending}
@@ -182,7 +194,9 @@ export function AppShell({ user, path }: { user: User; path: string }) {
           />
           <div className="sidebar-profile__copy">
             <strong>{user.name}</strong>
-            <span>{user.role === "ADMIN" ? "Адміністратор" : "Співробітник"}</span>
+            <span>
+              {user.role === "ADMIN" ? t("shell.admin") : t("shell.employee")}
+            </span>
           </div>
           <button
             className="icon-button"
@@ -196,19 +210,21 @@ export function AppShell({ user, path }: { user: User; path: string }) {
       </aside>
       <main className="app-main">
         {Boolean(user.activeRestrictions?.length) && (
-          <aside className="access-notice" aria-label="Обмеження доступу">
-            <strong>Діє обмеження доступу</strong>
+          <aside className="access-notice" aria-label={t("access.noticeTitle")}>
+            <strong>{t("access.noticeTitle")}</strong>
             <div>
               {user.activeRestrictions?.map((restriction) => (
                 <span key={restriction.id}>
-                  {capabilityLabel(restriction.capability)} ·{" "}
+                  {t(capabilityKeys[restriction.capability])} ·{" "}
                   {restriction.reason}
                   {restriction.expiresAt
-                    ? ` · до ${new Intl.DateTimeFormat("uk-UA", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      }).format(new Date(restriction.expiresAt))}`
-                    : " · безстроково"}
+                    ? ` · ${t("access.until", {
+                        date: new Intl.DateTimeFormat(dateLocale, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }).format(new Date(restriction.expiresAt)),
+                      })}`
+                    : ` · ${t("access.unlimited")}`}
                 </span>
               ))}
             </div>

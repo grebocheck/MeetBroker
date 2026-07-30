@@ -1,52 +1,32 @@
 import { createContext, ReactNode, useContext } from "react";
 import type { Locale } from "../types";
+import { en } from "../locales/en";
+import { uk, type MessageKey } from "../locales/uk";
 
-const translations = {
-  uk: {
-    calendar: "Розклад",
-    myBookings: "Мої бронювання",
-    openEvents: "Відкриті події",
-    notifications: "Сповіщення",
-    profile: "Профіль",
-    administration: "Адміністрування",
-    signOut: "Вийти",
-    book: "Забронювати",
-    today: "Сьогодні",
-    loading: "Завантаження…",
-    retry: "Спробувати ще",
-    empty: "Тут поки порожньо",
-    save: "Зберегти",
-    cancel: "Скасувати",
-    room: "Кімната",
-    capacity: "місць",
-    floor: "поверх"
-  },
-  en: {
-    calendar: "Schedule",
-    myBookings: "My bookings",
-    openEvents: "Open events",
-    notifications: "Notifications",
-    profile: "Profile",
-    administration: "Administration",
-    signOut: "Sign out",
-    book: "Book",
-    today: "Today",
-    loading: "Loading…",
-    retry: "Try again",
-    empty: "Nothing here yet",
-    save: "Save",
-    cancel: "Cancel",
-    room: "Room",
-    capacity: "seats",
-    floor: "floor"
-  }
-} as const;
+const translations = { uk, en };
+type Variables = Record<string, string | number>;
 
-type TranslationKey = keyof (typeof translations)["uk"];
+export function translate(
+  locale: Locale,
+  key: MessageKey,
+  variables: Variables = {},
+): string {
+  return Object.entries(variables).reduce(
+    (message, [name, value]) =>
+      message.replaceAll(`{${name}}`, String(value)),
+    translations[locale][key],
+  );
+}
+
 const I18nContext = createContext<{
   locale: Locale;
-  t: (key: TranslationKey) => string;
-}>({ locale: "uk", t: (key) => translations.uk[key] });
+  dateLocale: string;
+  t: (key: MessageKey, variables?: Variables) => string;
+}>({
+  locale: "uk",
+  dateLocale: "uk-UA",
+  t: (key, variables) => translate("uk", key, variables),
+});
 
 export function I18nProvider({
   locale,
@@ -57,7 +37,11 @@ export function I18nProvider({
 }) {
   return (
     <I18nContext.Provider
-      value={{ locale, t: (key) => translations[locale][key] }}
+      value={{
+        locale,
+        dateLocale: locale === "uk" ? "uk-UA" : "en-GB",
+        t: (key, variables) => translate(locale, key, variables),
+      }}
     >
       {children}
     </I18nContext.Provider>

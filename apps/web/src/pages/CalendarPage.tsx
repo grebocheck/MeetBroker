@@ -20,14 +20,18 @@ function clockMinutes(value: string): number {
 }
 
 export function CalendarPage({ user }: { user: User }) {
-  const { locale, t } = useI18n();
+  const { dateLocale, t } = useI18n();
   const queryClient = useQueryClient();
   const initialParams = new URLSearchParams(window.location.search);
   const initialDate = initialParams.get("date");
-  const [reference, setReference] = useState(() => {
+  const initialReference = (() => {
     const parsed = initialDate ? new Date(initialDate) : new Date();
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-  });
+  })();
+  const [reference, setReference] = useState(initialReference);
+  const [mobileDayIndex, setMobileDayIndex] = useState(
+    (toZonedTime(initialReference, DEFAULT_TIME_ZONE).getDay() + 6) % 7,
+  );
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(
     initialParams.get("roomId"),
   );
@@ -118,7 +122,7 @@ export function CalendarPage({ user }: { user: User }) {
     ),
   );
   const weekTitle = new Intl.DateTimeFormat(
-    locale === "uk" ? "uk-UA" : "en-GB",
+    dateLocale,
     {
       day: "numeric",
       month: "long",
@@ -133,10 +137,15 @@ export function CalendarPage({ user }: { user: User }) {
       dateKeyInZone(instant, localTimeZone) ===
       dateKeyInZone(now, localTimeZone),
   );
+  const currentDayIndex = dayDisplayInstants.findIndex(
+    (instant) =>
+      dateKeyInZone(instant, localTimeZone) ===
+      dateKeyInZone(now, localTimeZone),
+  );
   const showCurrentTime =
     currentDayVisible && nowMinutes >= startMinutes && nowMinutes <= endMinutes;
   const currentTimeLabel = new Intl.DateTimeFormat(
-    locale === "uk" ? "uk-UA" : "en-GB",
+    dateLocale,
     {
       hour: "2-digit",
       minute: "2-digit",
@@ -151,13 +160,13 @@ export function CalendarPage({ user }: { user: User }) {
         <div className="room-identity">
           <RoomVisual
             room={{
-              name: room?.name ?? "Переговорні",
+              name: room?.name ?? t("calendar.rooms"),
               imageUrl: room?.imageUrl ?? null,
             }}
           />
           <div>
             <span className="eyebrow">{t("calendar")}</span>
-            <h1>{room?.name ?? "Переговорні"}</h1>
+            <h1>{room?.name ?? t("calendar.rooms")}</h1>
             {room && (
               <div className="room-meta">
                 <span>
@@ -173,7 +182,7 @@ export function CalendarPage({ user }: { user: User }) {
         </div>
         <div className="toolbar-actions">
           <label className="compact-select capacity-filter">
-            <span className="sr-only">Мінімальна місткість</span>
+            <span className="sr-only">{t("calendar.minimumCapacity")}</span>
             <select
               value={minCapacity}
               onChange={(event) => {
@@ -181,16 +190,16 @@ export function CalendarPage({ user }: { user: User }) {
                 setSelectedRoomId(null);
               }}
             >
-              <option value={0}>Будь-яка місткість</option>
-              <option value={4}>Від 4 місць</option>
-              <option value={6}>Від 6 місць</option>
-              <option value={8}>Від 8 місць</option>
-              <option value={10}>Від 10 місць</option>
-              <option value={12}>Від 12 місць</option>
+              <option value={0}>{t("calendar.anyCapacity")}</option>
+              {[4, 6, 8, 10, 12].map((count) => (
+                <option value={count} key={count}>
+                  {t("calendar.fromSeats", { count })}
+                </option>
+              ))}
             </select>
           </label>
           <label className="compact-select">
-            <span className="sr-only">Кімната</span>
+            <span className="sr-only">{t("room")}</span>
             <select
               value={roomId ?? ""}
               onChange={(event) => setSelectedRoomId(event.target.value)}
@@ -249,20 +258,26 @@ export function CalendarPage({ user }: { user: User }) {
             <button
               className="icon-button icon-button--bordered"
               onClick={() => setReference((date) => addWeeks(date, -1))}
-              aria-label="Попередній тиждень"
+              aria-label={t("calendar.previousWeek")}
             >
               ‹
             </button>
             <button
               className="button button--secondary button--small"
-              onClick={() => setReference(new Date())}
+              onClick={() => {
+                const today = new Date();
+                setReference(today);
+                setMobileDayIndex(
+                  (toZonedTime(today, officeTimeZone).getDay() + 6) % 7,
+                );
+              }}
             >
               {t("today")}
             </button>
             <button
               className="icon-button icon-button--bordered"
               onClick={() => setReference((date) => addWeeks(date, 1))}
-              aria-label="Наступний тиждень"
+              aria-label={t("calendar.nextWeek")}
             >
               ›
             </button>
@@ -272,20 +287,20 @@ export function CalendarPage({ user }: { user: User }) {
             </strong>
           </div>
           <div className="timezone-note">
-            <span>Ваш час: {localTimeZone}</span>
+            <span>{t("calendar.userTime", { zone: localTimeZone })}</span>
             {localTimeZone !== officeTimeZone && (
-              <span>Офіс: {officeTimeZone}</span>
+              <span>{t("calendar.officeTime", { zone: officeTimeZone })}</span>
             )}
           </div>
         </div>
 
         {rooms.isError ? (
           <div className="state-panel state-panel--error">
-            <strong>Не вдалося завантажити кімнати</strong>
+            <strong>{t("calendar.roomsLoadError")}</strong>
             <span>
               {rooms.error instanceof ApiError
                 ? rooms.error.message
-                : "Сервер тимчасово недоступний"}
+                : t("calendar.serverUnavailable")}
             </span>
             <button
               className="button button--secondary"
@@ -297,22 +312,22 @@ export function CalendarPage({ user }: { user: User }) {
         ) : !rooms.isLoading && roomOptions.length === 0 ? (
           <div className="empty-state calendar-empty-state">
             <span className="empty-state__icon">○</span>
-            <h2>Немає кімнати потрібної місткості</h2>
-            <p>Зменште кількість місць або перегляньте всі доступні кімнати.</p>
+            <h2>{t("calendar.noCapacityTitle")}</h2>
+            <p>{t("calendar.noCapacityBody")}</p>
             <button
               className="button button--secondary"
               onClick={() => setMinCapacity(0)}
             >
-              Скинути фільтр
+              {t("calendar.resetFilter")}
             </button>
           </div>
         ) : schedule.isError ? (
           <div className="state-panel state-panel--error">
-            <strong>Не вдалося завантажити розклад</strong>
+            <strong>{t("calendar.scheduleLoadError")}</strong>
             <span>
               {schedule.error instanceof ApiError
                 ? schedule.error.message
-                : "Сервер тимчасово недоступний"}
+                : t("calendar.serverUnavailable")}
             </span>
             <button
               className="button button--secondary"
@@ -325,6 +340,33 @@ export function CalendarPage({ user }: { user: User }) {
           <CalendarSkeleton />
         ) : (
           <>
+            <div
+              className="mobile-day-switch"
+              aria-label={t("calendar.weekday")}
+            >
+              {dayDisplayInstants.map((instant, index) => (
+                <button
+                  type="button"
+                  className={mobileDayIndex === index ? "is-active" : ""}
+                  onClick={() => setMobileDayIndex(index)}
+                  aria-pressed={mobileDayIndex === index}
+                  key={instant.toISOString()}
+                >
+                  <span>
+                    {new Intl.DateTimeFormat(
+                      dateLocale,
+                      { weekday: "short", timeZone: localTimeZone },
+                    ).format(instant)}
+                  </span>
+                  <strong>
+                    {new Intl.DateTimeFormat(
+                      dateLocale,
+                      { day: "2-digit", timeZone: localTimeZone },
+                    ).format(instant)}
+                  </strong>
+                </button>
+              ))}
+            </div>
             <div className="calendar-scroll">
               <div
                 className="week-grid"
@@ -342,18 +384,20 @@ export function CalendarPage({ user }: { user: User }) {
                     dateKeyInZone(new Date(), localTimeZone);
                   return (
                     <div
-                      className={`day-heading${isToday ? " is-today" : ""}`}
+                      className={`day-heading${isToday ? " is-today" : ""}${
+                        mobileDayIndex === index ? " is-mobile-selected" : ""
+                      }`}
                       key={day.toISOString()}
                     >
                       <span>
                         {new Intl.DateTimeFormat(
-                          locale === "uk" ? "uk-UA" : "en-GB",
+                          dateLocale,
                           { weekday: "short", timeZone: localTimeZone },
                         ).format(instant)}
                       </span>
                       <strong>
                         {new Intl.DateTimeFormat(
-                          locale === "uk" ? "uk-UA" : "en-GB",
+                          dateLocale,
                           {
                             day: "2-digit",
                             month: "2-digit",
@@ -378,7 +422,7 @@ export function CalendarPage({ user }: { user: User }) {
                         style={{ top: index * SLOT_HEIGHT - 7 }}
                       >
                         {new Intl.DateTimeFormat(
-                          locale === "uk" ? "uk-UA" : "en-GB",
+                          dateLocale,
                           {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -390,9 +434,10 @@ export function CalendarPage({ user }: { user: User }) {
                     );
                   })}
                 </div>
-                {weekDays.map((day) => (
+                {weekDays.map((day, index) => (
                   <DayColumn
                     key={day.toISOString()}
+                    selectedOnMobile={mobileDayIndex === index}
                     day={day}
                     slots={slots}
                     startMinutes={startMinutes}
@@ -407,7 +452,11 @@ export function CalendarPage({ user }: { user: User }) {
                 ))}
                 {showCurrentTime && (
                   <div
-                    className="current-time-line"
+                    className={`current-time-line${
+                      currentDayIndex === mobileDayIndex
+                        ? ""
+                        : " is-mobile-hidden"
+                    }`}
                     style={{
                       top:
                         58 + ((nowMinutes - startMinutes) / 30) * SLOT_HEIGHT,
@@ -421,26 +470,26 @@ export function CalendarPage({ user }: { user: User }) {
             <div className="calendar-legend">
               <div>
                 <span className="legend-swatch legend-swatch--own" />
-                Ваші бронювання
+                {t("calendar.legendOwn")}
               </div>
               <div>
                 <span className="legend-swatch legend-swatch--other" />
-                Інші зустрічі
+                {t("calendar.legendOther")}
               </div>
               <div>
                 <span className="legend-swatch legend-swatch--open" />
-                Відкриті події
+                {t("calendar.legendOpen")}
               </div>
               <div>
                 <span className="legend-swatch legend-swatch--maintenance" />
-                Недоступність
+                {t("calendar.legendUnavailable")}
               </div>
               <div>
                 <span className="legend-swatch legend-swatch--closed" />
-                Поза робочими годинами
+                {t("calendar.legendClosed")}
               </div>
               <span className="calendar-legend__hint">
-                Натисніть на вільний час, щоб забронювати
+                {t("calendar.legendHint")}
               </span>
             </div>
           </>
@@ -518,6 +567,7 @@ export function CalendarPage({ user }: { user: User }) {
 
 function DayColumn({
   day,
+  selectedOnMobile,
   slots,
   startMinutes,
   workStartMinutes,
@@ -529,6 +579,7 @@ function DayColumn({
   onBooking,
 }: {
   day: Date;
+  selectedOnMobile: boolean;
   slots: number[];
   startMinutes: number;
   workStartMinutes: number;
@@ -539,6 +590,7 @@ function DayColumn({
   onCreate: (draft: BookingDraft) => void;
   onBooking: (booking: Booking) => void;
 }) {
+  const { t } = useI18n();
   const key = dateKeyInZone(
     officeLocalToInstant(day, 12, 0, officeTimeZone),
     officeTimeZone,
@@ -552,7 +604,9 @@ function DayColumn({
   );
 
   return (
-    <div className="day-column">
+    <div
+      className={`day-column${selectedOnMobile ? " is-mobile-selected" : ""}`}
+    >
       {slots.map((minutes) => {
         const outsideWorkingHours =
           minutes < workStartMinutes || minutes >= workEndMinutes;
@@ -579,8 +633,8 @@ function DayColumn({
             }}
             aria-label={
               outsideWorkingHours
-                ? `Кімната не працює ${start.toISOString()}`
-                : `Вільний слот ${start.toISOString()}`
+                ? t("calendar.closedSlot", { time: start.toISOString() })
+                : t("calendar.freeSlot", { time: start.toISOString() })
             }
           />
         );
@@ -607,7 +661,9 @@ function DayColumn({
             key={block.id}
           >
             <small>
-              {block.seriesId ? "Повторювана недоступність" : "Недоступність"}
+              {block.seriesId
+                ? t("calendar.recurringUnavailable")
+                : t("calendar.legendUnavailable")}
             </small>
             <span>{block.title}</span>
           </div>
@@ -644,7 +700,9 @@ function DayColumn({
               }).format(new Date(booking.startsAt))}
             </small>
             <strong>{booking.title}</strong>
-            <span>{own ? "Ваше бронювання" : booking.organizer.name}</span>
+            <span>
+              {own ? t("calendar.yourBooking") : booking.organizer.name}
+            </span>
           </button>
         );
       })}
@@ -667,6 +725,7 @@ function BookingDrawer({
   onCancel: () => void;
   cancelling: boolean;
 }) {
+  const { dateLocale, t } = useI18n();
   return (
     <div className="drawer-backdrop" onMouseDown={onClose}>
       <aside
@@ -682,26 +741,26 @@ function BookingDrawer({
           <button
             className="icon-button"
             onClick={onClose}
-            aria-label="Закрити"
+            aria-label={t("close")}
           >
             ×
           </button>
         </div>
         <span className="eyebrow">
-          {booking.seriesId ? "Подія із серії · " : ""}
+          {booking.seriesId ? `${t("calendar.seriesEvent")} · ` : ""}
           {booking.participationMode === "OPEN"
-            ? "Відкрита подія"
-            : "Зустріч за запрошенням"}
+            ? t("calendar.openEvent")
+            : t("calendar.invitationEvent")}
         </span>
         <h2>{booking.title}</h2>
         <div className="drawer-time">
-          {new Intl.DateTimeFormat("uk-UA", {
+          {new Intl.DateTimeFormat(dateLocale, {
             dateStyle: "full",
             timeStyle: "short",
           }).format(new Date(booking.startsAt))}
         </div>
         <hr />
-        <span className="detail-label">Організатор</span>
+        <span className="detail-label">{t("calendar.organizer")}</span>
         <div className="person-detail">
           <Avatar
             name={booking.organizer.name}
@@ -711,12 +770,12 @@ function BookingDrawer({
           />
           <div>
             <strong>{booking.organizer.name}</strong>
-            <p>{booking.organizer.bio || "Колега у MeetBroker"}</p>
+            <p>{booking.organizer.bio || t("calendar.colleagueFallback")}</p>
           </div>
         </div>
         {booking.participants.length > 0 && (
           <>
-            <span className="detail-label">Учасники</span>
+            <span className="detail-label">{t("calendar.participants")}</span>
             <div className="avatar-stack">
               {booking.participants.slice(0, 8).map((person) => (
                 <Avatar
@@ -737,14 +796,16 @@ function BookingDrawer({
               className="button button--primary button--wide"
               onClick={onEdit}
             >
-              Редагувати
+              {t("calendar.edit")}
             </button>
             <button
               className="button button--danger button--wide"
               onClick={onCancel}
               disabled={cancelling}
             >
-              {cancelling ? "Скасовуємо…" : "Скасувати бронювання"}
+              {cancelling
+                ? t("calendar.cancelling")
+                : t("calendar.cancelBooking")}
             </button>
           </div>
         )}
