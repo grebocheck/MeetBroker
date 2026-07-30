@@ -18,6 +18,33 @@ export type BookingRuleError =
   | "OUTSIDE_WORKING_DAYS"
   | "OUTSIDE_WORKING_HOURS";
 
+const BOOKING_RULE_MESSAGES: Record<BookingRuleError, string> = {
+  INVALID_TIME: "Start and end time are invalid",
+  SLOT_ALIGNMENT: "Time must align to a 30-minute slot",
+  DURATION: "Booking duration must be between 30 minutes and 4 hours",
+  PAST: "Booking must start in the future",
+  OUTSIDE_WORKING_DAYS: "Room is closed on this day",
+  OUTSIDE_WORKING_HOURS: "Booking is outside room working hours",
+};
+
+export function bookingRuleMessage(error: BookingRuleError): string {
+  return BOOKING_RULE_MESSAGES[error];
+}
+
+export function normalizeMeetingUrl(
+  value: string | null | undefined,
+): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "https:" || !url.hostname) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function minutesOfDay(date: Date): number {
   return date.getHours() * 60 + date.getMinutes();
 }

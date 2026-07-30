@@ -18,7 +18,9 @@ import type {
   UpdateBookingDto,
 } from "./bookings.dto";
 import {
+  bookingRuleMessage,
   BookingRuleError,
+  normalizeMeetingUrl,
   validateBookingRules,
   validateMeetingRules,
 } from "./booking-rules";
@@ -279,7 +281,7 @@ export class BookingsService {
     const meetingType = dto.meetingType ?? "ROOM";
     const meetingUrl =
       meetingType === "ONLINE"
-        ? this.normalizeMeetingUrl(dto.meetingUrl)
+        ? normalizeMeetingUrl(dto.meetingUrl)
         : null;
     if (meetingType === "ROOM" && !dto.roomId) {
       throw apiError(
@@ -700,7 +702,7 @@ export class BookingsService {
 
       const meetingUrl =
         booking.meeting_type === "ONLINE"
-          ? this.normalizeMeetingUrl(dto.meetingUrl ?? booking.meeting_url)
+          ? normalizeMeetingUrl(dto.meetingUrl ?? booking.meeting_url)
           : null;
       if (booking.meeting_type === "ROOM" && booking.room_id) {
         await client.query("select pg_advisory_xact_lock(hashtext($1))", [
@@ -1755,18 +1757,6 @@ export class BookingsService {
     );
   }
 
-  private normalizeMeetingUrl(value: string | null | undefined): string | null {
-    const trimmed = value?.trim();
-    if (!trimmed) return null;
-    try {
-      const url = new URL(trimmed);
-      if (url.protocol !== "https:" || !url.hostname) return null;
-      return url.toString();
-    } catch {
-      return null;
-    }
-  }
-
   private async lockAttendees(
     client: PoolClient,
     userIds: string[],
@@ -1994,14 +1984,6 @@ export class BookingsService {
   }
 
   private ruleException(code: BookingRuleError) {
-    const messages: Record<BookingRuleError, string> = {
-      INVALID_TIME: "Start and end time are invalid",
-      SLOT_ALIGNMENT: "Time must align to a 30-minute slot",
-      DURATION: "Booking duration must be between 30 minutes and 4 hours",
-      PAST: "Booking must start in the future",
-      OUTSIDE_WORKING_DAYS: "Room is closed on this day",
-      OUTSIDE_WORKING_HOURS: "Booking is outside room working hours",
-    };
-    return apiError(HttpStatus.BAD_REQUEST, code, messages[code]);
+    return apiError(HttpStatus.BAD_REQUEST, code, bookingRuleMessage(code));
   }
 }

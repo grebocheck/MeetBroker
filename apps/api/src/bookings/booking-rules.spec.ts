@@ -1,9 +1,41 @@
 import { describe, expect, it } from "vitest";
 import {
+  bookingRuleMessage,
   intervalsOverlap,
+  normalizeMeetingUrl,
   validateBookingRules,
   validateMeetingRules,
 } from "./booking-rules";
+
+describe("normalizeMeetingUrl", () => {
+  it("normalizes valid HTTPS meeting links", () => {
+    expect(normalizeMeetingUrl("  https://meet.example.com/room  ")).toBe(
+      "https://meet.example.com/room",
+    );
+  });
+
+  it.each([
+    null,
+    undefined,
+    "",
+    "not a URL",
+    "http://meet.example.com/room",
+    "mailto:team@example.com",
+  ])("rejects an unsafe or empty value: %s", (value) => {
+    expect(normalizeMeetingUrl(value)).toBeNull();
+  });
+});
+
+describe("bookingRuleMessage", () => {
+  it("provides a stable public message for every rule error", () => {
+    expect(bookingRuleMessage("SLOT_ALIGNMENT")).toBe(
+      "Time must align to a 30-minute slot",
+    );
+    expect(bookingRuleMessage("OUTSIDE_WORKING_DAYS")).toBe(
+      "Room is closed on this day",
+    );
+  });
+});
 
 describe("intervalsOverlap", () => {
   it("allows adjacent intervals", () => {
