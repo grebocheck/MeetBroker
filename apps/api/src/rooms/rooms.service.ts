@@ -13,6 +13,7 @@ export class RoomsService {
       capacity: number;
       work_start: string;
       work_end: string;
+      working_days: number[];
       image_path: string | null;
       image_url: string | null;
     }>(
@@ -24,6 +25,7 @@ export class RoomsService {
           capacity,
           work_start::text,
           work_end::text,
+          working_days,
           image_path,
           image_url
         from rooms
@@ -41,6 +43,7 @@ export class RoomsService {
       capacity: room.capacity,
       workStart: room.work_start.slice(0, 5),
       workEnd: room.work_end.slice(0, 5),
+      workingDays: room.working_days,
       imageUrl: room.image_path
         ? `/uploads/${room.image_path}`
         : room.image_url

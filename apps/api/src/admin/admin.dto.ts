@@ -81,6 +81,15 @@ export class CreateRoomDto {
   @IsOptional()
   @IsString()
   workEnd?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(7, { each: true })
+  workingDays?: number[];
 }
 
 export class UpdateRoomDto {
@@ -111,6 +120,15 @@ export class UpdateRoomDto {
   @IsOptional()
   @IsString()
   workEnd?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(7, { each: true })
+  workingDays?: number[];
 }
 
 export class CreateRoomBlockDto {

@@ -130,12 +130,15 @@ function dateKey(date, timeZone) {
 async function verifyRoomAvailabilityRules(adminCookie, room) {
   const changedWorkStart = room.workStart === "08:30" ? "09:00" : "08:30";
   const changedWorkEnd = room.workEnd === "18:30" ? "19:00" : "18:30";
+  const changedWorkingDays =
+    room.workingDays.length === 4 ? [1, 2, 3, 4, 5] : [1, 2, 3, 4];
   await request(`/api/admin/rooms/${room.id}`, {
     method: "PATCH",
     headers: { cookie: adminCookie },
     body: JSON.stringify({
       workStart: changedWorkStart,
       workEnd: changedWorkEnd,
+      workingDays: changedWorkingDays,
     }),
   });
   const changedRooms = await request("/api/rooms", {
@@ -146,8 +149,10 @@ async function verifyRoomAvailabilityRules(adminCookie, room) {
   );
   check(
     changedRoom?.workStart === changedWorkStart &&
-      changedRoom?.workEnd === changedWorkEnd,
-    "Room working hours were not updated",
+      changedRoom?.workEnd === changedWorkEnd &&
+      JSON.stringify(changedRoom?.workingDays) ===
+        JSON.stringify(changedWorkingDays),
+    "Room working availability was not updated",
   );
 
   const officeTimeZone = process.env.OFFICE_TIME_ZONE ?? "Europe/Kyiv";
@@ -220,6 +225,7 @@ async function verifyRoomAvailabilityRules(adminCookie, room) {
     body: JSON.stringify({
       workStart: room.workStart,
       workEnd: room.workEnd,
+      workingDays: room.workingDays,
     }),
   });
   return created.body.id;
@@ -1071,7 +1077,7 @@ async function main() {
     `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/update/cancel, ` +
       "critical booking guards and concurrency, colleagues, events, preferences, " +
       "capability policies, recurring bookings, booking management, room image lifecycle, working hours, recurring " +
-      "unavailability, account credentials and administration",
+      "working days, unavailability, account credentials and administration",
   );
 }
 

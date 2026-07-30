@@ -27,6 +27,7 @@ interface RoomRow {
   capacity: number;
   work_start: string;
   work_end: string;
+  working_days: number[];
   image_path: string | null;
   image_url: string | null;
   active: boolean;
@@ -89,6 +90,7 @@ export class BookingsService {
           capacity,
           work_start::text,
           work_end::text,
+          working_days,
           image_path,
           image_url,
           active
@@ -192,6 +194,7 @@ export class BookingsService {
         capacity: room.rows[0].capacity,
         workStart: room.rows[0].work_start.slice(0, 5),
         workEnd: room.rows[0].work_end.slice(0, 5),
+        workingDays: room.rows[0].working_days,
         imageUrl: room.rows[0].image_path
           ? `/uploads/${room.rows[0].image_path}`
           : room.rows[0].image_url,
@@ -298,7 +301,8 @@ export class BookingsService {
       ]);
       const roomResult = await client.query<RoomRow>(
         `
-          select id, name, floor, capacity, work_start::text, work_end::text, active
+          select id, name, floor, capacity, work_start::text, work_end::text,
+            working_days, active
           from rooms where id = $1
         `,
         [dto.roomId],
@@ -364,12 +368,14 @@ export class BookingsService {
           officeTimeZone: this.officeTimeZone,
           workStart: room.work_start,
           workEnd: room.work_end,
+          workingDays: room.working_days,
         });
         if (
           ruleError &&
           !(
             user.role === "ADMIN" &&
-            ruleError === "OUTSIDE_WORKING_HOURS" &&
+            (ruleError === "OUTSIDE_WORKING_HOURS" ||
+              ruleError === "OUTSIDE_WORKING_DAYS") &&
             overrideReason
           )
         ) {
@@ -537,6 +543,7 @@ export class BookingsService {
         capacity: number;
         work_start: string;
         work_end: string;
+        working_days: number[];
         active: boolean;
       }>(
         `
@@ -553,6 +560,7 @@ export class BookingsService {
             r.capacity,
             r.work_start::text,
             r.work_end::text,
+            r.working_days,
             r.active
           from bookings b
           join rooms r on r.id = b.room_id
@@ -603,6 +611,7 @@ export class BookingsService {
         officeTimeZone: this.officeTimeZone,
         workStart: booking.work_start,
         workEnd: booking.work_end,
+        workingDays: booking.working_days,
       });
       if (ruleError) throw this.ruleException(ruleError);
 
@@ -1346,6 +1355,7 @@ export class BookingsService {
       SLOT_ALIGNMENT: "Time must align to a 30-minute slot",
       DURATION: "Booking duration must be between 30 minutes and 4 hours",
       PAST: "Booking must start in the future",
+      OUTSIDE_WORKING_DAYS: "Room is closed on this day",
       OUTSIDE_WORKING_HOURS: "Booking is outside room working hours",
     };
     return apiError(HttpStatus.BAD_REQUEST, code, messages[code]);

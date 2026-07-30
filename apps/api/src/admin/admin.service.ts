@@ -510,12 +510,13 @@ export class AdminService {
 
   async createRoom(actorId: string, dto: CreateRoomDto) {
     this.assertWorkHours(dto.workStart ?? "09:00", dto.workEnd ?? "19:00");
+    this.assertWorkingDays(dto.workingDays ?? [1, 2, 3, 4, 5]);
     const id = randomUUID();
     await this.database.query(
       `
         insert into rooms
-          (id, name, floor, capacity, work_start, work_end)
-        values ($1, $2, $3, $4, $5, $6)
+          (id, name, floor, capacity, work_start, work_end, working_days)
+        values ($1, $2, $3, $4, $5, $6, $7)
       `,
       [
         id,
@@ -524,6 +525,7 @@ export class AdminService {
         dto.capacity,
         dto.workStart ?? "09:00",
         dto.workEnd ?? "19:00",
+        dto.workingDays ?? [1, 2, 3, 4, 5],
       ],
     );
     await this.audit(actorId, "ROOM_CREATED", "ROOM", id);
@@ -535,6 +537,7 @@ export class AdminService {
     roomId: string,
     dto: UpdateRoomDto,
   ): Promise<void> {
+    if (dto.workingDays) this.assertWorkingDays(dto.workingDays);
     if (dto.workStart || dto.workEnd) {
       const current = await this.database.query<{
         work_start: string;
@@ -563,6 +566,7 @@ export class AdminService {
           capacity = coalesce($4, capacity),
           work_start = coalesce($5::time, work_start),
           work_end = coalesce($6::time, work_end),
+          working_days = coalesce($7::smallint[], working_days),
           updated_at = now()
         where id = $1
       `,
@@ -573,6 +577,7 @@ export class AdminService {
         dto.capacity ?? null,
         dto.workStart ?? null,
         dto.workEnd ?? null,
+        dto.workingDays ?? null,
       ],
     );
     await this.audit(actorId, "ROOM_UPDATED", "ROOM", roomId, dto);
@@ -1113,6 +1118,19 @@ export class AdminService {
         HttpStatus.BAD_REQUEST,
         "INVALID_WORK_HOURS",
         "Working hours are invalid",
+      );
+    }
+  }
+
+  private assertWorkingDays(workingDays: number[]): void {
+    if (
+      workingDays.length === 0 ||
+      workingDays.some((day) => !Number.isInteger(day) || day < 1 || day > 7)
+    ) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "INVALID_WORKING_DAYS",
+        "Room must have at least one valid working day",
       );
     }
   }

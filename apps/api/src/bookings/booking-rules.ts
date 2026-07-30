@@ -7,6 +7,7 @@ export interface BookingRuleInput {
   officeTimeZone: string;
   workStart: string;
   workEnd: string;
+  workingDays: number[];
 }
 
 export type BookingRuleError =
@@ -14,6 +15,7 @@ export type BookingRuleError =
   | "SLOT_ALIGNMENT"
   | "DURATION"
   | "PAST"
+  | "OUTSIDE_WORKING_DAYS"
   | "OUTSIDE_WORKING_HOURS";
 
 function minutesOfDay(date: Date): number {
@@ -28,7 +30,15 @@ function parseClock(value: string): number {
 export function validateBookingRules(
   input: BookingRuleInput
 ): BookingRuleError | null {
-  const { startsAt, endsAt, now, officeTimeZone, workStart, workEnd } = input;
+  const {
+    startsAt,
+    endsAt,
+    now,
+    officeTimeZone,
+    workStart,
+    workEnd,
+    workingDays,
+  } = input;
   if (
     Number.isNaN(startsAt.getTime()) ||
     Number.isNaN(endsAt.getTime()) ||
@@ -54,6 +64,11 @@ export function validateBookingRules(
   }
   if (startsAt <= now) {
     return "PAST";
+  }
+
+  const isoWeekday = localStart.getDay() === 0 ? 7 : localStart.getDay();
+  if (!workingDays.includes(isoWeekday)) {
+    return "OUTSIDE_WORKING_DAYS";
   }
 
   const sameOfficeDay =

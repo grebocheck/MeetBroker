@@ -51,7 +51,8 @@ describe("validateBookingRules", () => {
         now: new Date("2026-08-01T00:00:00Z"),
         officeTimeZone: "Europe/Kyiv",
         workStart: "09:00",
-        workEnd: "19:00"
+        workEnd: "19:00",
+        workingDays: [1, 2, 3, 4, 5]
       })
     ).toBeNull();
   });
@@ -64,8 +65,23 @@ describe("validateBookingRules", () => {
         now: new Date("2026-08-01T00:00:00Z"),
         officeTimeZone: "Europe/Kyiv",
         workStart: "09:00",
-        workEnd: "19:00"
+        workEnd: "19:00",
+        workingDays: [1, 2, 3, 4, 5]
       })
     ).toBe("OUTSIDE_WORKING_HOURS");
+  });
+
+  it("rejects a booking on a closed weekday", () => {
+    expect(
+      validateBookingRules({
+        startsAt: new Date("2026-08-09T07:00:00Z"),
+        endsAt: new Date("2026-08-09T08:00:00Z"),
+        now: new Date("2026-08-01T00:00:00Z"),
+        officeTimeZone: "Europe/Kyiv",
+        workStart: "09:00",
+        workEnd: "19:00",
+        workingDays: [1, 2, 3, 4, 5]
+      })
+    ).toBe("OUTSIDE_WORKING_DAYS");
   });
 });
