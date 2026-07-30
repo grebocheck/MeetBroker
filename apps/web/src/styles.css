@@ -1241,8 +1241,8 @@ hr {
   --calendar-height: 640px;
   position: relative;
   display: grid;
-  min-width: 980px;
-  grid-template-columns: 68px repeat(7, minmax(120px, 1fr));
+  min-width: 860px;
+  grid-template-columns: 68px repeat(6, minmax(126px, 1fr));
   grid-template-rows: 58px var(--calendar-height);
 }
 
@@ -1298,6 +1298,16 @@ hr {
   content: "";
 }
 
+.day-heading.is-today {
+  background: color-mix(in srgb, var(--primary) 13%, var(--surface-raised));
+  color: var(--text);
+  box-shadow: inset 0 3px 0 var(--primary);
+}
+
+.day-heading.is-closed {
+  color: color-mix(in srgb, var(--text-muted) 72%, transparent);
+}
+
 .time-column {
   position: relative;
   grid-column: 1;
@@ -1321,6 +1331,24 @@ hr {
   position: relative;
   height: var(--calendar-height);
   border-left: 1px solid var(--border);
+}
+
+.day-column__closed-label {
+  position: absolute;
+  top: 14px;
+  right: 8px;
+  left: 8px;
+  z-index: 1;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 3px 10px 3px 10px;
+  background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 750;
+  text-align: center;
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
 .calendar-slot {
@@ -3106,19 +3134,23 @@ hr {
 }
 
 .room-workspace__settings {
-  display: flex;
-  align-items: end;
-  flex-wrap: wrap;
-  padding: 18px;
-  border: 1px solid var(--border);
+  display: grid;
+  align-items: start;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--primary) 36%, var(--border));
   border-radius: 3px 16px 3px 16px;
-  background: var(--surface-muted);
-  gap: 18px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--primary) 8%, transparent),
+      transparent 42%
+    ),
+    var(--surface-raised);
+  gap: 16px;
 }
 
 .room-workspace__settings > div:first-child {
-  min-width: 180px;
-  flex: 1 1 180px;
+  min-width: 0;
 }
 
 .room-workspace__settings h3,
@@ -3127,9 +3159,7 @@ hr {
 }
 
 .room-workspace__settings .room-hours-editor {
-  flex: 0 1 auto;
-  padding: 0;
-  border: 0;
+  width: 100%;
   grid-column: auto;
 }
 
@@ -3218,39 +3248,102 @@ hr {
 
 .room-hours-editor {
   display: grid;
-  align-items: center;
-  justify-content: end;
+  align-items: end;
   min-width: 0;
-  padding-top: 11px;
-  border-top: 1px solid var(--border);
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 3px 14px 3px 14px;
+  background: var(--surface-muted);
   grid-column: 2 / -1;
-  grid-template-columns: auto auto;
-  gap: 10px 14px;
+  grid-template-columns: minmax(190px, 0.8fr) minmax(260px, 1.2fr) auto;
+  gap: 14px 18px;
 }
 
-.room-hours-editor__controls {
+.room-hours-editor__time {
   display: grid;
-  align-items: center;
-  justify-content: start;
-  grid-template-columns: 76px auto 76px;
-  gap: 7px;
+  align-items: end;
+  grid-template-columns: minmax(76px, 1fr) auto minmax(76px, 1fr);
+  gap: 8px;
+}
+
+.room-hours-editor__field {
+  display: grid;
+  gap: 6px;
+}
+
+.room-hours-editor__field > span,
+.working-day-picker legend {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.room-hours-editor__separator {
+  padding-bottom: 10px;
+  color: var(--text-muted);
 }
 
 .room-hours-editor input {
-  width: 76px;
-  min-height: 34px;
-  padding: 5px 8px;
-  border: 1px solid var(--border);
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
   border-radius: 3px 9px 3px 9px;
-  background: var(--surface-muted);
+  outline: none;
+  background: var(--surface-raised);
   color: var(--text);
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-variant-numeric: tabular-nums;
-  text-align: center;
+  color-scheme: light dark;
+}
+
+.room-hours-editor input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
 }
 
 .room-hours-editor > small {
   grid-column: 1 / -1;
+}
+
+.working-day-picker {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.working-day-picker legend {
+  margin-bottom: 6px;
+}
+
+.working-day-picker > div {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(34px, 1fr));
+  gap: 5px;
+}
+
+.working-day-picker button {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px 10px 3px 10px;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 750;
+}
+
+.working-day-picker button:hover {
+  border-color: color-mix(in srgb, var(--primary) 58%, var(--border));
+  color: var(--text);
+}
+
+.working-day-picker button.is-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-contrast);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 20%, transparent);
 }
 
 .room-block-list {
@@ -3919,7 +4012,7 @@ hr {
     display: grid;
     padding: 8px;
     border-bottom: 1px solid var(--border);
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 3px;
     background: var(--surface-muted);
   }
@@ -3957,6 +4050,11 @@ hr {
     background: var(--surface-raised);
     color: var(--primary);
     box-shadow: var(--shadow-sm);
+  }
+
+  .mobile-day-switch button.is-closed:not(.is-active) {
+    background: color-mix(in srgb, var(--surface-muted) 72%, transparent);
+    color: color-mix(in srgb, var(--text-muted) 68%, transparent);
   }
 
   .calendar-scroll {
@@ -4129,7 +4227,7 @@ hr {
     grid-template-columns: 1fr;
   }
 
-  .room-hours-editor__controls {
+  .room-hours-editor__time {
     grid-template-columns: minmax(90px, 1fr) auto minmax(90px, 1fr);
   }
 

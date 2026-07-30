@@ -51,6 +51,10 @@ function bookingError(
       target: "time",
       message: t("booking.outsideHours")
     },
+    OUTSIDE_WORKING_DAYS: {
+      target: "time",
+      message: t("booking.outsideDays")
+    },
     SLOT_TAKEN: {
       target: "time",
       message:

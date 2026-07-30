@@ -725,6 +725,7 @@ function RoomsAdmin() {
     capacity: 6,
     workStart: "09:00",
     workEnd: "19:00",
+    workingDays: [1, 2, 3, 4, 5] as number[],
   });
   const [roomImage, setRoomImage] = useState<File | null>(null);
   const [blockForm, setBlockForm] = useState({
@@ -761,6 +762,7 @@ function RoomsAdmin() {
         capacity: 6,
         workStart: "09:00",
         workEnd: "19:00",
+        workingDays: [1, 2, 3, 4, 5],
       });
       setRoomImage(null);
       setSelectedRoomId(created.id);
@@ -961,6 +963,12 @@ function RoomsAdmin() {
                   />
                 </label>
               </div>
+              <WorkingDayPicker
+                days={roomForm.workingDays}
+                onChange={(workingDays) =>
+                  setRoomForm({ ...roomForm, workingDays })
+                }
+              />
               <div className="form-grid">
                 <label className="field">
                   <span>Працює з</span>
@@ -1008,7 +1016,12 @@ function RoomsAdmin() {
                     : "Не вдалося додати кімнату"}
                 </div>
               )}
-              <Button type="submit" disabled={createRoom.isPending}>
+              <Button
+                type="submit"
+                disabled={
+                  createRoom.isPending || roomForm.workingDays.length === 0
+                }
+              >
                 {createRoom.isPending ? "Додаємо…" : "Додати кімнату"}
               </Button>
             </form>
@@ -1367,16 +1380,21 @@ function RoomHoursEditor({ room }: { room: Room }) {
   const queryClient = useQueryClient();
   const [workStart, setWorkStart] = useState(room.workStart);
   const [workEnd, setWorkEnd] = useState(room.workEnd);
-  const changed = workStart !== room.workStart || workEnd !== room.workEnd;
+  const [workingDays, setWorkingDays] = useState(room.workingDays);
+  const changed =
+    workStart !== room.workStart ||
+    workEnd !== room.workEnd ||
+    workingDays.join(",") !== room.workingDays.join(",");
   const validHours =
     /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(workStart) &&
     /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(workEnd) &&
-    workStart < workEnd;
+    workStart < workEnd &&
+    workingDays.length > 0;
   const update = useMutation({
     mutationFn: () =>
       api<void>(`/api/admin/rooms/${room.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ workStart, workEnd }),
+        body: JSON.stringify({ workStart, workEnd, workingDays }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
@@ -1387,14 +1405,12 @@ function RoomHoursEditor({ room }: { room: Room }) {
 
   return (
     <div className="room-hours-editor">
-      <div className="room-hours-editor__controls">
-        <label>
-          <span className="sr-only">Початок роботи {room.name}</span>
+      <div className="room-hours-editor__time">
+        <label className="room-hours-editor__field">
+          <span>Відкриття</span>
           <input
-            type="text"
-            inputMode="numeric"
-            maxLength={5}
-            placeholder="09:00"
+            type="time"
+            step={1800}
             aria-label={`Початок роботи ${room.name}, формат ГГ:ХХ`}
             value={workStart}
             onChange={(event) => {
@@ -1403,14 +1419,12 @@ function RoomHoursEditor({ room }: { room: Room }) {
             }}
           />
         </label>
-        <span>—</span>
-        <label>
-          <span className="sr-only">Завершення роботи {room.name}</span>
+        <span className="room-hours-editor__separator">—</span>
+        <label className="room-hours-editor__field">
+          <span>Закриття</span>
           <input
-            type="text"
-            inputMode="numeric"
-            maxLength={5}
-            placeholder="19:00"
+            type="time"
+            step={1800}
             aria-label={`Завершення роботи ${room.name}, формат ГГ:ХХ`}
             value={workEnd}
             onChange={(event) => {
@@ -1420,6 +1434,13 @@ function RoomHoursEditor({ room }: { room: Room }) {
           />
         </label>
       </div>
+      <WorkingDayPicker
+        days={workingDays}
+        onChange={(days) => {
+          setWorkingDays(days);
+          update.reset();
+        }}
+      />
       <Button
         size="small"
         disabled={!changed || !validHours || update.isPending}
@@ -1429,7 +1450,7 @@ function RoomHoursEditor({ room }: { room: Room }) {
       </Button>
       {changed && !validHours && (
         <small className="field-error">
-          Вкажіть час у форматі 09:00–19:00; завершення має бути пізніше.
+          Оберіть принаймні один день і коректний час відкриття та закриття.
         </small>
       )}
       {update.error && (
@@ -1440,6 +1461,52 @@ function RoomHoursEditor({ room }: { room: Room }) {
         </small>
       )}
     </div>
+  );
+}
+
+const ROOM_WEEKDAYS = [
+  { value: 1, label: "Пн" },
+  { value: 2, label: "Вт" },
+  { value: 3, label: "Ср" },
+  { value: 4, label: "Чт" },
+  { value: 5, label: "Пт" },
+  { value: 6, label: "Сб" },
+  { value: 7, label: "Нд" },
+] as const;
+
+function WorkingDayPicker({
+  days,
+  onChange,
+}: {
+  days: number[];
+  onChange: (days: number[]) => void;
+}) {
+  return (
+    <fieldset className="working-day-picker">
+      <legend>Робочі дні</legend>
+      <div>
+        {ROOM_WEEKDAYS.map((day) => {
+          const selected = days.includes(day.value);
+          return (
+            <button
+              type="button"
+              className={selected ? "is-active" : ""}
+              aria-pressed={selected}
+              onClick={() =>
+                onChange(
+                  selected
+                    ? days.filter((value) => value !== day.value)
+                    : [...days, day.value].sort((a, b) => a - b),
+                )
+              }
+              key={day.value}
+            >
+              {day.label}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 

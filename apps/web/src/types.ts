@@ -40,6 +40,7 @@ export interface Room {
   capacity: number;
   workStart: string;
   workEnd: string;
+  workingDays: number[];
   imageUrl: string | null;
 }
 

@@ -1,9 +1,13 @@
 import { useMemo, useState } from "react";
-import { addDays, addWeeks } from "date-fns";
+import { addDays } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
-import { dateKeyInZone, officeLocalToInstant, officeWeek } from "../lib/date";
+import {
+  dateKeyInZone,
+  officeDateWindow,
+  officeLocalToInstant,
+} from "../lib/date";
 import { useI18n } from "../lib/i18n";
 import type { Booking, Room, Schedule, User } from "../types";
 import { Avatar } from "../components/Avatar";
@@ -19,6 +23,15 @@ function clockMinutes(value: string): number {
   return hours * 60 + minutes;
 }
 
+function nextWorkingDate(after: Date, workingDays: number[]): Date {
+  for (let offset = 1; offset <= 14; offset += 1) {
+    const candidate = addDays(after, offset);
+    const weekday = candidate.getDay() === 0 ? 7 : candidate.getDay();
+    if (workingDays.includes(weekday)) return candidate;
+  }
+  return addDays(after, 1);
+}
+
 export function CalendarPage({ user }: { user: User }) {
   const { dateLocale, t } = useI18n();
   const queryClient = useQueryClient();
@@ -29,9 +42,7 @@ export function CalendarPage({ user }: { user: User }) {
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
   })();
   const [reference, setReference] = useState(initialReference);
-  const [mobileDayIndex, setMobileDayIndex] = useState(
-    (toZonedTime(initialReference, DEFAULT_TIME_ZONE).getDay() + 6) % 7,
-  );
+  const [mobileDayIndex, setMobileDayIndex] = useState(0);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(
     initialParams.get("roomId"),
   );
@@ -58,13 +69,18 @@ export function CalendarPage({ user }: { user: User }) {
     ? selectedRoomId
     : (roomOptions[0]?.id ?? null);
   const officeTimeZone = DEFAULT_TIME_ZONE;
-  const weekDays = useMemo(
-    () => officeWeek(reference, officeTimeZone),
+  const visibleDays = useMemo(
+    () => officeDateWindow(reference, officeTimeZone),
     [reference, officeTimeZone],
   );
-  const rangeStart = officeLocalToInstant(weekDays[0], 0, 0, officeTimeZone);
+  const rangeStart = officeLocalToInstant(
+    visibleDays[0],
+    0,
+    0,
+    officeTimeZone,
+  );
   const rangeEnd = officeLocalToInstant(
-    addDays(weekDays[6], 1),
+    addDays(visibleDays[visibleDays.length - 1], 1),
     0,
     0,
     officeTimeZone,
@@ -113,7 +129,7 @@ export function CalendarPage({ user }: { user: User }) {
 
   const localTimeZone =
     user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const dayDisplayInstants = weekDays.map((day) =>
+  const dayDisplayInstants = visibleDays.map((day) =>
     officeLocalToInstant(
       day,
       Math.floor(workStartMinutes / 60),
@@ -217,8 +233,10 @@ export function CalendarPage({ user }: { user: User }) {
             disabled={!room}
             onClick={() => {
               if (!room) return;
-              const candidates = weekDays.flatMap((day) =>
-                slots
+              const candidates = visibleDays.flatMap((day) => {
+                const weekday = day.getDay() === 0 ? 7 : day.getDay();
+                if (!room.workingDays.includes(weekday)) return [];
+                return slots
                   .filter(
                     (minutes) =>
                       minutes >= workStartMinutes && minutes < workEndMinutes,
@@ -230,12 +248,15 @@ export function CalendarPage({ user }: { user: User }) {
                       minutes % 60,
                       officeTimeZone,
                     ),
-                  ),
-              );
+                  );
+              });
               const next =
                 candidates.find((candidate) => candidate > new Date()) ??
                 officeLocalToInstant(
-                  addDays(weekDays[6], 1),
+                  nextWorkingDate(
+                    visibleDays[visibleDays.length - 1],
+                    room.workingDays,
+                  ),
                   Math.floor(workStartMinutes / 60),
                   workStartMinutes % 60,
                   officeTimeZone,
@@ -257,8 +278,11 @@ export function CalendarPage({ user }: { user: User }) {
           <div className="week-nav">
             <button
               className="icon-button icon-button--bordered"
-              onClick={() => setReference((date) => addWeeks(date, -1))}
-              aria-label={t("calendar.previousWeek")}
+              onClick={() => {
+                setReference((date) => addDays(date, -6));
+                setMobileDayIndex(0);
+              }}
+              aria-label={t("calendar.previousPeriod")}
             >
               ‹
             </button>
@@ -267,23 +291,26 @@ export function CalendarPage({ user }: { user: User }) {
               onClick={() => {
                 const today = new Date();
                 setReference(today);
-                setMobileDayIndex(
-                  (toZonedTime(today, officeTimeZone).getDay() + 6) % 7,
-                );
+                setMobileDayIndex(0);
               }}
             >
               {t("today")}
             </button>
             <button
               className="icon-button icon-button--bordered"
-              onClick={() => setReference((date) => addWeeks(date, 1))}
-              aria-label={t("calendar.nextWeek")}
+              onClick={() => {
+                setReference((date) => addDays(date, 6));
+                setMobileDayIndex(0);
+              }}
+              aria-label={t("calendar.nextPeriod")}
             >
               ›
             </button>
             <strong>
               {weekTitle.format(dayDisplayInstants[0])} —{" "}
-              {weekTitle.format(dayDisplayInstants[6])}
+              {weekTitle.format(
+                dayDisplayInstants[dayDisplayInstants.length - 1],
+              )}
             </strong>
           </div>
           <div className="timezone-note">
@@ -344,28 +371,35 @@ export function CalendarPage({ user }: { user: User }) {
               className="mobile-day-switch"
               aria-label={t("calendar.weekday")}
             >
-              {dayDisplayInstants.map((instant, index) => (
-                <button
-                  type="button"
-                  className={mobileDayIndex === index ? "is-active" : ""}
-                  onClick={() => setMobileDayIndex(index)}
-                  aria-pressed={mobileDayIndex === index}
-                  key={instant.toISOString()}
-                >
-                  <span>
-                    {new Intl.DateTimeFormat(
-                      dateLocale,
-                      { weekday: "short", timeZone: localTimeZone },
-                    ).format(instant)}
-                  </span>
-                  <strong>
-                    {new Intl.DateTimeFormat(
-                      dateLocale,
-                      { day: "2-digit", timeZone: localTimeZone },
-                    ).format(instant)}
-                  </strong>
-                </button>
-              ))}
+              {dayDisplayInstants.map((instant, index) => {
+                const day = visibleDays[index];
+                const isoWeekday = day.getDay() === 0 ? 7 : day.getDay();
+                const isWorkingDay = room.workingDays.includes(isoWeekday);
+                return (
+                  <button
+                    type="button"
+                    className={`${
+                      mobileDayIndex === index ? "is-active" : ""
+                    }${!isWorkingDay ? " is-closed" : ""}`}
+                    onClick={() => setMobileDayIndex(index)}
+                    aria-pressed={mobileDayIndex === index}
+                    key={instant.toISOString()}
+                  >
+                    <span>
+                      {new Intl.DateTimeFormat(dateLocale, {
+                        weekday: "short",
+                        timeZone: localTimeZone,
+                      }).format(instant)}
+                    </span>
+                    <strong>
+                      {new Intl.DateTimeFormat(dateLocale, {
+                        day: "2-digit",
+                        timeZone: localTimeZone,
+                      }).format(instant)}
+                    </strong>
+                  </button>
+                );
+              })}
             </div>
             <div className="calendar-scroll">
               <div
@@ -377,14 +411,18 @@ export function CalendarPage({ user }: { user: User }) {
                 }
               >
                 <div className="week-grid__corner" />
-                {weekDays.map((day, index) => {
+                {visibleDays.map((day, index) => {
                   const instant = dayDisplayInstants[index];
+                  const isoWeekday = day.getDay() === 0 ? 7 : day.getDay();
+                  const isWorkingDay = room.workingDays.includes(isoWeekday);
                   const isToday =
                     dateKeyInZone(instant, localTimeZone) ===
                     dateKeyInZone(new Date(), localTimeZone);
                   return (
                     <div
                       className={`day-heading${isToday ? " is-today" : ""}${
+                        !isWorkingDay ? " is-closed" : ""
+                      }${
                         mobileDayIndex === index ? " is-mobile-selected" : ""
                       }`}
                       key={day.toISOString()}
@@ -411,7 +449,7 @@ export function CalendarPage({ user }: { user: User }) {
                 <div className="time-column">
                   {slots.map((minutes, index) => {
                     const instant = officeLocalToInstant(
-                      weekDays[0],
+                      visibleDays[0],
                       Math.floor(minutes / 60),
                       minutes % 60,
                       officeTimeZone,
@@ -434,22 +472,26 @@ export function CalendarPage({ user }: { user: User }) {
                     );
                   })}
                 </div>
-                {weekDays.map((day, index) => (
-                  <DayColumn
-                    key={day.toISOString()}
-                    selectedOnMobile={mobileDayIndex === index}
-                    day={day}
-                    slots={slots}
-                    startMinutes={startMinutes}
-                    workStartMinutes={workStartMinutes}
-                    workEndMinutes={workEndMinutes}
-                    officeTimeZone={officeTimeZone}
-                    schedule={schedule.data!}
-                    currentUserId={user.id}
-                    onCreate={setDraft}
-                    onBooking={setSelectedBooking}
-                  />
-                ))}
+                {visibleDays.map((day, index) => {
+                  const isoWeekday = day.getDay() === 0 ? 7 : day.getDay();
+                  return (
+                    <DayColumn
+                      key={day.toISOString()}
+                      selectedOnMobile={mobileDayIndex === index}
+                      day={day}
+                      slots={slots}
+                      startMinutes={startMinutes}
+                      workStartMinutes={workStartMinutes}
+                      workEndMinutes={workEndMinutes}
+                      workingDay={room.workingDays.includes(isoWeekday)}
+                      officeTimeZone={officeTimeZone}
+                      schedule={schedule.data!}
+                      currentUserId={user.id}
+                      onCreate={setDraft}
+                      onBooking={setSelectedBooking}
+                    />
+                  );
+                })}
                 {showCurrentTime && (
                   <div
                     className={`current-time-line${
@@ -572,6 +614,7 @@ function DayColumn({
   startMinutes,
   workStartMinutes,
   workEndMinutes,
+  workingDay,
   officeTimeZone,
   schedule,
   currentUserId,
@@ -584,6 +627,7 @@ function DayColumn({
   startMinutes: number;
   workStartMinutes: number;
   workEndMinutes: number;
+  workingDay: boolean;
   officeTimeZone: string;
   schedule: Schedule;
   currentUserId: string;
@@ -605,11 +649,20 @@ function DayColumn({
 
   return (
     <div
-      className={`day-column${selectedOnMobile ? " is-mobile-selected" : ""}`}
+      className={`day-column${selectedOnMobile ? " is-mobile-selected" : ""}${
+        !workingDay ? " is-closed" : ""
+      }`}
     >
+      {!workingDay && (
+        <span className="day-column__closed-label">
+          {t("calendar.closedDay")}
+        </span>
+      )}
       {slots.map((minutes) => {
         const outsideWorkingHours =
-          minutes < workStartMinutes || minutes >= workEndMinutes;
+          !workingDay ||
+          minutes < workStartMinutes ||
+          minutes >= workEndMinutes;
         const start = officeLocalToInstant(
           day,
           Math.floor(minutes / 60),
