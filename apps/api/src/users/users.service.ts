@@ -9,11 +9,11 @@ import { createOpaqueToken, hashToken } from "../common/crypto";
 import { EmailVerificationPolicy } from "../common/email-verification";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
-import type { CurrentUser } from "../common/types";
+import type { CurrentUser, Locale } from "../common/types";
 import type {
   ChangeEmailDto,
   ChangePasswordDto,
-  UpdateProfileDto
+  UpdateProfileDto,
 } from "./users.dto";
 
 interface ProfileRow {
@@ -25,7 +25,7 @@ interface ProfileRow {
   avatar_preset: string;
   avatar_path: string | null;
   role: "USER" | "ADMIN";
-  locale: "uk" | "en";
+  locale: Locale;
   theme: "SYSTEM" | "LIGHT" | "DARK";
   timezone: string | null;
   email_verified_at: Date | null;
@@ -40,7 +40,7 @@ export class UsersService {
 
   constructor(
     private readonly database: DatabaseService,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.uploadDir =
       config.get<string>("UPLOAD_DIR") ??
@@ -50,28 +50,28 @@ export class UsersService {
 
   async updateProfile(
     userId: string,
-    dto: UpdateProfileDto
+    dto: UpdateProfileDto,
   ): Promise<CurrentUser> {
     const name = dto.name?.trim();
     if (dto.name !== undefined && !name) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "NAME_REQUIRED",
-        "Name is required"
+        "Name is required",
       );
     }
     if (dto.timezone && !this.isTimeZone(dto.timezone)) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "INVALID_TIMEZONE",
-        "Unknown time zone"
+        "Unknown time zone",
       );
     }
 
     const previous = dto.avatarPreset
       ? await this.database.query<{ avatar_path: string | null }>(
           "select avatar_path from users where id = $1",
-          [userId]
+          [userId],
         )
       : null;
     const result = await this.database.query<ProfileRow>(
@@ -98,12 +98,14 @@ export class UsersService {
         dto.locale ?? null,
         dto.theme ?? null,
         dto.timezone !== undefined,
-        dto.timezone ?? null
-      ]
+        dto.timezone ?? null,
+      ],
     );
     const previousPath = previous?.rows[0]?.avatar_path;
     if (previousPath) {
-      await unlink(resolve(this.uploadDir, previousPath)).catch(() => undefined);
+      await unlink(resolve(this.uploadDir, previousPath)).catch(
+        () => undefined,
+      );
     }
     return this.toCurrentUser(result.rows[0]);
   }
@@ -113,7 +115,10 @@ export class UsersService {
     const current = await this.database.query<{
       email: string;
       password_hash: string;
-    }>("select email, password_hash from users where id = $1", [userId]);
+      locale: Locale;
+    }>("select email, password_hash, locale from users where id = $1", [
+      userId,
+    ]);
     const user = current.rows[0];
     if (
       !user ||
@@ -122,14 +127,14 @@ export class UsersService {
       throw apiError(
         HttpStatus.UNAUTHORIZED,
         "CURRENT_PASSWORD_INCORRECT",
-        "Current password is incorrect"
+        "Current password is incorrect",
       );
     }
     if (user.email.trim().toLowerCase() === email) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "EMAIL_UNCHANGED",
-        "New email must be different from the current email"
+        "New email must be different from the current email",
       );
     }
     const duplicate = await this.database.query(
@@ -142,20 +147,18 @@ export class UsersService {
             or lower(trim(pending_email)) = $2
           )
       `,
-      [userId, email]
+      [userId, email],
     );
     if (duplicate.rowCount) {
       throw apiError(
         HttpStatus.CONFLICT,
         "EMAIL_TAKEN",
-        "This email is already registered"
+        "This email is already registered",
       );
     }
 
     this.emailVerification.assertDeliveryConfigured();
-    const token = this.emailVerification.required
-      ? createOpaqueToken()
-      : null;
+    const token = this.emailVerification.required ? createOpaqueToken() : null;
     await this.database.transaction(async (client) => {
       await client.query(
         `
@@ -178,14 +181,18 @@ export class UsersService {
           )
             and status in ('PENDING', 'PROCESSING', 'FAILED')
         `,
-        [userId]
+        [userId],
       );
       if (token) {
         const verificationId = randomUUID();
-        const message = this.emailVerification.message("CHANGE_EMAIL", token);
+        const message = this.emailVerification.message(
+          "CHANGE_EMAIL",
+          token,
+          user.locale,
+        );
         await client.query(
           "update users set pending_email = $2, updated_at = now() where id = $1",
-          [userId, email]
+          [userId, email],
         );
         await client.query(
           `
@@ -194,7 +201,7 @@ export class UsersService {
             )
             values ($1, $2, $3, $4, now() + interval '24 hours')
           `,
-          [verificationId, userId, hashToken(token), email]
+          [verificationId, userId, hashToken(token), email],
         );
         await client.query(
           `
@@ -211,9 +218,9 @@ export class UsersService {
               title: message.title,
               body: message.body,
               forcedChannels: ["EMAIL"],
-              recipientEmail: email
-            })
-          ]
+              recipientEmail: email,
+            }),
+          ],
         );
       } else {
         await client.query(
@@ -226,7 +233,7 @@ export class UsersService {
               updated_at = now()
             where id = $1
           `,
-          [userId, email]
+          [userId, email],
         );
       }
       await client.query(
@@ -242,35 +249,35 @@ export class UsersService {
           JSON.stringify({
             pendingEmail: token ? email : null,
             email: token ? user.email : email,
-            verificationRequired: Boolean(token)
-          })
-        ]
+            verificationRequired: Boolean(token),
+          }),
+        ],
       );
     });
 
     return {
       email: token ? user.email : email,
       pendingEmail: token ? email : null,
-      verificationRequired: Boolean(token)
+      verificationRequired: Boolean(token),
     };
   }
 
   async changePassword(
     userId: string,
     sessionId: string,
-    dto: ChangePasswordDto
+    dto: ChangePasswordDto,
   ): Promise<void> {
     const passwordLength = Array.from(dto.newPassword).length;
     if (passwordLength < 8 || passwordLength > 72) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "PASSWORD_LENGTH",
-        "Password must contain 8 to 72 characters"
+        "Password must contain 8 to 72 characters",
       );
     }
     const current = await this.database.query<{ password_hash: string }>(
       "select password_hash from users where id = $1",
-      [userId]
+      [userId],
     );
     const passwordHash = current.rows[0]?.password_hash;
     if (
@@ -280,21 +287,21 @@ export class UsersService {
       throw apiError(
         HttpStatus.UNAUTHORIZED,
         "CURRENT_PASSWORD_INCORRECT",
-        "Current password is incorrect"
+        "Current password is incorrect",
       );
     }
     if (await argon2.verify(passwordHash, dto.newPassword)) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "PASSWORD_UNCHANGED",
-        "New password must be different from the current password"
+        "New password must be different from the current password",
       );
     }
     const nextPasswordHash = await argon2.hash(dto.newPassword);
     await this.database.transaction(async (client) => {
       await client.query(
         "update users set password_hash = $2, updated_at = now() where id = $1",
-        [userId, nextPasswordHash]
+        [userId, nextPasswordHash],
       );
       await client.query(
         `
@@ -302,7 +309,7 @@ export class UsersService {
           set revoked_at = now()
           where user_id = $1 and id <> $2 and revoked_at is null
         `,
-        [userId, sessionId]
+        [userId, sessionId],
       );
       await client.query(
         `
@@ -310,7 +317,7 @@ export class UsersService {
             (id, actor_id, action, target_type, target_id)
           values ($1, $2, 'PASSWORD_CHANGED', 'USER', $2)
         `,
-        [randomUUID(), userId]
+        [randomUUID(), userId],
       );
     });
   }
@@ -320,7 +327,7 @@ export class UsersService {
     try {
       processed = await sharp(file.buffer, {
         failOn: "warning",
-        limitInputPixels: 20_000_000
+        limitInputPixels: 20_000_000,
       })
         .rotate()
         .resize(512, 512, { fit: "cover", position: "attention" })
@@ -330,19 +337,19 @@ export class UsersService {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "INVALID_IMAGE",
-        "Avatar must be a valid image"
+        "Avatar must be a valid image",
       );
     }
 
     await mkdir(this.uploadDir, { recursive: true });
     const filename = `${randomUUID()}.webp`;
     await writeFile(resolve(this.uploadDir, filename), processed, {
-      flag: "wx"
+      flag: "wx",
     });
 
     const previous = await this.database.query<{ avatar_path: string | null }>(
       "select avatar_path from users where id = $1",
-      [userId]
+      [userId],
     );
     await this.database.query(
       `
@@ -350,11 +357,13 @@ export class UsersService {
         set avatar_path = $2, updated_at = now()
         where id = $1
       `,
-      [userId, filename]
+      [userId, filename],
     );
     const previousPath = previous.rows[0]?.avatar_path;
     if (previousPath && previousPath !== filename) {
-      await unlink(resolve(this.uploadDir, previousPath)).catch(() => undefined);
+      await unlink(resolve(this.uploadDir, previousPath)).catch(
+        () => undefined,
+      );
     }
 
     return { avatarUrl: `/uploads/${filename}` };
@@ -380,7 +389,7 @@ export class UsersService {
         order by name
         limit 30
       `,
-      [userId, term]
+      [userId, term],
     );
 
     return result.rows.map((row) => ({
@@ -388,7 +397,7 @@ export class UsersService {
       name: row.name,
       bio: row.bio,
       avatarPreset: row.avatar_preset,
-      avatarUrl: row.avatar_path ? `/uploads/${row.avatar_path}` : null
+      avatarUrl: row.avatar_path ? `/uploads/${row.avatar_path}` : null,
     }));
   }
 
@@ -416,7 +425,7 @@ export class UsersService {
       timezone: row.timezone,
       emailVerified: Boolean(row.email_verified_at),
       approved: Boolean(row.approved_at),
-      accessRevoked: Boolean(row.access_revoked_at)
+      accessRevoked: Boolean(row.access_revoked_at),
     };
   }
 }

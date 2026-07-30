@@ -10,19 +10,20 @@ import {
   timestamp,
   unique,
   uuid,
-  varchar
+  varchar,
 } from "drizzle-orm/pg-core";
 import type {
   ExternalNotificationChannelName,
   NotificationCategory,
-  NotificationChannelName
+  NotificationChannelName,
 } from "../../notifications/notification-channel";
+import type { Locale } from "../../common/types";
 
 export const notificationUsers = pgTable("users", {
   id: uuid("id").primaryKey(),
   email: varchar("email", { length: 320 }).notNull(),
-  locale: varchar("locale", { length: 10 }).$type<"uk" | "en">().notNull(),
-  timezone: varchar("timezone", { length: 80 })
+  locale: varchar("locale", { length: 10 }).$type<Locale>().notNull(),
+  timezone: varchar("timezone", { length: 80 }),
 });
 
 export const notificationBookings = pgTable("bookings", {
@@ -34,7 +35,7 @@ export const notificationBookings = pgTable("bookings", {
   title: varchar("title", { length: 100 }).notNull(),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
   endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
-  cancelledAt: timestamp("cancelled_at", { withTimezone: true })
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
 });
 
 export interface NotificationOutboxPayload {
@@ -58,19 +59,19 @@ export const notifications = pgTable(
     title: varchar("title", { length: 160 }).notNull(),
     body: text("body").notNull(),
     bookingId: uuid("booking_id").references(() => notificationBookings.id, {
-      onDelete: "cascade"
+      onDelete: "cascade",
     }),
     readAt: timestamp("read_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
-      .defaultNow()
+      .defaultNow(),
   },
   (table) => [
     index("notifications_user_created_idx").on(
       table.userId,
-      table.createdAt.desc()
-    )
-  ]
+      table.createdAt.desc(),
+    ),
+  ],
 );
 
 export const notificationSubscriptions = pgTable(
@@ -84,16 +85,16 @@ export const notificationSubscriptions = pgTable(
     enabled: boolean("enabled").notNull().default(true),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
-      .defaultNow()
+      .defaultNow(),
   },
   (table) => [
     primaryKey({
-      columns: [table.userId, table.category, table.channel]
+      columns: [table.userId, table.category, table.channel],
     }),
     index("notification_subscriptions_delivery_idx")
       .on(table.userId, table.category, table.channel)
-      .where(sql`${table.enabled}`)
-  ]
+      .where(sql`${table.enabled}`),
+  ],
 );
 
 export const telegramConnections = pgTable(
@@ -105,9 +106,9 @@ export const telegramConnections = pgTable(
     chatId: text("chat_id").notNull(),
     connectedAt: timestamp("connected_at", { withTimezone: true })
       .notNull()
-      .defaultNow()
+      .defaultNow(),
   },
-  (table) => [unique("telegram_connections_chat_id_key").on(table.chatId)]
+  (table) => [unique("telegram_connections_chat_id_key").on(table.chatId)],
 );
 
 export const telegramLinkTokens = pgTable(
@@ -122,11 +123,11 @@ export const telegramLinkTokens = pgTable(
     usedAt: timestamp("used_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
-      .defaultNow()
+      .defaultNow(),
   },
   (table) => [
-    unique("telegram_link_tokens_token_hash_key").on(table.tokenHash)
-  ]
+    unique("telegram_link_tokens_token_hash_key").on(table.tokenHash),
+  ],
 );
 
 export const notificationOutbox = pgTable(
@@ -148,14 +149,14 @@ export const notificationOutbox = pgTable(
     processedAt: timestamp("processed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
-      .defaultNow()
+      .defaultNow(),
   },
   (table) => [
     unique("notification_outbox_event_key_key").on(table.eventKey),
     index("notification_outbox_pending_idx")
       .on(table.nextAttemptAt)
-      .where(sql`${table.status} in ('PENDING', 'FAILED')`)
-  ]
+      .where(sql`${table.status} in ('PENDING', 'FAILED')`),
+  ],
 );
 
 export const notificationBookingParticipants = pgTable(
@@ -169,11 +170,11 @@ export const notificationBookingParticipants = pgTable(
       .references(() => notificationUsers.id, { onDelete: "cascade" }),
     status: varchar("status", { length: 20 })
       .$type<"INVITED" | "ACCEPTED" | "DECLINED">()
-      .notNull()
+      .notNull(),
   },
   (table) => [
     primaryKey({
-      columns: [table.bookingId, table.userId]
-    })
-  ]
+      columns: [table.bookingId, table.userId],
+    }),
+  ],
 );

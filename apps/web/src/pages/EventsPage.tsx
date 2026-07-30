@@ -23,27 +23,21 @@ export function EventsPage({ user }: { user: User }) {
   const queryClient = useQueryClient();
   const events = useQuery({
     queryKey: ["open-events"],
-    queryFn: () => api<{ events: OpenEvent[] }>("/api/bookings/open")
+    queryFn: () => api<{ events: OpenEvent[] }>("/api/bookings/open"),
   });
   const participation = useMutation({
-    mutationFn: ({
-      id,
-      join
-    }: {
-      id: string;
-      join: boolean;
-    }) =>
+    mutationFn: ({ id, join }: { id: string; join: boolean }) =>
       api<void>(`/api/bookings/${id}/join`, {
-        method: join ? "POST" : "DELETE"
+        method: join ? "POST" : "DELETE",
       }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["open-events"] })
+      queryClient.invalidateQueries({ queryKey: ["open-events"] }),
   });
 
   return (
     <div
       className="page editorial-page events-page"
-      data-page-mark="EVENTS"
+      data-page-mark={t("marks.events")}
     >
       <header className="page-header">
         <div>
@@ -57,9 +51,7 @@ export function EventsPage({ user }: { user: User }) {
       ) : events.isError ? (
         <div className="state-panel state-panel--error">
           <strong>{t("events.loadError")}</strong>
-          <span>
-            {errorMessage(events.error, t, "events.loadError")}
-          </span>
+          <span>{errorMessage(events.error, t, "events.loadError")}</span>
         </div>
       ) : events.data?.events.length === 0 ? (
         <div className="empty-state">
@@ -88,13 +80,13 @@ export function EventsPage({ user }: { user: User }) {
                 <div className="event-card__date">
                   <span>
                     {new Intl.DateTimeFormat(dateLocale, {
-                      weekday: "long"
+                      weekday: "long",
                     }).format(new Date(event.startsAt))}
                   </span>
                   <strong>
                     {new Intl.DateTimeFormat(dateLocale, {
                       day: "numeric",
-                      month: "long"
+                      month: "long",
                     }).format(new Date(event.startsAt))}
                   </strong>
                 </div>
@@ -102,7 +94,7 @@ export function EventsPage({ user }: { user: User }) {
                 <p>
                   {new Intl.DateTimeFormat(dateLocale, {
                     hour: "2-digit",
-                    minute: "2-digit"
+                    minute: "2-digit",
                   }).format(new Date(event.startsAt))}
                   {" · "}
                   {event.room?.name ?? t("booking.onlineMeeting")}
@@ -114,7 +106,7 @@ export function EventsPage({ user }: { user: User }) {
                   <span>
                     {t("events.participants", {
                       current: event.participantCount,
-                      capacity
+                      capacity,
                     })}
                   </span>
                 </div>

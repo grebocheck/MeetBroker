@@ -1,10 +1,7 @@
-export type Locale = "uk" | "en";
+export type Locale = "uk" | "en" | "de" | "es" | "fr" | "ja";
 export type Theme = "SYSTEM" | "LIGHT" | "DARK";
 export type Capability =
-  | "BOOKING_CREATE"
-  | "BOOKING_CANCEL_OWN"
-  | "SCHEDULE_VIEW"
-  | "ACCOUNT_LOGIN";
+  "BOOKING_CREATE" | "BOOKING_CANCEL_OWN" | "SCHEDULE_VIEW" | "ACCOUNT_LOGIN";
 
 export interface ActiveRestriction {
   id: string;

@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  HttpStatus,
-  Injectable
-} from "@nestjs/common";
+import { ConflictException, HttpStatus, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
 import * as argon2 from "argon2";
@@ -46,7 +42,7 @@ export class AuthService {
   constructor(
     private readonly database: DatabaseService,
     private readonly accessPolicies: AccessPoliciesService,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.sessionTtlDays = Number(config.get("SESSION_TTL_DAYS") ?? 30);
     this.emailVerification = new EmailVerificationPolicy(config);
@@ -64,14 +60,14 @@ export class AuthService {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "NAME_REQUIRED",
-        "Name is required"
+        "Name is required",
       );
     }
     if (passwordLength < 8 || passwordLength > 72) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "PASSWORD_LENGTH",
-        "Password must contain 8 to 72 characters"
+        "Password must contain 8 to 72 characters",
       );
     }
     this.emailVerification.assertDeliveryConfigured();
@@ -83,12 +79,12 @@ export class AuthService {
         where lower(trim(email)) = $1
           or lower(trim(pending_email)) = $1
       `,
-      [email]
+      [email],
     );
     if (existing.rowCount) {
       throw new ConflictException({
         code: "EMAIL_TAKEN",
-        message: "This email is already registered"
+        message: "This email is already registered",
       });
     }
 
@@ -106,11 +102,12 @@ export class AuthService {
         await client.query(
           `
             insert into users (
-              id, name, email, password_hash, email_verified_at
+              id, name, email, password_hash, email_verified_at, locale
             )
             values (
               $1, $2, $3, $4,
-              case when $5::boolean then null else now() end
+              case when $5::boolean then null else now() end,
+              $6
             )
           `,
           [
@@ -118,13 +115,15 @@ export class AuthService {
             name,
             email,
             passwordHash,
-            this.emailVerification.required
-          ]
+            this.emailVerification.required,
+            dto.locale ?? "uk",
+          ],
         );
         if (verificationId && verificationToken) {
           const message = this.emailVerification.message(
             "REGISTER",
-            verificationToken
+            verificationToken,
+            dto.locale ?? "uk",
           );
           await client.query(
             `
@@ -132,7 +131,7 @@ export class AuthService {
                 (id, user_id, token_hash, expires_at)
               values ($1, $2, $3, now() + interval '24 hours')
             `,
-            [verificationId, userId, hashToken(verificationToken)]
+            [verificationId, userId, hashToken(verificationToken)],
           );
           await client.query(
             `
@@ -149,9 +148,9 @@ export class AuthService {
                 title: message.title,
                 body: message.body,
                 forcedChannels: ["EMAIL"],
-                recipientEmail: email
-              })
-            ]
+                recipientEmail: email,
+              }),
+            ],
           );
         }
         await client.query(
@@ -159,7 +158,7 @@ export class AuthService {
             insert into notification_preferences (user_id)
             values ($1)
           `,
-          [userId]
+          [userId],
         );
         await client.query(
           `
@@ -177,7 +176,7 @@ export class AuthService {
               array['IN_APP', 'EMAIL', 'TELEGRAM']
             ) as channels(channel)
           `,
-          [userId]
+          [userId],
         );
       });
     } catch (error) {
@@ -188,7 +187,7 @@ export class AuthService {
       ) {
         throw new ConflictException({
           code: "EMAIL_TAKEN",
-          message: "This email is already registered"
+          message: "This email is already registered",
         });
       }
       throw error;
@@ -196,7 +195,7 @@ export class AuthService {
 
     return {
       userId,
-      verificationRequired: this.emailVerification.required
+      verificationRequired: this.emailVerification.required,
     };
   }
 
@@ -214,14 +213,14 @@ export class AuthService {
             and expires_at > now()
           returning user_id, pending_email
         `,
-        [hashToken(token)]
+        [hashToken(token)],
       );
       const verification = result.rows[0];
       if (!verification) {
         throw apiError(
           HttpStatus.BAD_REQUEST,
           "INVALID_VERIFICATION_TOKEN",
-          "Verification link is invalid or expired"
+          "Verification link is invalid or expired",
         );
       }
 
@@ -237,13 +236,13 @@ export class AuthService {
             where id = $1
               and lower(trim(pending_email)) = lower(trim($2))
           `,
-          [verification.user_id, verification.pending_email]
+          [verification.user_id, verification.pending_email],
         );
         if (!changed.rowCount) {
           throw apiError(
             HttpStatus.BAD_REQUEST,
             "EMAIL_CHANGE_SUPERSEDED",
-            "A newer email change request is active"
+            "A newer email change request is active",
           );
         }
         await client.query(
@@ -252,7 +251,7 @@ export class AuthService {
               (id, actor_id, action, target_type, target_id)
             values ($1, $2, 'EMAIL_CHANGED', 'USER', $2)
           `,
-          [randomUUID(), verification.user_id]
+          [randomUUID(), verification.user_id],
         );
       } else {
         await client.query(
@@ -261,7 +260,7 @@ export class AuthService {
             set email_verified_at = coalesce(email_verified_at, now())
             where id = $1
           `,
-          [verification.user_id]
+          [verification.user_id],
         );
       }
     });
@@ -271,28 +270,28 @@ export class AuthService {
     const email = dto.email.trim().toLowerCase();
     const result = await this.database.query<UserRow>(
       "select * from users where lower(trim(email)) = $1",
-      [email]
+      [email],
     );
     const row = result.rows[0];
     if (!row || !(await argon2.verify(row.password_hash, dto.password))) {
       throw apiError(
         HttpStatus.UNAUTHORIZED,
         "INVALID_CREDENTIALS",
-        "Email or password is incorrect"
+        "Email or password is incorrect",
       );
     }
     if (row.access_revoked_at) {
       throw apiError(
         HttpStatus.FORBIDDEN,
         "ACCESS_REVOKED",
-        "Corporate access has been revoked"
+        "Corporate access has been revoked",
       );
     }
     if (this.emailVerification.required && !row.email_verified_at) {
       throw apiError(
         HttpStatus.FORBIDDEN,
         "EMAIL_VERIFICATION_REQUIRED",
-        "Verify the email address before signing in"
+        "Verify the email address before signing in",
       );
     }
     await this.accessPolicies.assertAllowed(
@@ -304,14 +303,14 @@ export class AuthService {
 
     const token = createOpaqueToken();
     const expiresAt = new Date(
-      Date.now() + this.sessionTtlDays * 24 * 60 * 60 * 1000
+      Date.now() + this.sessionTtlDays * 24 * 60 * 60 * 1000,
     );
     await this.database.query(
       `
         insert into sessions (id, user_id, token_hash, expires_at)
         values ($1, $2, $3, $4)
       `,
-      [randomUUID(), row.id, hashToken(token), expiresAt]
+      [randomUUID(), row.id, hashToken(token), expiresAt],
     );
 
     return {
@@ -324,7 +323,7 @@ export class AuthService {
   async logout(sessionId: string): Promise<void> {
     await this.database.query(
       "update sessions set revoked_at = now() where id = $1",
-      [sessionId]
+      [sessionId],
     );
   }
 
@@ -343,7 +342,7 @@ export class AuthService {
       timezone: row.timezone,
       emailVerified: Boolean(row.email_verified_at),
       approved: Boolean(row.approved_at),
-      accessRevoked: Boolean(row.access_revoked_at)
+      accessRevoked: Boolean(row.access_revoked_at),
     };
   }
 }

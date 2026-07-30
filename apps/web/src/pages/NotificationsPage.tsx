@@ -16,19 +16,19 @@ export function NotificationsPage() {
     queryKey: ["notifications", page],
     queryFn: () =>
       api<NotificationsResponse>(`/api/notifications?page=${page}&limit=12`),
-    placeholderData: (previousData) => previousData
+    placeholderData: (previousData) => previousData,
   });
   const read = useMutation({
     mutationFn: (id: string) =>
       api<void>(`/api/notifications/${id}/read`, { method: "PATCH" }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
   const readAll = useMutation({
     mutationFn: () =>
       api<void>("/api/notifications/read-all", { method: "PATCH" }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
   const markRead = (item: NotificationItem) => {
@@ -42,7 +42,7 @@ export function NotificationsPage() {
   return (
     <div
       className="page editorial-page notifications-page"
-      data-page-mark="LOG"
+      data-page-mark={t("marks.log")}
     >
       <header className="page-header">
         <div>
@@ -54,9 +54,7 @@ export function NotificationsPage() {
           <Button
             variant="ghost"
             size="small"
-            disabled={
-              !notifications.data?.unreadCount || readAll.isPending
-            }
+            disabled={!notifications.data?.unreadCount || readAll.isPending}
             onClick={() => {
               read.reset();
               readAll.reset();
@@ -78,18 +76,22 @@ export function NotificationsPage() {
       </header>
       {notifications.isLoading ? (
         <div className="list-skeleton">
-          <div><i /><span /><span /></div>
-          <div><i /><span /><span /></div>
+          <div>
+            <i />
+            <span />
+            <span />
+          </div>
+          <div>
+            <i />
+            <span />
+            <span />
+          </div>
         </div>
       ) : notifications.isError ? (
         <div className="state-panel state-panel--error">
           <strong>{t("notifications.loadError")}</strong>
           <span>
-            {errorMessage(
-              notifications.error,
-              t,
-              "notifications.loadError"
-            )}
+            {errorMessage(notifications.error, t, "notifications.loadError")}
           </span>
           <Button
             variant="secondary"
@@ -109,11 +111,7 @@ export function NotificationsPage() {
         <>
           {actionError && (
             <div className="form-error" role="alert">
-              {errorMessage(
-                actionError,
-                t,
-                "notifications.actionError"
-              )}
+              {errorMessage(actionError, t, "notifications.actionError")}
             </div>
           )}
           <div className="notification-list">
@@ -139,7 +137,7 @@ export function NotificationsPage() {
                     <small>
                       {new Intl.DateTimeFormat(dateLocale, {
                         dateStyle: "medium",
-                        timeStyle: "short"
+                        timeStyle: "short",
                       }).format(new Date(item.createdAt))}
                     </small>
                   </span>

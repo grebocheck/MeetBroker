@@ -1,6 +1,8 @@
 import { HttpStatus } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { apiError } from "./http-error";
+import { localize } from "./localization";
+import type { Locale } from "./types";
 
 export type EmailVerificationPurpose = "REGISTER" | "CHANGE_EMAIL";
 
@@ -17,7 +19,7 @@ export class EmailVerificationPolicy {
   constructor(config: ConfigService) {
     this.required = parseBoolean(
       config.get<string>("EMAIL_VERIFICATION_REQUIRED"),
-      true
+      true,
     );
     this.appOrigin =
       config.get<string>("APP_ORIGIN") ?? "http://localhost:8080";
@@ -29,33 +31,34 @@ export class EmailVerificationPolicy {
     throw apiError(
       HttpStatus.SERVICE_UNAVAILABLE,
       "EMAIL_DELIVERY_UNAVAILABLE",
-      "Email verification is required, but SMTP delivery is not configured"
+      "Email verification is required, but SMTP delivery is not configured",
     );
   }
 
   message(
     purpose: EmailVerificationPurpose,
-    token: string
+    token: string,
+    locale: Locale = "uk",
   ): EmailVerificationMessage {
     const url = new URL("/verify-email", this.appOrigin);
     url.searchParams.set("token", token);
     if (purpose === "CHANGE_EMAIL") {
       return {
-        title: "Підтвердіть нову email-адресу в MeetBroker",
+        title: localize(locale, "emailChangeTitle"),
         body: [
-          "Ви запросили зміну email-адреси в MeetBroker.",
-          `Підтвердьте нову адресу протягом 24 годин: ${url.toString()}`,
-          "Якщо це були не ви, не переходьте за посиланням."
-        ].join("\n\n")
+          localize(locale, "emailChangeIntro"),
+          localize(locale, "emailChangeAction", { url: url.toString() }),
+          localize(locale, "emailChangeAfter"),
+        ].join("\n\n"),
       };
     }
     return {
-      title: "Підтвердіть email у MeetBroker",
+      title: localize(locale, "emailRegisterTitle"),
       body: [
-        "Ваш профіль MeetBroker майже готовий.",
-        `Підтвердьте email протягом 24 годин: ${url.toString()}`,
-        "Після цього адміністратор зможе схвалити корпоративний доступ."
-      ].join("\n\n")
+        localize(locale, "emailRegisterIntro"),
+        localize(locale, "emailRegisterAction", { url: url.toString() }),
+        localize(locale, "emailRegisterAfter"),
+      ].join("\n\n"),
     };
   }
 }

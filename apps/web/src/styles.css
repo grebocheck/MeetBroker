@@ -45,6 +45,24 @@
   --shape-nav-origin: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
 }
 
+:root:lang(ja) {
+  font-family:
+    "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui,
+    sans-serif;
+}
+
+:root:lang(ja)
+  :where(h1, h2, h3, .eyebrow, .nav-caption, .nav-item, .page-tab, .button),
+:root:lang(ja) .editorial-page::before,
+:root:lang(ja) .calendar-toolbar__word,
+:root:lang(ja) .meetings-next::before {
+  font-family:
+    "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui,
+    sans-serif;
+  font-style: normal;
+  letter-spacing: 0.02em;
+}
+
 :root[data-theme="dark"] {
   color-scheme: dark;
   --surface: #030d22;
@@ -588,6 +606,26 @@ hr {
   box-shadow: 0 18px 44px rgba(0, 10, 35, 0.35);
   flex-direction: column;
   gap: 4px;
+  max-height: min(70vh, 360px);
+  overflow-y: auto;
+}
+
+.auth-language-control {
+  position: absolute;
+  top: 22px;
+  right: 24px;
+}
+
+.auth-language-control select {
+  min-width: 148px;
+  min-height: 38px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 3px 12px 3px 12px;
+  background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
 }
 
 .language-menu > span {
@@ -5225,6 +5263,7 @@ hr {
 }
 
 .auth-panel {
+  position: relative;
   display: grid;
   place-items: center;
   padding: 40px;
@@ -5432,7 +5471,7 @@ hr {
   letter-spacing: -0.08em;
   line-height: 0.8;
   transform: rotate(-8deg);
-  content: "NEXT";
+  content: attr(data-mark);
   pointer-events: none;
 }
 
@@ -6732,6 +6771,11 @@ hr {
   }
 
   .auth-panel {
-    padding: 24px 18px;
+    padding: 76px 18px 24px;
+  }
+
+  .auth-language-control {
+    top: 18px;
+    right: 18px;
   }
 }

@@ -1,10 +1,13 @@
 import {
   IsEmail,
+  IsIn,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
-  MinLength
+  MinLength,
 } from "class-validator";
+import type { Locale } from "../common/types";
 
 export class RegisterDto {
   @IsString()
@@ -20,6 +23,10 @@ export class RegisterDto {
   @MinLength(8)
   @MaxLength(72)
   password!: string;
+
+  @IsOptional()
+  @IsIn(["uk", "en", "de", "es", "fr", "ja"])
+  locale?: Locale;
 }
 
 export class LoginDto {

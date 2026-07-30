@@ -101,7 +101,7 @@ export function MyMeetingsPage({ user }: { user: User }) {
   return (
     <div
       className="page editorial-page meetings-calendar-page"
-      data-page-mark="HOME"
+      data-page-mark={t("marks.home")}
     >
       <header className="page-header meetings-calendar-header">
         <div>
@@ -115,7 +115,7 @@ export function MyMeetingsPage({ user }: { user: User }) {
         className="meetings-overview"
         aria-label={t("meetings.overview")}
       >
-        <article className="meetings-next card">
+        <article className="meetings-next card" data-mark={t("marks.next")}>
           <span className="eyebrow">{t("meetings.nextMeeting")}</span>
           {meetings.isLoading ? (
             <div className="meetings-next__empty">
@@ -183,7 +183,7 @@ export function MyMeetingsPage({ user }: { user: User }) {
       <div className="agenda-stage">
         <div className="agenda-stage__caption" aria-hidden="true">
           <span>MeetBroker</span>
-          <strong>Personal / Agenda</strong>
+          <strong>{t("stage.personalAgenda")}</strong>
         </div>
         <section className="personal-agenda card">
           <div className="meetings-calendar__toolbar">

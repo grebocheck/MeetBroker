@@ -190,7 +190,7 @@ export function CalendarPage({ user }: { user: User }) {
     <div className="page calendar-page">
       <header className="page-header calendar-toolbar">
         <span className="calendar-toolbar__word" aria-hidden="true">
-          Schedule
+          {t("marks.schedule")}
         </span>
         <div className="room-identity">
           <RoomVisual
@@ -219,8 +219,8 @@ export function CalendarPage({ user }: { user: User }) {
 
       <div className="schedule-stage">
         <div className="schedule-stage__caption" aria-hidden="true">
-          <span>MeetBroker / Schedule</span>
-          <strong>Live room plan</strong>
+          <span>{t("stage.schedule")}</span>
+          <strong>{t("stage.liveRoomPlan")}</strong>
         </div>
         <section className="calendar-card" ref={calendarCardRef}>
           <div className="calendar-table-toolbar">
@@ -625,7 +625,7 @@ function DayColumn({
   onBooking: (booking: Booking) => void;
   onBlock: (block: RoomBlock) => void;
 }) {
-  const { t } = useI18n();
+  const { dateLocale, t } = useI18n();
   const key = dateKeyInZone(
     officeLocalToInstant(day, 12, 0, officeTimeZone),
     officeTimeZone,
@@ -745,7 +745,7 @@ function DayColumn({
             onClick={() => onBooking(booking)}
           >
             <small>
-              {new Intl.DateTimeFormat("uk-UA", {
+              {new Intl.DateTimeFormat(dateLocale, {
                 hour: "2-digit",
                 minute: "2-digit",
                 hour12: false,

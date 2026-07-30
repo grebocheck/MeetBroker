@@ -91,7 +91,7 @@ export function BookingListPage({ user }: { user: User }) {
   return (
     <div
       className="page editorial-page bookings-page"
-      data-page-mark="BOOKINGS"
+      data-page-mark={t("marks.bookings")}
     >
       <header className="page-header">
         <div>

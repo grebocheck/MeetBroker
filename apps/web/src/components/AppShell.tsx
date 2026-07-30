@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ComponentType, SVGProps } from "react";
 import { api } from "../lib/api";
-import { useI18n } from "../lib/i18n";
+import { localeOptions, useI18n } from "../lib/i18n";
 import { Link, navigate } from "../lib/router";
 import type { Capability, NotificationsResponse, User } from "../types";
 import type { MessageKey } from "../locales/uk";
@@ -75,6 +75,8 @@ export function AppShell({ user, path }: { user: User; path: string }) {
     user.theme === "DARK" ||
     (user.theme === "SYSTEM" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const activeLocale =
+    localeOptions.find((option) => option.value === locale) ?? localeOptions[1];
   const route = currentRoute(path);
   const items: NavItem[] = [
     { href: "/my-calendar", label: t("myMeetings"), icon: CalendarIcon },
@@ -174,38 +176,35 @@ export function AppShell({ user, path }: { user: User; path: string }) {
               title={t("shell.chooseLanguage")}
             >
               <GlobeIcon />
-              <span>{locale === "uk" ? "UA" : "EN"}</span>
+              <span>{activeLocale.shortLabel}</span>
             </summary>
             <div className="language-menu" role="menu">
               <span>{t("shell.chooseLanguage")}</span>
-              <button
-                className={locale === "uk" ? "is-active" : ""}
-                disabled={quickSettings.isPending}
-                onClick={() => {
-                  if (locale === "uk") return;
-                  quickSettings.mutate(
-                    { locale: "uk" },
-                    { onSuccess: () => window.location.reload() },
-                  );
-                }}
-                role="menuitem"
-              >
-                Українська <strong>UA</strong>
-              </button>
-              <button
-                className={locale === "en" ? "is-active" : ""}
-                disabled={quickSettings.isPending}
-                onClick={() => {
-                  if (locale === "en") return;
-                  quickSettings.mutate(
-                    { locale: "en" },
-                    { onSuccess: () => window.location.reload() },
-                  );
-                }}
-                role="menuitem"
-              >
-                English <strong>EN</strong>
-              </button>
+              {localeOptions.map((option) => (
+                <button
+                  className={locale === option.value ? "is-active" : ""}
+                  disabled={quickSettings.isPending}
+                  onClick={() => {
+                    if (locale === option.value) return;
+                    quickSettings.mutate(
+                      { locale: option.value },
+                      {
+                        onSuccess: () => {
+                          window.localStorage.setItem(
+                            "meetbroker.locale",
+                            option.value,
+                          );
+                          window.location.reload();
+                        },
+                      },
+                    );
+                  }}
+                  role="menuitem"
+                  key={option.value}
+                >
+                  {option.label} <strong>{option.shortLabel}</strong>
+                </button>
+              ))}
             </div>
           </details>
         </div>

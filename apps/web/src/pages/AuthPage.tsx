@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { errorMessage } from "../lib/error-message";
-import { useI18n } from "../lib/i18n";
+import { localeOptions, useI18n } from "../lib/i18n";
 import { Link, navigate } from "../lib/router";
 import type { User } from "../types";
 import { BrandMark } from "../components/BrandMark";
@@ -16,13 +16,13 @@ export function AuthPage({ path }: { path: string }) {
 function AuthFrame({
   title,
   subtitle,
-  children
+  children,
 }: {
   title: string;
   subtitle: string;
   children: React.ReactNode;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   return (
     <div className="auth-layout">
       <section className="auth-story">
@@ -50,6 +50,26 @@ function AuthFrame({
         </div>
       </section>
       <section className="auth-panel">
+        <label className="auth-language-control">
+          <span className="sr-only">{t("shell.chooseLanguage")}</span>
+          <select
+            value={locale}
+            aria-label={t("shell.chooseLanguage")}
+            onChange={(event) => {
+              window.localStorage.setItem(
+                "meetbroker.locale",
+                event.target.value,
+              );
+              window.location.reload();
+            }}
+          >
+            {localeOptions.map((option) => (
+              <option value={option.value} key={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="auth-card">
           <div>
             <span className="eyebrow">{t("auth.corporateAccess")}</span>
@@ -67,7 +87,7 @@ function Login() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const registrationStatus = new URLSearchParams(window.location.search).get(
-    "registered"
+    "registered",
   );
   const [email, setEmail] = useState("user@meetbroker.local");
   const [password, setPassword] = useState("User12345!");
@@ -75,12 +95,12 @@ function Login() {
     mutationFn: () =>
       api<{ user: User }>("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
       }),
     onSuccess: ({ user }) => {
       queryClient.setQueryData(["me"], { user });
       navigate("/calendar", true);
-    }
+    },
   });
 
   const submit = (event: FormEvent) => {
@@ -89,10 +109,7 @@ function Login() {
   };
 
   return (
-    <AuthFrame
-      title={t("auth.loginTitle")}
-      subtitle={t("auth.loginSubtitle")}
-    >
+    <AuthFrame title={t("auth.loginTitle")} subtitle={t("auth.loginSubtitle")}>
       <form className="form-stack" onSubmit={submit}>
         {registrationStatus && (
           <div className="form-success" role="status">
@@ -127,39 +144,41 @@ function Login() {
             {errorMessage(login.error, t, "auth.loginError")}
           </div>
         )}
-        <button className="button button--primary button--wide" disabled={login.isPending}>
+        <button
+          className="button button--primary button--wide"
+          disabled={login.isPending}
+        >
           {login.isPending ? t("auth.signingIn") : t("auth.signIn")}
         </button>
       </form>
       <p className="auth-switch">
-        {t("auth.noAccount")}{" "}
-        <Link href="/register">{t("auth.register")}</Link>
+        {t("auth.noAccount")} <Link href="/register">{t("auth.register")}</Link>
       </p>
     </AuthFrame>
   );
 }
 
 function Register() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [values, setValues] = useState({
     name: "",
     email: "",
-    password: ""
+    password: "",
   });
   const register = useMutation({
     mutationFn: () =>
       api<{ verificationRequired: boolean }>("/api/auth/register", {
         method: "POST",
-        body: JSON.stringify(values)
+        body: JSON.stringify({ ...values, locale }),
       }),
     onSuccess: ({ verificationRequired }) => {
       navigate(
         verificationRequired
           ? "/login?registered=verify"
           : "/login?registered=ready",
-        true
+        true,
       );
-    }
+    },
   });
 
   return (
@@ -221,8 +240,8 @@ function VerifyEmail() {
     mutationFn: () =>
       api<void>("/api/auth/verify-email", {
         method: "POST",
-        body: JSON.stringify({ token })
-      })
+        body: JSON.stringify({ token }),
+      }),
   });
 
   return (
@@ -242,11 +261,7 @@ function VerifyEmail() {
         <div className="form-stack">
           {verification.error && (
             <div className="form-error">
-              {errorMessage(
-                verification.error,
-                t,
-                "auth.invalidVerification",
-              )}
+              {errorMessage(verification.error, t, "auth.invalidVerification")}
             </div>
           )}
           <button

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { api, ApiError } from "./lib/api";
-import { I18nProvider, useI18n } from "./lib/i18n";
+import { I18nProvider, resolveBrowserLocale, useI18n } from "./lib/i18n";
 import { navigate, usePath } from "./lib/router";
 import type { Locale, User } from "./types";
 import { AppShell } from "./components/AppShell";
@@ -15,12 +15,12 @@ export function App() {
     queryKey: ["me"],
     queryFn: () => api<{ user: User }>("/api/auth/me"),
     retry: (count, error) =>
-      !(error instanceof ApiError && error.status === 401) && count < 1
+      !(error instanceof ApiError && error.status === 401) && count < 1,
   });
   const user = auth.data?.user;
-  const publicLocale: Locale = navigator.language.toLowerCase().startsWith("uk")
-    ? "uk"
-    : "en";
+  const publicLocale: Locale = resolveBrowserLocale(
+    window.localStorage.getItem("meetbroker.locale") ?? navigator.language,
+  );
 
   useEffect(() => {
     if (user && (path.startsWith("/login") || path.startsWith("/register"))) {

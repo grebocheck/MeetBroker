@@ -113,7 +113,10 @@ export function AdminPage() {
   const activeSection = sections.find(([value]) => value === section);
 
   return (
-    <div className="page editorial-page admin-page" data-page-mark="CONTROL">
+    <div
+      className="page editorial-page admin-page"
+      data-page-mark={t("marks.control")}
+    >
       <header className="page-header admin-hero">
         <div>
           <span className="eyebrow">{t("admin.eyebrow")}</span>
@@ -121,8 +124,8 @@ export function AdminPage() {
           <p>{t("admin.subtitle")}</p>
         </div>
         <div className="admin-hero__status" aria-hidden="true">
-          <span>MeetBroker / Control</span>
-          <strong>Admin · 04</strong>
+          <span>{t("marks.control")}</span>
+          <strong>{t("shell.admin")} · 04</strong>
         </div>
       </header>
       <nav className="admin-section-tabs" aria-label={t("administration")}>
@@ -140,7 +143,7 @@ export function AdminPage() {
       </nav>
       <div className={`admin-workspace admin-workspace--${section}`}>
         <div className="admin-workspace__caption" aria-hidden="true">
-          <span>MeetBroker / Admin</span>
+          <span>{t("stage.admin")}</span>
           <strong>
             {activeSection?.[1]} · {activeSection?.[2]}
           </strong>

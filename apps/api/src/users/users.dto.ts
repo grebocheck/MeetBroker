@@ -34,12 +34,12 @@ export class UpdateProfileDto {
     "avatar-09",
     "avatar-10",
     "avatar-11",
-    "avatar-12"
+    "avatar-12",
   ])
   avatarPreset?: string;
 
   @IsOptional()
-  @IsIn(["uk", "en"])
+  @IsIn(["uk", "en", "de", "es", "fr", "ja"])
   locale?: Locale;
 
   @IsOptional()

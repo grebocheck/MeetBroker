@@ -227,7 +227,10 @@ export function ProfilePage({ user }: { user: User }) {
   };
 
   return (
-    <div className="page editorial-page profile-page" data-page-mark="IDENTITY">
+    <div
+      className="page editorial-page profile-page"
+      data-page-mark={t("marks.identity")}
+    >
       <header className="page-header">
         <div>
           <span className="eyebrow">{t("profile.eyebrow")}</span>
