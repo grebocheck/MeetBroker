@@ -1302,3 +1302,37 @@ capability-based обмеження. Тимчасові заборони маю�
 
 - `c2701d8` — задокументовано генерацію та застосування Telegram webhook
   secret.
+
+## Запит 048 — компактніший Docker build і запуск міграцій
+
+> Docker/CI-схему варто зробити компактнішою: не будувати окремий контейнер
+> для міграцій і не копіювати зайві контексти репозиторію.
+
+### Результат
+
+- підтверджено, що окремого GitHub CI workflow поки немає, а оптимізації
+  стосуються Docker build pipeline;
+- видалено `migrate` service: у single-instance Compose API застосовує
+  міграції та опційний demo seed перед запуском NestJS;
+- worker залежить від healthy API, тому не обробляє outbox до завершення
+  міграцій;
+- `api` і `worker` використовують один `meetbroker-api:local`; замість трьох
+  build-ів того самого Dockerfile Compose тепер виконує один;
+- dependency install звужено до відповідного npm workspace: API build,
+  API production runtime і web більше не встановлюють залежності чужого
+  застосунку;
+- API runtime install містить 181 пакет замість повного monorepo-набору, а
+  image зменшився приблизно з 518 до 498 МБ;
+- BuildKit сам обмежив передані контексти файлами з `COPY`: близько 48 КБ
+  для API і 3.7 КБ для web, тому додаткові складні context rules не
+  створювалися;
+- README і план пояснюють межу рішення: при кількох production replicas
+  міграції мають виконуватися окремим deployment job, але на тому самому
+  API image;
+- Compose config, повний Docker build, старт із migration gate, health
+  checks і наскрізний smoke завершилися успішно.
+
+### Пов'язані коміти
+
+- `8beda79` — консолідовано API image, migration startup і workspace
+  dependency install.
