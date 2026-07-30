@@ -645,6 +645,36 @@ hr {
   pointer-events: none;
 }
 
+.app-main::after {
+  position: fixed;
+  bottom: -9rem;
+  left: 248px;
+  z-index: -1;
+  width: min(48vw, 760px);
+  height: min(48vh, 520px);
+  background:
+    linear-gradient(
+      141deg,
+      transparent 0 25%,
+      color-mix(in srgb, var(--primary) 8%, transparent) 25.3% 57%,
+      transparent 57.3%
+    ),
+    repeating-linear-gradient(
+      141deg,
+      transparent 0 48px,
+      color-mix(in srgb, var(--cyan) 9%, transparent) 49px 51px,
+      transparent 52px 82px
+    ),
+    linear-gradient(
+      118deg,
+      color-mix(in srgb, var(--primary) 11%, transparent),
+      transparent 68%
+    );
+  clip-path: polygon(0 24%, 28% 0, 77% 16%, 100% 68%, 72% 100%, 0 86%);
+  content: "";
+  pointer-events: none;
+}
+
 .page {
   width: 100%;
   min-height: 100vh;
@@ -823,6 +853,16 @@ hr {
   flex-direction: column;
   align-items: start;
   gap: 12px;
+}
+
+.notifications-page .page-header {
+  width: min(1120px, 100%);
+  justify-content: flex-start;
+}
+
+.notifications-page .page-header__actions {
+  flex: 0 0 auto;
+  justify-content: flex-start;
 }
 
 .notifications-page .pagination,
@@ -5256,6 +5296,10 @@ hr {
 }
 
 @media (max-width: 1200px) {
+  .app-main::after {
+    display: none;
+  }
+
   .room-management__workspace {
     grid-template-columns: 1fr;
   }
