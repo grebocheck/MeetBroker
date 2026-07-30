@@ -31,7 +31,7 @@
   --success: #0878a5;
   --shadow-sm: 0 6px 18px rgba(10, 68, 136, 0.1);
   --shadow-md: 0 24px 60px rgba(5, 52, 111, 0.17);
-  --page-mark-color: color-mix(in srgb, var(--primary) 34%, var(--surface));
+  --page-mark-color: color-mix(in srgb, var(--primary) 7%, transparent);
   --card-mark-color: color-mix(
     in srgb,
     var(--primary) 11%,
@@ -76,7 +76,7 @@
   --success: #67d9e9;
   --shadow-sm: 0 8px 22px rgba(0, 0, 0, 0.26);
   --shadow-md: 0 26px 70px rgba(0, 0, 0, 0.42);
-  --page-mark-color: color-mix(in srgb, var(--primary) 52%, var(--surface));
+  --page-mark-color: color-mix(in srgb, var(--primary) 28%, transparent);
   --card-mark-color: color-mix(
     in srgb,
     var(--primary) 11%,
@@ -489,6 +489,22 @@ hr {
   color: #07101f;
   font-weight: 720;
   transform: translateX(4px);
+}
+
+.nav-item:focus-visible {
+  outline: 0;
+  background-color: rgba(246, 251, 255, 0.12);
+  box-shadow: inset 0 0 0 3px var(--cyan);
+}
+
+:root[data-input-mode="gamepad"] .nav-item:focus {
+  outline: 0;
+  box-shadow: inset 0 0 0 3px var(--accent);
+}
+
+.nav-item--active:focus-visible,
+:root[data-input-mode="gamepad"] .nav-item--active:focus {
+  background-color: #f6fbff;
 }
 
 @media (min-width: 1051px) {
