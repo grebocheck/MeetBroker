@@ -59,7 +59,7 @@ function bookingError(
   ) {
     const formatter = new Intl.DateTimeFormat(dateLocale, {
       dateStyle: "medium",
-      timeStyle: "short"
+      timeStyle: "short",
     });
     const lines = error.details.conflicts.flatMap((conflict: unknown) => {
       if (
@@ -82,16 +82,16 @@ function bookingError(
         }
         return [
           `«${String(booking.title)}» — ${formatter.format(
-            new Date(String(booking.startsAt))
-          )}`
+            new Date(String(booking.startsAt)),
+          )}`,
         ];
       });
       return meetings.length
         ? [
             t("booking.attendeeBusyPerson", {
               name: String(conflict.userName),
-              meetings: meetings.join("; ")
-            })
+              meetings: meetings.join("; "),
+            }),
           ]
         : [];
     });
@@ -99,33 +99,36 @@ function bookingError(
       target: "participants",
       message: lines.length
         ? `${t("booking.attendeeBusy")}\n${lines.join("\n")}`
-        : t("booking.attendeeBusy")
+        : t("booking.attendeeBusy"),
     };
   }
-  const errors: Record<string, { target: BookingErrorTarget; message: string }> = {
+  const errors: Record<
+    string,
+    { target: BookingErrorTarget; message: string }
+  > = {
     INVALID_TIME: {
       target: "time",
-      message: t("booking.invalidTime")
+      message: t("booking.invalidTime"),
     },
     SLOT_ALIGNMENT: {
       target: "time",
-      message: t("booking.slotAlignment")
+      message: t("booking.slotAlignment"),
     },
     DURATION: {
       target: "time",
-      message: t("booking.duration")
+      message: t("booking.duration"),
     },
     PAST: {
       target: "time",
-      message: t("booking.past")
+      message: t("booking.past"),
     },
     OUTSIDE_WORKING_HOURS: {
       target: "time",
-      message: t("booking.outsideHours")
+      message: t("booking.outsideHours"),
     },
     OUTSIDE_WORKING_DAYS: {
       target: "time",
-      message: t("booking.outsideDays")
+      message: t("booking.outsideDays"),
     },
     SLOT_TAKEN: {
       target: "time",
@@ -136,10 +139,10 @@ function bookingError(
           ? t("booking.seriesSlotTaken", {
               date: new Intl.DateTimeFormat(dateLocale, {
                 dateStyle: "medium",
-                timeStyle: "short"
-              }).format(new Date(String(error.details.startsAt)))
+                timeStyle: "short",
+              }).format(new Date(String(error.details.startsAt))),
             })
-          : t("booking.slotTaken")
+          : t("booking.slotTaken"),
     },
     ROOM_UNAVAILABLE: {
       target: "time",
@@ -150,38 +153,38 @@ function bookingError(
           ? t("booking.seriesRoomUnavailable", {
               date: new Intl.DateTimeFormat(dateLocale, {
                 dateStyle: "medium",
-                timeStyle: "short"
-              }).format(new Date(String(error.details.startsAt)))
+                timeStyle: "short",
+              }).format(new Date(String(error.details.startsAt))),
             })
-          : t("booking.roomUnavailable")
+          : t("booking.roomUnavailable"),
     },
     ROOM_CAPACITY_EXCEEDED: {
       target: "participants",
-      message: t("booking.capacityExceeded")
+      message: t("booking.capacityExceeded"),
     },
     ROOM_REQUIRED: {
       target: "form",
-      message: t("booking.roomRequired")
+      message: t("booking.roomRequired"),
     },
     MEETING_URL_REQUIRED: {
       target: "meetingUrl",
-      message: t("booking.meetingUrlRequired")
+      message: t("booking.meetingUrlRequired"),
     },
     BOOKING_IMAGE_REQUIRED: {
       target: "image",
-      message: t("booking.imageInvalid")
+      message: t("booking.imageInvalid"),
     },
     INVALID_BOOKING_IMAGE: {
       target: "image",
-      message: t("booking.imageInvalid")
+      message: t("booking.imageInvalid"),
     },
     INVALID_PARTICIPANT: {
       target: "participants",
-      message: t("booking.invalidParticipant")
+      message: t("booking.invalidParticipant"),
     },
     BOOKING_CREATE_RESTRICTED: {
       target: "form",
-      message: t("booking.createRestricted")
+      message: t("booking.createRestricted"),
     },
     CAPABILITY_RESTRICTED: {
       target: "form",
@@ -190,39 +193,39 @@ function bookingError(
         error.details !== null &&
         "reason" in error.details
           ? t("booking.actionRestrictedReason", {
-              reason: String(error.details.reason)
+              reason: String(error.details.reason),
             })
-          : t("booking.actionRestricted")
+          : t("booking.actionRestricted"),
     },
     RECURRENCE_END_REQUIRED: {
       target: "recurrence",
-      message: t("booking.recurrenceEndRequired")
+      message: t("booking.recurrenceEndRequired"),
     },
     RECURRENCE_WEEKDAYS_REQUIRED: {
       target: "recurrence",
-      message: t("booking.recurrenceWeekdaysRequired")
+      message: t("booking.recurrenceWeekdaysRequired"),
     },
     INVALID_RECURRENCE_RANGE: {
       target: "recurrence",
-      message: t("booking.recurrenceRange")
+      message: t("booking.recurrenceRange"),
     },
     EMPTY_RECURRENCE: {
       target: "recurrence",
-      message: t("booking.recurrenceEmpty")
+      message: t("booking.recurrenceEmpty"),
     },
     TOO_MANY_OCCURRENCES: {
       target: "recurrence",
-      message: t("booking.recurrenceTooMany")
+      message: t("booking.recurrenceTooMany"),
     },
     ADMIN_EDIT_REASON_REQUIRED: {
       target: "adminReason",
-      message: t("booking.adminReasonRequired")
-    }
+      message: t("booking.adminReasonRequired"),
+    },
   };
   return (
     errors[error.code] ?? {
       target: "form",
-      message: errorMessage(error, t)
+      message: errorMessage(error, t),
     }
   );
 }
@@ -233,7 +236,7 @@ export function BookingDialog({
   booking,
   administrative = false,
   onClose,
-  onSaved
+  onSaved,
 }: {
   room?: Room;
   draft?: BookingDraft;
@@ -249,11 +252,10 @@ export function BookingDialog({
     : (draft?.startsAt ?? standaloneStart);
   const initialEndsAt = booking
     ? new Date(booking.endsAt)
-    : (draft?.endsAt ??
-      new Date(standaloneStart.getTime() + 3_600_000));
+    : (draft?.endsAt ?? new Date(standaloneStart.getTime() + 3_600_000));
   const editing = Boolean(booking);
   const [meetingType, setMeetingType] = useState<"ROOM" | "ONLINE">(
-    booking?.meetingType ?? (room ? "ROOM" : "ONLINE")
+    booking?.meetingType ?? (room ? "ROOM" : "ONLINE"),
   );
   const [meetingUrl, setMeetingUrl] = useState(booking?.meetingUrl ?? "");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -263,22 +265,22 @@ export function BookingDialog({
   const [startsAt, setStartsAt] = useState(toDateTimeLocal(initialStartsAt));
   const [endsAt, setEndsAt] = useState(toDateTimeLocal(initialEndsAt));
   const [mode, setMode] = useState<"INVITE_ONLY" | "OPEN">(
-    booking?.participationMode ?? "INVITE_ONLY"
+    booking?.participationMode ?? "INVITE_ONLY",
   );
   const [participantIds, setParticipantIds] = useState<string[]>(
-    booking?.participants.map((participant) => participant.id) ?? []
+    booking?.participants.map((participant) => participant.id) ?? [],
   );
   const defaultUntil = new Date(initialStartsAt);
   defaultUntil.setDate(defaultUntil.getDate() + 28);
   const [recurrence, setRecurrence] = useState<"NONE" | "DAILY" | "WEEKLY">(
-    "NONE"
+    "NONE",
   );
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [recurrenceUntil, setRecurrenceUntil] = useState(
-    toDateTimeLocal(defaultUntil).slice(0, 10)
+    toDateTimeLocal(defaultUntil).slice(0, 10),
   );
   const [weekdays, setWeekdays] = useState<number[]>([
-    initialStartsAt.getDay()
+    initialStartsAt.getDay(),
   ]);
   const [adminReason, setAdminReason] = useState("");
   const [localError, setLocalError] = useState<{
@@ -287,17 +289,15 @@ export function BookingDialog({
   } | null>(null);
   const colleagues = useQuery({
     queryKey: ["colleagues"],
-    queryFn: () => api<{ users: Person[] }>("/api/users/colleagues")
+    queryFn: () => api<{ users: Person[] }>("/api/users/colleagues"),
   });
   const availableSeats =
-    meetingType === "ONLINE"
-      ? 50
-      : Math.max(0, (room?.capacity ?? 1) - 1);
+    meetingType === "ONLINE" ? 50 : Math.max(0, (room?.capacity ?? 1) - 1);
   const colleagueUsers = Array.isArray(colleagues.data?.users)
     ? colleagues.data.users
     : [];
   const selected = colleagueUsers.filter((user) =>
-    participantIds.includes(user.id)
+    participantIds.includes(user.id),
   );
   const imagePreview = useMemo(
     () =>
@@ -305,52 +305,51 @@ export function BookingDialog({
         ? URL.createObjectURL(imageFile)
         : removeExistingImage
           ? null
-          : booking?.imageUrl ?? null,
-    [booking?.imageUrl, imageFile, removeExistingImage]
+          : (booking?.imageUrl ?? null),
+    [booking?.imageUrl, imageFile, removeExistingImage],
   );
   useEffect(
     () => () => {
       if (imageFile && imagePreview) URL.revokeObjectURL(imagePreview);
     },
-    [imageFile, imagePreview]
+    [imageFile, imagePreview],
   );
   const save = useMutation({
     mutationFn: async () => {
       const targetId = booking?.id ?? createdBookingId;
       const updating = Boolean(targetId);
-      const result = await api<
-        void | { id: string; seriesId: string | null; occurrenceCount: number }
-      >(
-        targetId ? `/api/bookings/${targetId}` : "/api/bookings",
-        {
-          method: updating ? "PATCH" : "POST",
-          body: JSON.stringify({
-            ...(!updating
-              ? {
-                  meetingType,
-                  roomId: meetingType === "ROOM" ? room?.id : undefined
-                }
-              : {}),
-            ...(meetingType === "ONLINE"
-              ? { meetingUrl: meetingUrl.trim() }
-              : {}),
-            title: title.trim(),
-            startsAt: new Date(startsAt).toISOString(),
-            endsAt: new Date(endsAt).toISOString(),
-            participationMode: mode,
-            participantIds,
-            ...(!updating && recurrence !== "NONE"
-              ? {
-                  recurrence,
-                  recurrenceInterval,
-                  recurrenceUntil,
-                  weekdays: recurrence === "WEEKLY" ? weekdays : undefined
-                }
-              : {}),
-            ...(administrative ? { adminReason: adminReason.trim() } : {})
-          })
-        }
-      );
+      const result = await api<void | {
+        id: string;
+        seriesId: string | null;
+        occurrenceCount: number;
+      }>(targetId ? `/api/bookings/${targetId}` : "/api/bookings", {
+        method: updating ? "PATCH" : "POST",
+        body: JSON.stringify({
+          ...(!updating
+            ? {
+                meetingType,
+                roomId: meetingType === "ROOM" ? room?.id : undefined,
+              }
+            : {}),
+          ...(meetingType === "ONLINE"
+            ? { meetingUrl: meetingUrl.trim() }
+            : {}),
+          title: title.trim(),
+          startsAt: new Date(startsAt).toISOString(),
+          endsAt: new Date(endsAt).toISOString(),
+          participationMode: mode,
+          participantIds,
+          ...(!updating && recurrence !== "NONE"
+            ? {
+                recurrence,
+                recurrenceInterval,
+                recurrenceUntil,
+                weekdays: recurrence === "WEEKLY" ? weekdays : undefined,
+              }
+            : {}),
+          ...(administrative ? { adminReason: adminReason.trim() } : {}),
+        }),
+      });
       const bookingId = targetId ?? result?.id;
       if (!targetId && result?.id) setCreatedBookingId(result.id);
       if (bookingId && imageFile) {
@@ -358,16 +357,16 @@ export function BookingDialog({
         form.append("image", imageFile);
         await api<{ imageUrl: string }>(`/api/bookings/${bookingId}/image`, {
           method: "POST",
-          body: form
+          body: form,
         });
       } else if (bookingId && booking?.imageUrl && removeExistingImage) {
         await api<void>(`/api/bookings/${bookingId}/image`, {
-          method: "DELETE"
+          method: "DELETE",
         });
       }
       return result;
     },
-    onSuccess: onSaved
+    onSuccess: onSaved,
   });
 
   const submit = (event: FormEvent) => {
@@ -375,17 +374,14 @@ export function BookingDialog({
     if (!title.trim()) {
       setLocalError({
         target: "title",
-        message: t("booking.titleRequired")
+        message: t("booking.titleRequired"),
       });
       return;
     }
-    if (
-      meetingType === "ONLINE" &&
-      !isHttpsUrl(meetingUrl.trim())
-    ) {
+    if (meetingType === "ONLINE" && !isHttpsUrl(meetingUrl.trim())) {
       setLocalError({
         target: "meetingUrl",
-        message: t("booking.meetingUrlRequired")
+        message: t("booking.meetingUrlRequired"),
       });
       return;
     }
@@ -398,14 +394,14 @@ export function BookingDialog({
     ) {
       setLocalError({
         target: "time",
-        message: t("booking.endAfterStart")
+        message: t("booking.endAfterStart"),
       });
       return;
     }
     if (administrative && adminReason.trim().length < 3) {
       setLocalError({
         target: "adminReason",
-        message: t("booking.adminReasonRequired")
+        message: t("booking.adminReasonRequired"),
       });
       return;
     }
@@ -413,14 +409,14 @@ export function BookingDialog({
       if (!recurrenceUntil) {
         setLocalError({
           target: "recurrence",
-          message: t("booking.recurrenceEndRequired")
+          message: t("booking.recurrenceEndRequired"),
         });
         return;
       }
       if (recurrence === "WEEKLY" && weekdays.length === 0) {
         setLocalError({
           target: "recurrence",
-          message: t("booking.recurrenceWeekdaysRequired")
+          message: t("booking.recurrenceWeekdaysRequired"),
         });
         return;
       }
@@ -431,7 +427,7 @@ export function BookingDialog({
   const serverError = bookingError(save.error, t, dateLocale);
 
   return (
-    <ModalLayer role="presentation" onMouseDown={onClose}>
+    <ModalLayer role="presentation" onDismiss={onClose} onMouseDown={onClose}>
       <section
         className="modal booking-dialog"
         role="dialog"
@@ -444,7 +440,7 @@ export function BookingDialog({
             <span className="eyebrow">
               {meetingType === "ONLINE"
                 ? t("booking.onlineMeeting")
-                : room?.name ?? t("booking.roomMeeting")}
+                : (room?.name ?? t("booking.roomMeeting"))}
             </span>
             <h2 id="booking-dialog-title">
               {administrative
@@ -526,9 +522,7 @@ export function BookingDialog({
                 autoFocus
                 required
               />
-              <small>
-                {t("booking.adminReasonHint")}
-              </small>
+              <small>{t("booking.adminReasonHint")}</small>
               {(localError?.target === "adminReason" ||
                 serverError?.target === "adminReason") && (
                 <small className="field-error" role="alert">
@@ -613,7 +607,7 @@ export function BookingDialog({
                 {[
                   ["NONE", t("booking.noRecurrence")],
                   ["DAILY", t("booking.daily")],
-                  ["WEEKLY", t("booking.weekly")]
+                  ["WEEKLY", t("booking.weekly")],
                 ].map(([value, label]) => (
                   <button
                     type="button"
@@ -644,7 +638,7 @@ export function BookingDialog({
                       value={recurrenceInterval}
                       onChange={(event) =>
                         setRecurrenceInterval(
-                          Math.max(1, Math.min(30, Number(event.target.value)))
+                          Math.max(1, Math.min(30, Number(event.target.value))),
                         )
                       }
                     />
@@ -655,7 +649,9 @@ export function BookingDialog({
                       type="date"
                       value={recurrenceUntil}
                       min={startsAt.slice(0, 10)}
-                      onChange={(event) => setRecurrenceUntil(event.target.value)}
+                      onChange={(event) =>
+                        setRecurrenceUntil(event.target.value)
+                      }
                     />
                   </label>
                   {recurrence === "WEEKLY" && (
@@ -667,7 +663,7 @@ export function BookingDialog({
                         [4, t("weekday.4")],
                         [5, t("weekday.5")],
                         [6, t("weekday.6")],
-                        [0, t("weekday.0")]
+                        [0, t("weekday.0")],
                       ].map(([day, label]) => (
                         <button
                           type="button"
@@ -678,7 +674,7 @@ export function BookingDialog({
                             setWeekdays((current) =>
                               current.includes(day as number)
                                 ? current.filter((item) => item !== day)
-                                : [...current, day as number]
+                                : [...current, day as number],
                             )
                           }
                           key={day}
@@ -688,9 +684,7 @@ export function BookingDialog({
                       ))}
                     </div>
                   )}
-                  <small>
-                    {t("booking.atomicSeries")}
-                  </small>
+                  <small>{t("booking.atomicSeries")}</small>
                 </div>
               )}
               {(localError?.target === "recurrence" ||
@@ -704,9 +698,7 @@ export function BookingDialog({
             </fieldset>
           )}
           {editing && booking?.seriesId && (
-            <div className="subtle-box">
-              {t("booking.seriesEditHint")}
-            </div>
+            <div className="subtle-box">{t("booking.seriesEditHint")}</div>
           )}
           <fieldset className="segmented-field">
             <legend>{t("booking.audience")}</legend>
@@ -767,7 +759,7 @@ export function BookingDialog({
                       ) {
                         setLocalError({
                           target: "image",
-                          message: t("booking.imageInvalid")
+                          message: t("booking.imageInvalid"),
                         });
                         event.target.value = "";
                         return;
@@ -808,9 +800,7 @@ export function BookingDialog({
               </small>
             </div>
             {colleagues.isLoading ? (
-              <div className="subtle-box">
-                {t("booking.loadingColleagues")}
-              </div>
+              <div className="subtle-box">{t("booking.loadingColleagues")}</div>
             ) : colleagues.isError ? (
               <div className="form-error" role="alert">
                 {t("booking.colleaguesError")}
@@ -835,20 +825,14 @@ export function BookingDialog({
           {save.error && (!serverError || serverError.target === "form") && (
             <div className="form-error" role="alert">
               {serverError?.message ??
-                (editing
-                  ? t("booking.updateError")
-                  : t("booking.createError"))}
+                (editing ? t("booking.updateError") : t("booking.createError"))}
             </div>
           )}
           <div className="modal__actions">
             <Button variant="ghost" onClick={onClose}>
               {t("booking.back")}
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={save.isPending}
-            >
+            <Button type="submit" variant="primary" disabled={save.isPending}>
               {save.isPending
                 ? editing
                   ? t("booking.saving")

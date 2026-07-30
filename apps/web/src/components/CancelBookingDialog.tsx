@@ -19,7 +19,7 @@ export function CancelBookingDialog({
   error,
   timeZone,
   onClose,
-  onConfirm
+  onConfirm,
 }: {
   booking: CancelBookingDetails;
   pending: boolean;
@@ -34,18 +34,21 @@ export function CancelBookingDialog({
   const endsAt = new Date(booking.endsAt);
   const date = new Intl.DateTimeFormat(dateLocale, {
     dateStyle: "full",
-    timeZone
+    timeZone,
   }).format(startsAt);
   const time = new Intl.DateTimeFormat(dateLocale, {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone
+    timeZone,
   });
 
   return (
     <ModalLayer
       className="modal-backdrop"
       role="presentation"
+      onDismiss={() => {
+        if (!pending) onClose();
+      }}
       onMouseDown={() => {
         if (!pending) onClose();
       }}
@@ -75,9 +78,7 @@ export function CancelBookingDialog({
           </button>
         </div>
 
-        <p id="cancel-booking-description">
-          {t("cancel.description")}
-        </p>
+        <p id="cancel-booking-description">{t("cancel.description")}</p>
 
         <div className="cancel-summary">
           <strong>{booking.title}</strong>
@@ -125,9 +126,7 @@ export function CancelBookingDialog({
                 {t("cancel.future")}
               </button>
             </div>
-            <small>
-              {t("cancel.scopeHint")}
-            </small>
+            <small>{t("cancel.scopeHint")}</small>
           </fieldset>
         )}
 
@@ -138,11 +137,7 @@ export function CancelBookingDialog({
         )}
 
         <div className="modal__actions">
-          <Button
-            onClick={onClose}
-            disabled={pending}
-            autoFocus
-          >
+          <Button onClick={onClose} disabled={pending} autoFocus>
             {t("cancel.keep")}
           </Button>
           <Button

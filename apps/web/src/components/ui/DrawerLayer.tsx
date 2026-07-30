@@ -35,12 +35,7 @@ export function DrawerLayer({
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
       if (closeTimer.current !== null) {
         window.clearTimeout(closeTimer.current);
       }
@@ -50,6 +45,7 @@ export function DrawerLayer({
   return (
     <ModalLayer
       className={`drawer-backdrop${closing ? " is-closing" : ""}`}
+      onDismiss={() => close()}
       onMouseDown={() => close()}
     >
       <aside

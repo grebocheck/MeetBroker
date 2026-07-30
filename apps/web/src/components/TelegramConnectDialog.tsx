@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useI18n } from "../lib/i18n";
 import { Button } from "./ui/Button";
 import { ModalLayer } from "./ui/ModalLayer";
@@ -12,7 +12,7 @@ export interface TelegramConnectInfo {
 
 export function TelegramConnectDialog({
   connection,
-  onClose
+  onClose,
 }: {
   connection: TelegramConnectInfo;
   onClose: () => void;
@@ -20,18 +20,11 @@ export function TelegramConnectDialog({
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
-
   return (
     <ModalLayer
       className="modal-backdrop"
       role="presentation"
+      onDismiss={onClose}
       onMouseDown={onClose}
     >
       <section
@@ -86,11 +79,7 @@ export function TelegramConnectDialog({
           </Button>
           <Button
             onClick={() =>
-              window.open(
-                connection.webUrl,
-                "_blank",
-                "noopener,noreferrer"
-              )
+              window.open(connection.webUrl, "_blank", "noopener,noreferrer")
             }
           >
             {t("telegramConnect.openFallback")}

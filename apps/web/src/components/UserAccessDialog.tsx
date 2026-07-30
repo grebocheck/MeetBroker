@@ -38,10 +38,7 @@ function formatDate(
   }).format(new Date(value));
 }
 
-export function capabilityLabel(
-  capability: Capability,
-  t: Translator,
-): string {
+export function capabilityLabel(capability: Capability, t: Translator): string {
   return t(capabilityLabelKeys[capability]);
 }
 
@@ -59,8 +56,7 @@ export function UserAccessDialog({
 }) {
   const { dateLocale, t } = useI18n();
   const queryClient = useQueryClient();
-  const [capability, setCapability] =
-    useState<Capability>("BOOKING_CREATE");
+  const [capability, setCapability] = useState<Capability>("BOOKING_CREATE");
   const [roomId, setRoomId] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
@@ -84,7 +80,8 @@ export function UserAccessDialog({
         method: "POST",
         body: JSON.stringify({
           capability,
-          roomId: capability === "ACCOUNT_LOGIN" ? undefined : roomId || undefined,
+          roomId:
+            capability === "ACCOUNT_LOGIN" ? undefined : roomId || undefined,
           startsAt: toIso(startsAt),
           expiresAt: toIso(expiresAt),
           reason: reason.trim(),
@@ -142,6 +139,9 @@ export function UserAccessDialog({
     <ModalLayer
       className="modal-backdrop"
       role="presentation"
+      onDismiss={() => {
+        if (!pending) onClose();
+      }}
       onMouseDown={() => {
         if (!pending) onClose();
       }}
@@ -200,16 +200,8 @@ export function UserAccessDialog({
                     </span>
                     <span>
                       {t("accessDialog.period", {
-                        start: formatDate(
-                          restriction.startsAt,
-                          dateLocale,
-                          t,
-                        ),
-                        end: formatDate(
-                          restriction.expiresAt,
-                          dateLocale,
-                          t,
-                        ),
+                        start: formatDate(restriction.startsAt, dateLocale, t),
+                        end: formatDate(restriction.expiresAt, dateLocale, t),
                       })}
                     </span>
                     <p>{restriction.reason}</p>
@@ -308,11 +300,7 @@ export function UserAccessDialog({
           {(localError || requestError) && (
             <div className="form-error" role="alert">
               {localError ||
-                errorMessage(
-                  requestError,
-                  t,
-                  "accessDialog.changeError",
-                )}
+                errorMessage(requestError, t, "accessDialog.changeError")}
             </div>
           )}
           <Button

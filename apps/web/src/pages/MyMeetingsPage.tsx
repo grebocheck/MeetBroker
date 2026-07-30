@@ -314,7 +314,11 @@ export function MyMeetingsPage({ user }: { user: User }) {
       </div>
 
       {selected && (
-        <ModalLayer role="presentation" onMouseDown={() => setSelected(null)}>
+        <ModalLayer
+          role="presentation"
+          onDismiss={() => setSelected(null)}
+          onMouseDown={() => setSelected(null)}
+        >
           <section
             className="modal meeting-details-modal"
             role="dialog"

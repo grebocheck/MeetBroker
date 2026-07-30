@@ -458,6 +458,9 @@ function AdminBookingDialog({
     <ModalLayer
       className="modal-backdrop"
       role="presentation"
+      onDismiss={() => {
+        if (!pending) onClose();
+      }}
       onMouseDown={() => {
         if (!pending) onClose();
       }}

@@ -269,6 +269,7 @@ export const uk = {
   "shell.employee": "Співробітник",
   "shell.mainNavigation": "Основна навігація",
   "shell.quickSettings": "Швидкі налаштування",
+  "shell.skipToContent": "Перейти до основного вмісту",
   "access.noticeTitle": "Діє обмеження доступу",
   "access.unlimited": "безстроково",
   "access.until": "до {date}",

@@ -24,7 +24,7 @@ import {
   SettingsIcon,
   ShieldIcon,
   SunIcon,
-  UsersIcon
+  UsersIcon,
 } from "./Icons";
 
 interface NavItem {
@@ -61,15 +61,15 @@ export function AppShell({ user, path }: { user: User; path: string }) {
     onSuccess: () => {
       queryClient.clear();
       navigate("/login", true);
-    }
+    },
   });
   const quickSettings = useMutation({
     mutationFn: (next: Partial<Pick<User, "locale" | "theme">>) =>
       api<{ user: User }>("/api/users/me", {
         method: "PATCH",
-        body: JSON.stringify(next)
+        body: JSON.stringify(next),
       }),
-    onSuccess: (data) => queryClient.setQueryData(["me"], data)
+    onSuccess: (data) => queryClient.setQueryData(["me"], data),
   });
   const darkTheme =
     user.theme === "DARK" ||
@@ -84,15 +84,15 @@ export function AppShell({ user, path }: { user: User; path: string }) {
     {
       href: "/notifications",
       label: t("notifications"),
-      icon: BellIcon
+      icon: BellIcon,
     },
     { href: "/profile", label: t("profile"), icon: SettingsIcon },
     {
       href: "/admin",
       label: t("administration"),
       icon: ShieldIcon,
-      admin: true
-    }
+      admin: true,
+    },
   ];
 
   let content = <CalendarPage user={user} />;
@@ -107,6 +107,9 @@ export function AppShell({ user, path }: { user: User; path: string }) {
 
   return (
     <div className="app-layout">
+      <a className="skip-link" href="#main-content">
+        {t("shell.skipToContent")}
+      </a>
       <aside className="sidebar">
         <Link className="brand" href="/calendar">
           <BrandMark />
@@ -182,7 +185,7 @@ export function AppShell({ user, path }: { user: User; path: string }) {
                   if (locale === "uk") return;
                   quickSettings.mutate(
                     { locale: "uk" },
-                    { onSuccess: () => window.location.reload() }
+                    { onSuccess: () => window.location.reload() },
                   );
                 }}
                 role="menuitem"
@@ -196,7 +199,7 @@ export function AppShell({ user, path }: { user: User; path: string }) {
                   if (locale === "en") return;
                   quickSettings.mutate(
                     { locale: "en" },
-                    { onSuccess: () => window.location.reload() }
+                    { onSuccess: () => window.location.reload() },
                   );
                 }}
                 role="menuitem"
@@ -229,7 +232,7 @@ export function AppShell({ user, path }: { user: User; path: string }) {
           </button>
         </div>
       </aside>
-      <main className="app-main">
+      <main className="app-main" id="main-content" tabIndex={-1}>
         {Boolean(user.activeRestrictions?.length) && (
           <aside className="access-notice" aria-label={t("access.noticeTitle")}>
             <strong>{t("access.noticeTitle")}</strong>

@@ -272,6 +272,7 @@ export const en = {
   "shell.employee": "Employee",
   "shell.mainNavigation": "Main navigation",
   "shell.quickSettings": "Quick settings",
+  "shell.skipToContent": "Skip to main content",
   "access.noticeTitle": "An access restriction is active",
   "access.unlimited": "until revoked",
   "access.until": "until {date}",

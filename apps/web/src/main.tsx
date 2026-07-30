@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/unbounded";
 import { App } from "./App";
+import { InputNavigation } from "./components/InputNavigation";
 import "./styles.css";
 
 const queryClient = new QueryClient({
@@ -11,15 +12,16 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 20_000,
       retry: 1,
-      refetchOnWindowFocus: false
-    }
-  }
+      refetchOnWindowFocus: false,
+    },
+  },
 });
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
+      <InputNavigation />
       <App />
     </QueryClientProvider>
-  </StrictMode>
+  </StrictMode>,
 );
