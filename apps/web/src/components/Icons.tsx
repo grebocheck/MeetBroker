@@ -1,9 +1,6 @@
 import type { SVGProps } from "react";
 
-function IconBase({
-  children,
-  ...props
-}: SVGProps<SVGSVGElement>) {
+function IconBase({ children, ...props }: SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -43,6 +40,18 @@ export const BellIcon = (props: SVGProps<SVGSVGElement>) => (
   <IconBase {...props}>
     <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </IconBase>
+);
+export const MailIcon = (props: SVGProps<SVGSVGElement>) => (
+  <IconBase {...props}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3 7 9 6 9-6" />
+  </IconBase>
+);
+export const TelegramIcon = (props: SVGProps<SVGSVGElement>) => (
+  <IconBase {...props}>
+    <path d="m21 3-7.6 18-4.3-7.2L3 10.5 21 3Z" />
+    <path d="m9.1 13.8 4.2-3.9" />
   </IconBase>
 );
 export const SettingsIcon = (props: SVGProps<SVGSVGElement>) => (

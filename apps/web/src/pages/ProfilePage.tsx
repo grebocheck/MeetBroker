@@ -5,6 +5,7 @@ import { errorMessage } from "../lib/error-message";
 import { useI18n } from "../lib/i18n";
 import type { User } from "../types";
 import { Avatar } from "../components/Avatar";
+import { MailIcon, TelegramIcon } from "../components/Icons";
 import {
   SearchSelect,
   type SearchSelectOption,
@@ -353,19 +354,24 @@ export function ProfilePage({ user }: { user: User }) {
           {preferences.data && (
             <div className="preference-list">
               <div className="integration-row">
-                <div>
-                  <strong>Email</strong>
-                  <span>{user.email}</span>
-                  {(user.pendingEmail || changeEmail.data?.pendingEmail) && (
-                    <small>
-                      {t("profile.pendingEmail", {
-                        email:
-                          user.pendingEmail ??
-                          changeEmail.data?.pendingEmail ??
-                          "",
-                      })}
-                    </small>
-                  )}
+                <div className="integration-row__identity">
+                  <span className="integration-row__icon" aria-hidden="true">
+                    <MailIcon />
+                  </span>
+                  <div className="integration-row__copy">
+                    <strong>Email</strong>
+                    <span>{user.email}</span>
+                    {(user.pendingEmail || changeEmail.data?.pendingEmail) && (
+                      <small>
+                        {t("profile.pendingEmail", {
+                          email:
+                            user.pendingEmail ??
+                            changeEmail.data?.pendingEmail ??
+                            "",
+                        })}
+                      </small>
+                    )}
+                  </div>
                 </div>
                 <Button
                   size="small"
@@ -456,15 +462,20 @@ export function ProfilePage({ user }: { user: User }) {
               )}
               <hr />
               <div className="integration-row">
-                <div>
-                  <strong>Telegram</strong>
-                  <span>
-                    {preferences.data.telegramConnected
-                      ? t("profile.telegramConnected")
-                      : preferences.data.telegramAvailable
-                        ? t("profile.telegramAvailable")
-                        : t("profile.telegramUnavailable")}
+                <div className="integration-row__identity">
+                  <span className="integration-row__icon" aria-hidden="true">
+                    <TelegramIcon />
                   </span>
+                  <div className="integration-row__copy">
+                    <strong>Telegram</strong>
+                    <span>
+                      {preferences.data.telegramConnected
+                        ? t("profile.telegramConnected")
+                        : preferences.data.telegramAvailable
+                          ? t("profile.telegramAvailable")
+                          : t("profile.telegramUnavailable")}
+                    </span>
+                  </div>
                 </div>
                 {preferences.data.telegramConnected ? (
                   <div className="button-row button-row--tight">

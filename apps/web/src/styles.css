@@ -2250,12 +2250,11 @@ hr {
   margin: calc(var(--modal-pad) * -1) calc(var(--modal-pad) * -1) 24px;
   padding: calc(var(--modal-pad) + 10px) var(--modal-pad) 22px;
   border-bottom: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
-  background:
-    linear-gradient(
-      116deg,
-      color-mix(in srgb, var(--primary) 12%, var(--surface-raised)) 0 68%,
-      color-mix(in srgb, var(--cyan) 12%, var(--surface-raised)) 68%
-    );
+  background: linear-gradient(
+    116deg,
+    color-mix(in srgb, var(--primary) 12%, var(--surface-raised)) 0 68%,
+    color-mix(in srgb, var(--cyan) 12%, var(--surface-raised)) 68%
+  );
   isolation: isolate;
 }
 
@@ -2335,12 +2334,11 @@ hr {
   margin: 26px calc(var(--modal-pad) * -1) calc(var(--modal-pad) * -1);
   padding: 18px var(--modal-pad) 20px;
   border-top: 1px solid var(--border);
-  background:
-    linear-gradient(
-      105deg,
-      color-mix(in srgb, var(--primary) 8%, var(--surface-muted)),
-      var(--surface-raised) 62%
-    );
+  background: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--primary) 8%, var(--surface-muted)),
+    var(--surface-raised) 62%
+  );
 }
 
 .access-dialog {
@@ -2352,12 +2350,11 @@ hr {
   padding: 18px;
   border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
   border-radius: 2px 18px 2px 18px;
-  background:
-    linear-gradient(
-      132deg,
-      color-mix(in srgb, var(--primary) 7%, var(--surface-muted)),
-      var(--surface-muted) 54%
-    );
+  background: linear-gradient(
+    132deg,
+    color-mix(in srgb, var(--primary) 7%, var(--surface-muted)),
+    var(--surface-muted) 54%
+  );
 }
 
 .access-dialog__heading {
@@ -2444,12 +2441,11 @@ hr {
   border: 1px solid var(--border);
   border-left: 5px solid var(--danger-fill);
   border-radius: 2px 18px 2px 18px;
-  background:
-    linear-gradient(
-      122deg,
-      color-mix(in srgb, var(--danger-fill) 9%, var(--surface-muted)),
-      var(--surface-muted) 52%
-    );
+  background: linear-gradient(
+    122deg,
+    color-mix(in srgb, var(--danger-fill) 9%, var(--surface-muted)),
+    var(--surface-muted) 52%
+  );
 }
 
 .cancel-summary > strong {
@@ -3572,17 +3568,52 @@ hr {
 }
 
 .preference-row > span,
-.integration-row > div {
+.integration-row__copy {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
 
 .preference-row small,
-.integration-row span,
+.integration-row__copy span,
 .integration-row small {
   color: var(--text-muted);
   font-size: 0.68rem;
+}
+
+.integration-row__identity {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+}
+
+.integration-row__copy {
+  min-width: 0;
+}
+
+.integration-row__copy span,
+.integration-row__copy small {
+  overflow-wrap: anywhere;
+}
+
+.integration-row__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border));
+  border-radius: 3px 13px 3px 13px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface-muted));
+  color: var(--primary);
+  box-shadow: 5px 5px 0 color-mix(in srgb, var(--cyan) 8%, transparent);
+}
+
+.integration-row__icon svg {
+  width: 21px;
+  height: 21px;
 }
 
 .account-inline-form,
@@ -4029,12 +4060,11 @@ hr {
   padding: 16px 18px;
   border: 1px solid var(--border);
   border-radius: 3px 18px 3px 18px;
-  background:
-    linear-gradient(
-      108deg,
-      color-mix(in srgb, var(--primary) 8%, var(--surface-raised)),
-      var(--surface-raised) 62%
-    );
+  background: linear-gradient(
+    108deg,
+    color-mix(in srgb, var(--primary) 8%, var(--surface-raised)),
+    var(--surface-raised) 62%
+  );
   box-shadow: var(--shadow-sm);
 }
 
@@ -4146,12 +4176,11 @@ hr {
   position: relative;
   overflow: hidden;
   padding: 22px 26px;
-  background:
-    linear-gradient(
-      108deg,
-      var(--surface-raised) 0 62%,
-      color-mix(in srgb, var(--primary) 13%, var(--surface-raised)) 62%
-    );
+  background: linear-gradient(
+    108deg,
+    var(--surface-raised) 0 62%,
+    color-mix(in srgb, var(--primary) 13%, var(--surface-raised)) 62%
+  );
 }
 
 .admin-workspace .room-management__bar::after {
@@ -5248,7 +5277,7 @@ hr {
 
 .meetings-calendar-page {
   position: relative;
-  max-width: 1580px;
+  max-width: none;
   isolation: isolate;
 }
 

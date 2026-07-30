@@ -2,13 +2,14 @@ import { useState } from "react";
 import {
   useInfiniteQuery,
   useMutation,
-  useQueryClient
+  useQueryClient,
 } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { errorMessage } from "../lib/error-message";
 import { useI18n } from "../lib/i18n";
 import { navigate } from "../lib/router";
 import type { User } from "../types";
+import { BookingDialog } from "../components/BookingDialog";
 import { CancelBookingDialog } from "../components/CancelBookingDialog";
 import { Button } from "../components/ui/Button";
 
@@ -38,17 +39,19 @@ export function BookingListPage({ user }: { user: User }) {
   const timeZone =
     user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [section, setSection] = useState<"future" | "past">("future");
-  const [cancellingBooking, setCancellingBooking] =
-    useState<MyBooking | null>(null);
+  const [creatingOnline, setCreatingOnline] = useState(false);
+  const [cancellingBooking, setCancellingBooking] = useState<MyBooking | null>(
+    null,
+  );
   const queryClient = useQueryClient();
   const bookings = useInfiniteQuery({
     queryKey: ["my-bookings", section],
     queryFn: ({ pageParam }) =>
       api<BookingPage>(
-        `/api/bookings/mine?section=${section}&offset=${pageParam}`
+        `/api/bookings/mine?section=${section}&offset=${pageParam}`,
       ),
     initialPageParam: 0,
-    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
   });
   const visibleBookings =
     bookings.data?.pages.flatMap((page) => page.bookings) ?? [];
@@ -62,27 +65,27 @@ export function BookingListPage({ user }: { user: User }) {
     }) =>
       api<void>(`/api/bookings/${id}`, {
         method: "DELETE",
-        body: JSON.stringify({ scope })
+        body: JSON.stringify({ scope }),
       }),
     onSuccess: () => {
       setCancellingBooking(null);
       queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
-    }
+    },
   });
   const respond = useMutation({
     mutationFn: ({
       id,
-      status
+      status,
     }: {
       id: string;
       status: "ACCEPTED" | "DECLINED";
     }) =>
       api<void>(`/api/bookings/${id}/respond`, {
         method: "POST",
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status }),
       }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["my-bookings"] })
+      queryClient.invalidateQueries({ queryKey: ["my-bookings"] }),
   });
 
   return (
@@ -96,6 +99,9 @@ export function BookingListPage({ user }: { user: User }) {
           <h1>{t("myBookings")}</h1>
           <p>{t("bookings.subtitle")}</p>
         </div>
+        <Button onClick={() => setCreatingOnline(true)}>
+          {t("meetings.newOnline")}
+        </Button>
       </header>
       <div className="tabs">
         <button
@@ -117,10 +123,11 @@ export function BookingListPage({ user }: { user: User }) {
       ) : bookings.isError && visibleBookings.length === 0 ? (
         <div className="state-panel state-panel--error">
           <strong>{t("bookings.loadError")}</strong>
-          <span>
-            {errorMessage(bookings.error, t, "bookings.loadError")}
-          </span>
-          <button className="button button--secondary" onClick={() => bookings.refetch()}>
+          <span>{errorMessage(bookings.error, t, "bookings.loadError")}</span>
+          <button
+            className="button button--secondary"
+            onClick={() => bookings.refetch()}
+          >
             {t("retry")}
           </button>
         </div>
@@ -156,13 +163,13 @@ export function BookingListPage({ user }: { user: User }) {
                   <strong>
                     {new Intl.DateTimeFormat(dateLocale, {
                       day: "2-digit",
-                      timeZone
+                      timeZone,
                     }).format(new Date(booking.startsAt))}
                   </strong>
                   <span>
                     {new Intl.DateTimeFormat(dateLocale, {
                       month: "short",
-                      timeZone
+                      timeZone,
                     }).format(new Date(booking.startsAt))}
                   </span>
                 </div>
@@ -171,7 +178,7 @@ export function BookingListPage({ user }: { user: User }) {
                   onClick={() =>
                     booking.room
                       ? navigate(
-                          `/calendar?roomId=${booking.room.id}&date=${booking.startsAt}`
+                          `/calendar?roomId=${booking.room.id}&date=${booking.startsAt}`,
                         )
                       : navigate("/my-calendar")
                   }
@@ -180,13 +187,13 @@ export function BookingListPage({ user }: { user: User }) {
                     {new Intl.DateTimeFormat(dateLocale, {
                       hour: "2-digit",
                       minute: "2-digit",
-                      timeZone
+                      timeZone,
                     }).format(new Date(booking.startsAt))}
                     {" — "}
                     {new Intl.DateTimeFormat(dateLocale, {
                       hour: "2-digit",
                       minute: "2-digit",
-                      timeZone
+                      timeZone,
                     }).format(new Date(booking.endsAt))}
                   </span>
                   <strong>{booking.title}</strong>
@@ -230,7 +237,7 @@ export function BookingListPage({ user }: { user: User }) {
                           onClick={() =>
                             respond.mutate({
                               id: booking.id,
-                              status: "ACCEPTED"
+                              status: "ACCEPTED",
                             })
                           }
                         >
@@ -242,7 +249,7 @@ export function BookingListPage({ user }: { user: User }) {
                           onClick={() =>
                             respond.mutate({
                               id: booking.id,
-                              status: "DECLINED"
+                              status: "DECLINED",
                             })
                           }
                         >
@@ -270,10 +277,7 @@ export function BookingListPage({ user }: { user: User }) {
           {bookings.isFetchNextPageError && (
             <div className="form-error load-more-error" role="alert">
               {t("bookings.moreError")}
-              <button
-                type="button"
-                onClick={() => bookings.fetchNextPage()}
-              >
+              <button type="button" onClick={() => bookings.fetchNextPage()}>
                 {t("retry")}
               </button>
             </div>
@@ -300,6 +304,21 @@ export function BookingListPage({ user }: { user: User }) {
           onConfirm={(scope) =>
             cancel.mutate({ id: cancellingBooking.id, scope })
           }
+        />
+      )}
+      {creatingOnline && (
+        <BookingDialog
+          onClose={() => setCreatingOnline(false)}
+          onSaved={async () => {
+            setCreatingOnline(false);
+            await Promise.all([
+              queryClient.invalidateQueries({ queryKey: ["my-bookings"] }),
+              queryClient.invalidateQueries({
+                queryKey: ["my-meetings-calendar"],
+              }),
+              queryClient.invalidateQueries({ queryKey: ["open-events"] }),
+            ]);
+          }}
         />
       )}
     </div>

@@ -3,12 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { errorMessage } from "../lib/error-message";
 import { useI18n } from "../lib/i18n";
-import type {
-  MyMeeting,
-  MyMeetingsCalendar,
-  Room,
-  User,
-} from "../types";
+import type { MyMeeting, MyMeetingsCalendar, Room, User } from "../types";
 import { BookingDialog } from "../components/BookingDialog";
 import { Button } from "../components/ui/Button";
 import { ModalLayer } from "../components/ui/ModalLayer";
@@ -43,17 +38,16 @@ export function MyMeetingsPage({ user }: { user: User }) {
   const [reference, setReference] = useState(() => startOfDay(new Date()));
   const [selected, setSelected] = useState<MyMeeting | null>(null);
   const [editing, setEditing] = useState<MyMeeting | null>(null);
-  const [creatingOnline, setCreatingOnline] = useState(false);
   const days = useMemo(
-    () => Array.from({ length: DAY_COUNT }, (_, index) => addDays(reference, index)),
+    () =>
+      Array.from({ length: DAY_COUNT }, (_, index) =>
+        addDays(reference, index),
+      ),
     [reference],
   );
   const rangeEnd = addDays(reference, DAY_COUNT);
   const meetings = useQuery({
-    queryKey: [
-      "my-meetings-calendar",
-      reference.toISOString().slice(0, 10),
-    ],
+    queryKey: ["my-meetings-calendar", reference.toISOString().slice(0, 10)],
     queryFn: () =>
       api<MyMeetingsCalendar>(
         `/api/bookings/my-calendar?from=${encodeURIComponent(
@@ -105,19 +99,22 @@ export function MyMeetingsPage({ user }: { user: User }) {
   };
 
   return (
-    <div className="page meetings-calendar-page">
+    <div
+      className="page editorial-page meetings-calendar-page"
+      data-page-mark="HOME"
+    >
       <header className="page-header meetings-calendar-header">
         <div>
           <span className="eyebrow">{t("meetings.eyebrow")}</span>
           <h1>{t("myMeetings")}</h1>
           <p>{t("meetings.subtitle")}</p>
         </div>
-        <Button onClick={() => setCreatingOnline(true)}>
-          {t("meetings.newOnline")}
-        </Button>
       </header>
 
-      <section className="meetings-overview" aria-label={t("meetings.overview")}>
+      <section
+        className="meetings-overview"
+        aria-label={t("meetings.overview")}
+      >
         <article className="meetings-next card">
           <span className="eyebrow">{t("meetings.nextMeeting")}</span>
           {meetings.isLoading ? (
@@ -190,44 +187,44 @@ export function MyMeetingsPage({ user }: { user: User }) {
         </div>
         <section className="personal-agenda card">
           <div className="meetings-calendar__toolbar">
-          <div className="calendar-navigation">
-            <Button
-              variant="secondary"
-              onClick={() => setReference(addDays(reference, -DAY_COUNT))}
-              aria-label={t("meetings.previousDays")}
-            >
-              ‹
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setReference(startOfDay(new Date()))}
-            >
-              {t("today")}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setReference(addDays(reference, DAY_COUNT))}
-              aria-label={t("meetings.nextDays")}
-            >
-              ›
-            </Button>
-          </div>
-          <div className="meetings-range">
-            <span>{t("meetings.sixDayAgenda")}</span>
-            <strong>
-              {new Intl.DateTimeFormat(dateLocale, {
-                day: "numeric",
-                month: "long",
-                timeZone,
-              }).format(days[0])}
-              {" — "}
-              {new Intl.DateTimeFormat(dateLocale, {
-                day: "numeric",
-                month: "long",
-                timeZone,
-              }).format(days[days.length - 1])}
-            </strong>
-          </div>
+            <div className="calendar-navigation">
+              <Button
+                variant="secondary"
+                onClick={() => setReference(addDays(reference, -DAY_COUNT))}
+                aria-label={t("meetings.previousDays")}
+              >
+                ‹
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setReference(startOfDay(new Date()))}
+              >
+                {t("today")}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setReference(addDays(reference, DAY_COUNT))}
+                aria-label={t("meetings.nextDays")}
+              >
+                ›
+              </Button>
+            </div>
+            <div className="meetings-range">
+              <span>{t("meetings.sixDayAgenda")}</span>
+              <strong>
+                {new Intl.DateTimeFormat(dateLocale, {
+                  day: "numeric",
+                  month: "long",
+                  timeZone,
+                }).format(days[0])}
+                {" — "}
+                {new Intl.DateTimeFormat(dateLocale, {
+                  day: "numeric",
+                  month: "long",
+                  timeZone,
+                }).format(days[days.length - 1])}
+              </strong>
+            </div>
           </div>
 
           {meetings.isLoading ? (
@@ -235,7 +232,9 @@ export function MyMeetingsPage({ user }: { user: User }) {
           ) : meetings.isError ? (
             <div className="state-panel state-panel--error">
               <strong>{t("meetings.loadError")}</strong>
-              <span>{errorMessage(meetings.error, t, "meetings.loadError")}</span>
+              <span>
+                {errorMessage(meetings.error, t, "meetings.loadError")}
+              </span>
             </div>
           ) : (
             <div className="agenda-days">
@@ -361,7 +360,9 @@ export function MyMeetingsPage({ user }: { user: User }) {
                 <strong>{t("meetings.participants")}</strong>
                 <span>
                   {selected.participants.length
-                    ? selected.participants.map((person) => person.name).join(", ")
+                    ? selected.participants
+                        .map((person) => person.name)
+                        .join(", ")
                     : t("meetings.noParticipants")}
                 </span>
               </p>
@@ -396,15 +397,6 @@ export function MyMeetingsPage({ user }: { user: User }) {
         </ModalLayer>
       )}
 
-      {creatingOnline && (
-        <BookingDialog
-          onClose={() => setCreatingOnline(false)}
-          onSaved={async () => {
-            setCreatingOnline(false);
-            await invalidate();
-          }}
-        />
-      )}
       {editing && (editing.meetingType === "ONLINE" || editingRoom) && (
         <BookingDialog
           key={`edit-${editing.id}`}
