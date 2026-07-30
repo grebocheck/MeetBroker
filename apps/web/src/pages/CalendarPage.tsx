@@ -11,37 +11,21 @@ import {
 } from "../lib/date";
 import { useI18n } from "../lib/i18n";
 import type { Booking, Room, RoomBlock, Schedule, User } from "../types";
-import { Avatar } from "../components/Avatar";
 import { RoomVisual } from "../components/RoomVisual";
 import { BookingDialog, type BookingDraft } from "../components/BookingDialog";
 import { CancelBookingDialog } from "../components/CancelBookingDialog";
-import { DrawerLayer } from "../components/ui/DrawerLayer";
 import { RoomBlockDrawer } from "../components/RoomBlockDrawer";
+import { BookingDrawer } from "./calendar/BookingDrawer";
+import { CalendarDayColumn } from "./calendar/CalendarDayColumn";
+import { CalendarSkeleton } from "./calendar/CalendarSkeleton";
+import {
+  CALENDAR_SLOT_HEIGHT,
+  calendarDayCount,
+  clockMinutes,
+  nextWorkingDate,
+} from "./calendar/calendar.model";
 
-const SLOT_HEIGHT = 32;
 const DEFAULT_TIME_ZONE = "Europe/Kyiv";
-
-function calendarDayCount(width: number): number {
-  if (width < 480) return 2;
-  if (width < 650) return 3;
-  if (width < 800) return 4;
-  if (width < 980) return 5;
-  return 6;
-}
-
-function clockMinutes(value: string): number {
-  const [hours, minutes] = value.split(":").map(Number);
-  return hours * 60 + minutes;
-}
-
-function nextWorkingDate(after: Date, workingDays: number[]): Date {
-  for (let offset = 1; offset <= 14; offset += 1) {
-    const candidate = addDays(after, offset);
-    const weekday = candidate.getDay() === 0 ? 7 : candidate.getDay();
-    if (workingDays.includes(weekday)) return candidate;
-  }
-  return addDays(after, 1);
-}
 
 export function CalendarPage({ user }: { user: User }) {
   const { dateLocale, t } = useI18n();
@@ -398,7 +382,7 @@ export function CalendarPage({ user }: { user: User }) {
                   className="week-grid"
                   style={
                     {
-                      "--calendar-height": `${slots.length * SLOT_HEIGHT}px`,
+                      "--calendar-height": `${slots.length * CALENDAR_SLOT_HEIGHT}px`,
                       "--calendar-days": visibleDayCount,
                     } as React.CSSProperties
                   }
@@ -446,7 +430,7 @@ export function CalendarPage({ user }: { user: User }) {
                         <span
                           className={index === 0 ? "is-first" : undefined}
                           key={minutes}
-                          style={{ top: index * SLOT_HEIGHT }}
+                          style={{ top: index * CALENDAR_SLOT_HEIGHT }}
                         >
                           {new Intl.DateTimeFormat(dateLocale, {
                             hour: "2-digit",
@@ -461,7 +445,7 @@ export function CalendarPage({ user }: { user: User }) {
                   {visibleDays.map((day, index) => {
                     const isoWeekday = day.getDay() === 0 ? 7 : day.getDay();
                     return (
-                      <DayColumn
+                      <CalendarDayColumn
                         key={day.toISOString()}
                         day={day}
                         slots={slots}
@@ -483,7 +467,9 @@ export function CalendarPage({ user }: { user: User }) {
                       className="current-time-line"
                       style={{
                         top:
-                          58 + ((nowMinutes - startMinutes) / 30) * SLOT_HEIGHT,
+                          58 +
+                          ((nowMinutes - startMinutes) / 30) *
+                            CALENDAR_SLOT_HEIGHT,
                       }}
                     >
                       <span>{currentTimeLabel}</span>
@@ -594,294 +580,6 @@ export function CalendarPage({ user }: { user: User }) {
           }
         />
       )}
-    </div>
-  );
-}
-
-function DayColumn({
-  day,
-  slots,
-  startMinutes,
-  workStartMinutes,
-  workEndMinutes,
-  workingDay,
-  officeTimeZone,
-  schedule,
-  currentUserId,
-  onCreate,
-  onBooking,
-  onBlock,
-}: {
-  day: Date;
-  slots: number[];
-  startMinutes: number;
-  workStartMinutes: number;
-  workEndMinutes: number;
-  workingDay: boolean;
-  officeTimeZone: string;
-  schedule: Schedule;
-  currentUserId: string;
-  onCreate: (draft: BookingDraft) => void;
-  onBooking: (booking: Booking) => void;
-  onBlock: (block: RoomBlock) => void;
-}) {
-  const { dateLocale, t } = useI18n();
-  const key = dateKeyInZone(
-    officeLocalToInstant(day, 12, 0, officeTimeZone),
-    officeTimeZone,
-  );
-  const bookings = schedule.bookings.filter(
-    (booking) =>
-      dateKeyInZone(new Date(booking.startsAt), officeTimeZone) === key,
-  );
-  const blocks = schedule.blocks.filter(
-    (block) => dateKeyInZone(new Date(block.startsAt), officeTimeZone) === key,
-  );
-
-  return (
-    <div className={`day-column${!workingDay ? " is-closed" : ""}`}>
-      {!workingDay && (
-        <span className="day-column__closed-label">
-          {t("calendar.closedDay")}
-        </span>
-      )}
-      {slots.map((minutes) => {
-        const outsideWorkingHours =
-          !workingDay ||
-          minutes < workStartMinutes ||
-          minutes >= workEndMinutes;
-        const start = officeLocalToInstant(
-          day,
-          Math.floor(minutes / 60),
-          minutes % 60,
-          officeTimeZone,
-        );
-        return (
-          <button
-            className={`calendar-slot${
-              outsideWorkingHours ? " calendar-slot--closed" : ""
-            }`}
-            key={minutes}
-            disabled={outsideWorkingHours}
-            onClick={() => {
-              if (!outsideWorkingHours) {
-                onCreate({
-                  startsAt: start,
-                  endsAt: new Date(start.getTime() + 30 * 60_000),
-                });
-              }
-            }}
-            aria-label={
-              outsideWorkingHours
-                ? t("calendar.closedSlot", { time: start.toISOString() })
-                : t("calendar.freeSlot", { time: start.toISOString() })
-            }
-          />
-        );
-      })}
-      {blocks.map((block) => {
-        const localStart = toZonedTime(
-          new Date(block.startsAt),
-          officeTimeZone,
-        );
-        const minutes = localStart.getHours() * 60 + localStart.getMinutes();
-        const duration =
-          (new Date(block.endsAt).getTime() -
-            new Date(block.startsAt).getTime()) /
-          60_000;
-        return (
-          <button
-            type="button"
-            className={`booking-block booking-block--maintenance${
-              block.seriesId ? " booking-block--recurring" : ""
-            }`}
-            style={{
-              top: ((minutes - startMinutes) / 30) * SLOT_HEIGHT + 2,
-              height: Math.max(28, (duration / 30) * SLOT_HEIGHT - 4),
-            }}
-            key={block.id}
-            onClick={() => onBlock(block)}
-            aria-label={`${t("calendar.unavailableDetails")}: ${block.title}`}
-          >
-            <small>
-              {block.seriesId
-                ? t("calendar.recurringUnavailable")
-                : t("calendar.legendUnavailable")}
-            </small>
-            <span>{block.title}</span>
-          </button>
-        );
-      })}
-      {bookings.map((booking) => {
-        const localStart = toZonedTime(
-          new Date(booking.startsAt),
-          officeTimeZone,
-        );
-        const minutes = localStart.getHours() * 60 + localStart.getMinutes();
-        const duration =
-          (new Date(booking.endsAt).getTime() -
-            new Date(booking.startsAt).getTime()) /
-          60_000;
-        const own = booking.organizer.id === currentUserId;
-        return (
-          <button
-            className={`booking-block${
-              own ? " booking-block--own" : ""
-            }${booking.participationMode === "OPEN" ? " booking-block--open" : ""}${
-              booking.imageUrl ? " booking-block--image" : ""
-            }`}
-            style={{
-              top: ((minutes - startMinutes) / 30) * SLOT_HEIGHT + 2,
-              height: Math.max(28, (duration / 30) * SLOT_HEIGHT - 4),
-              ...(booking.imageUrl
-                ? {
-                    backgroundImage: `linear-gradient(90deg, rgba(2, 15, 39, .9), rgba(2, 24, 56, .48)), url("${booking.imageUrl}")`,
-                    backgroundPosition: "center",
-                    backgroundSize: "cover",
-                  }
-                : {}),
-            }}
-            key={booking.id}
-            onClick={() => onBooking(booking)}
-          >
-            <small>
-              {new Intl.DateTimeFormat(dateLocale, {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }).format(new Date(booking.startsAt))}
-            </small>
-            <strong>{booking.title}</strong>
-            <span>
-              {own ? t("calendar.yourBooking") : booking.organizer.name}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function BookingDrawer({
-  booking,
-  currentUserId,
-  onClose,
-  onEdit,
-  onCancel,
-  cancelling,
-}: {
-  booking: Booking;
-  currentUserId: string;
-  onClose: () => void;
-  onEdit: () => void;
-  onCancel: () => void;
-  cancelling: boolean;
-}) {
-  const { dateLocale, t } = useI18n();
-  return (
-    <DrawerLayer labelledBy="booking-details-title" onClose={onClose}>
-      {(close) => (
-        <>
-          <div className="drawer__header">
-            <div>
-              <span className="eyebrow drawer__event-type">
-                <span
-                  className={`event-dot${
-                    booking.organizer.id === currentUserId
-                      ? " event-dot--own"
-                      : ""
-                  }`}
-                  aria-hidden="true"
-                />
-                <span>
-                  {booking.seriesId ? `${t("calendar.seriesEvent")} · ` : ""}
-                  {booking.participationMode === "OPEN"
-                    ? t("calendar.openEvent")
-                    : t("calendar.invitationEvent")}
-                </span>
-              </span>
-              <h2 id="booking-details-title">{booking.title}</h2>
-            </div>
-            <button
-              className="icon-button"
-              onClick={() => close()}
-              aria-label={t("close")}
-            >
-              ×
-            </button>
-          </div>
-          <div className="drawer-time">
-            {new Intl.DateTimeFormat(dateLocale, {
-              dateStyle: "full",
-              timeStyle: "short",
-            }).format(new Date(booking.startsAt))}
-          </div>
-          <hr />
-          <span className="detail-label">{t("calendar.organizer")}</span>
-          <div className="person-detail">
-            <Avatar
-              name={booking.organizer.name}
-              preset={booking.organizer.avatarPreset}
-              url={booking.organizer.avatarUrl}
-              size="lg"
-            />
-            <div>
-              <strong>{booking.organizer.name}</strong>
-              <p>{booking.organizer.bio || t("calendar.colleagueFallback")}</p>
-            </div>
-          </div>
-          {booking.participants.length > 0 && (
-            <>
-              <span className="detail-label">{t("calendar.participants")}</span>
-              <div className="avatar-stack">
-                {booking.participants.slice(0, 8).map((person) => (
-                  <Avatar
-                    key={person.id}
-                    name={person.name}
-                    preset={person.avatarPreset}
-                    url={person.avatarUrl}
-                    size="sm"
-                  />
-                ))}
-                <span>{booking.participants.length}</span>
-              </div>
-            </>
-          )}
-          {booking.organizer.id === currentUserId && (
-            <div className="drawer__actions">
-              <button
-                className="button button--primary button--wide"
-                onClick={() => close(onEdit)}
-              >
-                {t("calendar.edit")}
-              </button>
-              <button
-                className="button button--danger button--wide"
-                onClick={() => close(onCancel)}
-                disabled={cancelling}
-              >
-                {cancelling
-                  ? t("calendar.cancelling")
-                  : t("calendar.cancelBooking")}
-              </button>
-            </div>
-          )}
-        </>
-      )}
-    </DrawerLayer>
-  );
-}
-
-function CalendarSkeleton() {
-  return (
-    <div className="calendar-skeleton">
-      {Array.from({ length: 7 }, (_, index) => (
-        <div key={index}>
-          <span />
-          <i />
-          <i />
-        </div>
-      ))}
     </div>
   );
 }
