@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { errorMessage } from "../lib/error-message";
@@ -37,6 +37,7 @@ type BookingErrorTarget =
   | "recurrence"
   | "participants"
   | "meetingUrl"
+  | "image"
   | "adminReason"
   | "form";
 
@@ -166,6 +167,14 @@ function bookingError(
       target: "meetingUrl",
       message: t("booking.meetingUrlRequired")
     },
+    BOOKING_IMAGE_REQUIRED: {
+      target: "image",
+      message: t("booking.imageInvalid")
+    },
+    INVALID_BOOKING_IMAGE: {
+      target: "image",
+      message: t("booking.imageInvalid")
+    },
     INVALID_PARTICIPANT: {
       target: "participants",
       message: t("booking.invalidParticipant")
@@ -247,6 +256,9 @@ export function BookingDialog({
     booking?.meetingType ?? (room ? "ROOM" : "ONLINE")
   );
   const [meetingUrl, setMeetingUrl] = useState(booking?.meetingUrl ?? "");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
   const [title, setTitle] = useState(booking?.title ?? "");
   const [startsAt, setStartsAt] = useState(toDateTimeLocal(initialStartsAt));
   const [endsAt, setEndsAt] = useState(toDateTimeLocal(initialEndsAt));
@@ -287,14 +299,33 @@ export function BookingDialog({
   const selected = colleagueUsers.filter((user) =>
     participantIds.includes(user.id)
   );
+  const imagePreview = useMemo(
+    () =>
+      imageFile
+        ? URL.createObjectURL(imageFile)
+        : removeExistingImage
+          ? null
+          : booking?.imageUrl ?? null,
+    [booking?.imageUrl, imageFile, removeExistingImage]
+  );
+  useEffect(
+    () => () => {
+      if (imageFile && imagePreview) URL.revokeObjectURL(imagePreview);
+    },
+    [imageFile, imagePreview]
+  );
   const save = useMutation({
-    mutationFn: () =>
-      api<void | { id: string; seriesId: string | null; occurrenceCount: number }>(
-        booking ? `/api/bookings/${booking.id}` : "/api/bookings",
+    mutationFn: async () => {
+      const targetId = booking?.id ?? createdBookingId;
+      const updating = Boolean(targetId);
+      const result = await api<
+        void | { id: string; seriesId: string | null; occurrenceCount: number }
+      >(
+        targetId ? `/api/bookings/${targetId}` : "/api/bookings",
         {
-          method: booking ? "PATCH" : "POST",
+          method: updating ? "PATCH" : "POST",
           body: JSON.stringify({
-            ...(!booking
+            ...(!updating
               ? {
                   meetingType,
                   roomId: meetingType === "ROOM" ? room?.id : undefined
@@ -308,7 +339,7 @@ export function BookingDialog({
             endsAt: new Date(endsAt).toISOString(),
             participationMode: mode,
             participantIds,
-            ...(!booking && recurrence !== "NONE"
+            ...(!updating && recurrence !== "NONE"
               ? {
                   recurrence,
                   recurrenceInterval,
@@ -319,7 +350,23 @@ export function BookingDialog({
             ...(administrative ? { adminReason: adminReason.trim() } : {})
           })
         }
-      ),
+      );
+      const bookingId = targetId ?? result?.id;
+      if (!targetId && result?.id) setCreatedBookingId(result.id);
+      if (bookingId && imageFile) {
+        const form = new FormData();
+        form.append("image", imageFile);
+        await api<{ imageUrl: string }>(`/api/bookings/${bookingId}/image`, {
+          method: "POST",
+          body: form
+        });
+      } else if (bookingId && booking?.imageUrl && removeExistingImage) {
+        await api<void>(`/api/bookings/${bookingId}/image`, {
+          method: "DELETE"
+        });
+      }
+      return result;
+    },
     onSuccess: onSaved
   });
 
@@ -558,7 +605,10 @@ export function BookingDialog({
           </div>
           {!editing && (
             <fieldset className="segmented-field recurrence-field">
-              <legend>{t("booking.recurrence")}</legend>
+              <div className="recurrence-field__heading">
+                <span>{t("booking.recurrence")}</span>
+                <small>{t("booking.recurrenceHint")}</small>
+              </div>
               <div className="segmented">
                 {[
                   ["NONE", t("booking.noRecurrence")],
@@ -677,6 +727,79 @@ export function BookingDialog({
               </button>
             </div>
           </fieldset>
+          <div className="booking-image-field">
+            <div className="field-heading">
+              <span>{t("booking.image")}</span>
+              <small>{t("booking.imageOptional")}</small>
+            </div>
+            <div
+              className={`booking-image-picker${
+                imagePreview ? " has-image" : ""
+              }`}
+              style={
+                imagePreview
+                  ? { backgroundImage: `url("${imagePreview}")` }
+                  : undefined
+              }
+            >
+              <div className="booking-image-picker__copy">
+                <strong>
+                  {imagePreview
+                    ? t("booking.imageReady")
+                    : t("booking.imageTitle")}
+                </strong>
+                <span>{t("booking.imageHint")}</span>
+              </div>
+              <div className="booking-image-picker__actions">
+                <label className="button button--secondary button--slanted button--small">
+                  {imagePreview
+                    ? t("booking.imageChange")
+                    : t("booking.imageChoose")}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      if (
+                        file &&
+                        (!file.type.startsWith("image/") ||
+                          file.size > 12_582_912)
+                      ) {
+                        setLocalError({
+                          target: "image",
+                          message: t("booking.imageInvalid")
+                        });
+                        event.target.value = "";
+                        return;
+                      }
+                      setImageFile(file);
+                      setRemoveExistingImage(false);
+                      setLocalError(null);
+                      save.reset();
+                    }}
+                  />
+                </label>
+                {imagePreview && (
+                  <button
+                    type="button"
+                    className="button button--ghost button--small"
+                    onClick={() => {
+                      setImageFile(null);
+                      setRemoveExistingImage(Boolean(booking?.imageUrl));
+                      setLocalError(null);
+                    }}
+                  >
+                    {t("booking.imageRemove")}
+                  </button>
+                )}
+              </div>
+            </div>
+            {localError?.target === "image" && (
+              <small className="field-error" role="alert">
+                {localError.message}
+              </small>
+            )}
+          </div>
           <div className="invite-field">
             <div className="field-heading">
               <span>{t("booking.inviteColleagues")}</span>

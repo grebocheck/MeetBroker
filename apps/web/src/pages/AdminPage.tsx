@@ -58,6 +58,7 @@ interface AdminBooking {
   endsAt: string;
   meetingType: "ROOM" | "ONLINE";
   meetingUrl: string | null;
+  imageUrl: string | null;
   participationMode: "INVITE_ONLY" | "OPEN";
   seriesId: string | null;
   overrideReason: string | null;
@@ -383,6 +384,7 @@ function BookingsAdmin() {
                 endsAt: editing.endsAt,
                 meetingType: editing.meetingType,
                 meetingUrl: editing.meetingUrl,
+                imageUrl: editing.imageUrl,
                 room: editing.room,
                 participationMode: editing.participationMode,
                 seriesId: editing.seriesId,

@@ -19,6 +19,7 @@ interface MyBooking {
   endsAt: string;
   meetingType: "ROOM" | "ONLINE";
   meetingUrl: string | null;
+  imageUrl: string | null;
   room: { id: string; name: string } | null;
   organizerId: string;
   participationMode: string;

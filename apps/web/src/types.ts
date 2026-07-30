@@ -60,6 +60,7 @@ export interface Booking {
   endsAt: string;
   meetingType?: "ROOM" | "ONLINE";
   meetingUrl?: string | null;
+  imageUrl?: string | null;
   room?: Pick<Room, "id" | "name"> | null;
   participationMode: "INVITE_ONLY" | "OPEN";
   seriesId: string | null;

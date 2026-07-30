@@ -126,6 +126,13 @@ export function MyMeetingsPage({ user }: { user: User }) {
             </div>
           ) : nextMeeting ? (
             <>
+              {nextMeeting.imageUrl && (
+                <span
+                  className="meetings-next__visual"
+                  style={{ backgroundImage: `url("${nextMeeting.imageUrl}")` }}
+                  aria-hidden="true"
+                />
+              )}
               <div className="meetings-next__time">
                 <strong>{formatTime(nextMeeting.startsAt)}</strong>
                 <span>
@@ -179,7 +186,7 @@ export function MyMeetingsPage({ user }: { user: User }) {
       <div className="agenda-stage">
         <div className="agenda-stage__caption" aria-hidden="true">
           <span>MeetBroker</span>
-          <strong>06 / DAYS</strong>
+          <strong>Personal / Agenda</strong>
         </div>
         <section className="personal-agenda card">
           <div className="meetings-calendar__toolbar">

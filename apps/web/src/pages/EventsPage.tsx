@@ -11,6 +11,7 @@ interface OpenEvent {
   endsAt: string;
   meetingType: "ROOM" | "ONLINE";
   meetingUrl: string | null;
+  imageUrl: string | null;
   room: { id: string; name: string; capacity: number } | null;
   organizer: { id: string; name: string };
   participantCount: number;
@@ -73,6 +74,14 @@ export function EventsPage({ user }: { user: User }) {
             return (
               <article className="event-card" key={event.id}>
                 <div className="event-card__accent" />
+                {event.imageUrl && (
+                  <div
+                    className="event-card__visual"
+                    style={{ backgroundImage: `url("${event.imageUrl}")` }}
+                    role="img"
+                    aria-label={event.title}
+                  />
+                )}
                 <div className="event-card__date">
                   <span>
                     {new Intl.DateTimeFormat(dateLocale, {

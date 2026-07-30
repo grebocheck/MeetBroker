@@ -728,10 +728,19 @@ function DayColumn({
           <button
             className={`booking-block${
               own ? " booking-block--own" : ""
-            }${booking.participationMode === "OPEN" ? " booking-block--open" : ""}`}
+            }${booking.participationMode === "OPEN" ? " booking-block--open" : ""}${
+              booking.imageUrl ? " booking-block--image" : ""
+            }`}
             style={{
               top: ((minutes - startMinutes) / 30) * SLOT_HEIGHT + 2,
               height: Math.max(28, (duration / 30) * SLOT_HEIGHT - 4),
+              ...(booking.imageUrl
+                ? {
+                    backgroundImage: `linear-gradient(90deg, rgba(2, 15, 39, .9), rgba(2, 24, 56, .48)), url("${booking.imageUrl}")`,
+                    backgroundPosition: "center",
+                    backgroundSize: "cover",
+                  }
+                : {}),
             }}
             key={booking.id}
             onClick={() => onBooking(booking)}

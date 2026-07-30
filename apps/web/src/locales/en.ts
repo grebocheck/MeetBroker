@@ -478,6 +478,7 @@ export const en = {
   "booking.start": "Start",
   "booking.end": "End",
   "booking.recurrence": "Repeat",
+  "booking.recurrenceHint": "Optional",
   "booking.noRecurrence": "Does not repeat",
   "booking.daily": "Every N days",
   "booking.weekly": "On selected weekdays",
@@ -502,6 +503,17 @@ export const en = {
   "booking.booking": "Booking…",
   "booking.saveChanges": "Save changes",
   "booking.createSeries": "Create series",
+  "booking.image": "Meeting cover",
+  "booking.imageOptional": "Optional",
+  "booking.imageTitle": "Add a visual cover",
+  "booking.imageHint":
+    "JPG, PNG or WebP. The image will be cropped and optimized automatically.",
+  "booking.imageReady": "Cover ready",
+  "booking.imageChoose": "Choose image",
+  "booking.imageChange": "Replace",
+  "booking.imageRemove": "Remove",
+  "booking.imageInvalid":
+    "Choose a valid JPG, PNG or WebP image up to 12 MB.",
   "meetings.eyebrow": "Your working rhythm",
   "meetings.subtitle":
     "Every meeting you organize or have been invited to.",

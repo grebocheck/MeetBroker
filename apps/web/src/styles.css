@@ -1467,6 +1467,17 @@ hr {
   background: var(--booking-open);
 }
 
+.booking-block--image,
+.booking-block--image small,
+.booking-block--image span {
+  color: #f3f9ff;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.72);
+}
+
+.booking-block--image {
+  border-color: color-mix(in srgb, var(--cyan) 72%, #ffffff);
+}
+
 .booking-block--maintenance {
   justify-content: center;
   border-color: var(--border);
@@ -2429,6 +2440,15 @@ hr {
   transform-origin: left;
 }
 
+.event-card__visual {
+  height: 132px;
+  margin: -24px -24px 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border));
+  background-position: center;
+  background-size: cover;
+  box-shadow: inset 0 -44px 48px -34px rgba(3, 18, 48, 0.74);
+}
+
 .event-card__date {
   display: flex;
   margin-bottom: 28px;
@@ -2558,11 +2578,106 @@ hr {
   background: var(--surface-muted);
 }
 
+.recurrence-field__heading {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recurrence-field__heading > span {
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.recurrence-field__heading > small {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+}
+
 .recurrence-settings {
   display: grid;
   margin-top: 14px;
   grid-template-columns: minmax(120px, 0.6fr) minmax(170px, 1fr);
   gap: 12px;
+}
+
+.booking-image-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.booking-image-picker {
+  position: relative;
+  min-height: 112px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  overflow: hidden;
+  border: 1px dashed var(--border);
+  border-radius: 3px 15px 3px 15px;
+  background:
+    linear-gradient(
+      118deg,
+      color-mix(in srgb, var(--surface-muted) 92%, transparent),
+      color-mix(in srgb, var(--primary) 8%, var(--surface-raised))
+    );
+  background-position: center;
+  background-size: cover;
+}
+
+.booking-image-picker.has-image {
+  border-style: solid;
+  color: #fff;
+}
+
+.booking-image-picker.has-image::before {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(2, 13, 36, 0.88), rgba(2, 20, 50, 0.46)),
+    linear-gradient(135deg, transparent 60%, rgba(60, 191, 255, 0.28));
+  content: "";
+}
+
+.booking-image-picker > * {
+  position: relative;
+  z-index: 1;
+}
+
+.booking-image-picker__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.booking-image-picker__copy span {
+  max-width: 320px;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.booking-image-picker.has-image .booking-image-picker__copy span {
+  color: rgba(235, 247, 255, 0.82);
+}
+
+.booking-image-picker__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.booking-image-picker input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 .recurrence-settings > small,
@@ -4104,6 +4219,31 @@ hr {
   pointer-events: none;
 }
 
+.meetings-next__visual {
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 0 auto;
+  width: 42%;
+  background-position: center;
+  background-size: cover;
+  clip-path: polygon(24% 0, 100% 0, 100% 100%, 0 100%);
+  opacity: 0.42;
+  filter: saturate(0.88) contrast(1.05);
+  pointer-events: none;
+}
+
+.meetings-next__visual::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--surface-raised),
+    color-mix(in srgb, var(--surface-raised) 20%, transparent) 42%,
+    transparent
+  );
+  content: "";
+}
+
 .meetings-next > * {
   position: relative;
   z-index: 1;
@@ -4320,11 +4460,12 @@ hr {
 .agenda-days {
   padding: 4px 22px 18px;
   background:
-    linear-gradient(
-      112deg,
-      color-mix(in srgb, var(--surface-raised) 97%, transparent) 0 72%,
-      color-mix(in srgb, var(--primary) 5%, var(--surface-raised)) 72% 100%
-    );
+    repeating-linear-gradient(
+      132deg,
+      transparent 0 84px,
+      color-mix(in srgb, var(--primary) 3%, transparent) 85px 87px
+    ),
+    var(--surface-raised);
 }
 
 .agenda-day {
@@ -4774,6 +4915,16 @@ hr {
 
   .agenda-meeting__arrow {
     right: 10px;
+  }
+
+  .booking-image-picker {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .booking-image-picker__actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .app-layout {

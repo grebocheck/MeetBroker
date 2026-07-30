@@ -479,6 +479,7 @@ export const uk = {
   "booking.start": "Початок",
   "booking.end": "Завершення",
   "booking.recurrence": "Повторення",
+  "booking.recurrenceHint": "Необов’язково",
   "booking.noRecurrence": "Не повторюється",
   "booking.daily": "Кожні N днів",
   "booking.weekly": "За днями тижня",
@@ -503,6 +504,17 @@ export const uk = {
   "booking.booking": "Бронюємо…",
   "booking.saveChanges": "Зберегти зміни",
   "booking.createSeries": "Створити серію",
+  "booking.image": "Обкладинка зустрічі",
+  "booking.imageOptional": "Необов’язково",
+  "booking.imageTitle": "Додайте візуальну обкладинку",
+  "booking.imageHint":
+    "JPG, PNG або WebP. Зображення автоматично обріжеться й оптимізується.",
+  "booking.imageReady": "Обкладинка готова",
+  "booking.imageChoose": "Обрати зображення",
+  "booking.imageChange": "Замінити",
+  "booking.imageRemove": "Прибрати",
+  "booking.imageInvalid":
+    "Оберіть коректне JPG, PNG або WebP зображення розміром до 12 МБ.",
   "meetings.eyebrow": "Ваш робочий ритм",
   "meetings.subtitle":
     "Усі зустрічі, які ви організовуєте або до яких вас запросили.",
