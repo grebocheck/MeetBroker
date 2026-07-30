@@ -733,6 +733,122 @@ async function verifyCapabilityPolicies({
   }
 }
 
+async function verifyRecurringBookings(cookie, room) {
+  const timeZone = process.env.OFFICE_TIME_ZONE ?? "Europe/Kyiv";
+  let created;
+  let firstStart;
+
+  for (const startsAt of bookingCandidates(timeZone)) {
+    const localWeekday = localParts(startsAt, timeZone).weekday;
+    const weekday = {
+      Sun: 0,
+      Mon: 1,
+      Tue: 2,
+      Wed: 3,
+      Thu: 4,
+      Fri: 5,
+      Sat: 6,
+    }[localWeekday];
+    const recurrenceUntil = new Date(
+      startsAt.getTime() + 14 * 24 * 60 * 60_000,
+    );
+    const response = await fetch(`${baseUrl}/api/bookings`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie,
+      },
+      body: JSON.stringify({
+        roomId: room.id,
+        title: `Recurring booking smoke ${Date.now()}`,
+        startsAt: startsAt.toISOString(),
+        endsAt: new Date(startsAt.getTime() + 30 * 60_000).toISOString(),
+        participationMode: "INVITE_ONLY",
+        participantIds: [],
+        recurrence: "WEEKLY",
+        recurrenceInterval: 1,
+        weekdays: [weekday],
+        recurrenceUntil: dateKey(recurrenceUntil, timeZone),
+      }),
+    });
+    const body = await response.json();
+    if (response.status === 409) continue;
+    check(
+      response.status === 201,
+      `Recurring booking creation failed: ${JSON.stringify(body)}`,
+    );
+    created = body;
+    firstStart = startsAt;
+    break;
+  }
+
+  check(
+    created?.seriesId && created?.occurrenceCount === 3,
+    "Weekly booking series did not create three occurrences",
+  );
+  const rangeFrom = new Date(firstStart.getTime() - 60 * 60_000);
+  const rangeTo = new Date(firstStart.getTime() + 15 * 24 * 60 * 60_000);
+  const schedulePath =
+    `/api/bookings/schedule?roomId=${room.id}` +
+    `&from=${encodeURIComponent(rangeFrom.toISOString())}` +
+    `&to=${encodeURIComponent(rangeTo.toISOString())}`;
+  const schedule = await request(schedulePath, { headers: { cookie } });
+  const occurrences = schedule.body.bookings
+    .filter((booking) => booking.seriesId === created.seriesId)
+    .sort(
+      (left, right) =>
+        new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
+    );
+  check(
+    occurrences.length === 3,
+    "Booking series is not fully visible in the schedule",
+  );
+
+  const editedTitle = `Edited recurring occurrence ${Date.now()}`;
+  await request(`/api/bookings/${occurrences[1].id}`, {
+    method: "PATCH",
+    headers: { cookie },
+    body: JSON.stringify({
+      title: editedTitle,
+      startsAt: occurrences[1].startsAt,
+      endsAt: occurrences[1].endsAt,
+      participationMode: occurrences[1].participationMode,
+      participantIds: [],
+    }),
+  });
+  const scheduleAfterEdit = await request(schedulePath, {
+    headers: { cookie },
+  });
+  const afterEdit = scheduleAfterEdit.body.bookings.filter(
+    (booking) => booking.seriesId === created.seriesId,
+  );
+  check(
+    afterEdit.filter((booking) => booking.title === editedTitle).length === 1,
+    "Editing one recurring occurrence changed more than that occurrence",
+  );
+
+  await request(`/api/bookings/${occurrences[1].id}`, {
+    method: "DELETE",
+    headers: { cookie },
+    body: JSON.stringify({ scope: "FUTURE" }),
+  });
+  const scheduleAfterCancellation = await request(schedulePath, {
+    headers: { cookie },
+  });
+  const remaining = scheduleAfterCancellation.body.bookings.filter(
+    (booking) => booking.seriesId === created.seriesId,
+  );
+  check(
+    remaining.length === 1 && remaining[0].id === occurrences[0].id,
+    "Future series cancellation did not preserve only earlier occurrences",
+  );
+  await request(`/api/bookings/${occurrences[0].id}`, {
+    method: "DELETE",
+    headers: { cookie },
+    body: JSON.stringify({ scope: "OCCURRENCE" }),
+  });
+}
+
 async function main() {
   console.log(`Smoke checking ${baseUrl}`);
   await waitForReady();
@@ -841,6 +957,7 @@ async function main() {
     userId: managedUser.id,
     room: roomsResult.body.rooms.at(-1),
   });
+  await verifyRecurringBookings(userCookie, roomsResult.body.rooms.at(-1));
 
   const managedBookings = await request(
     "/api/admin/bookings?status=cancelled&search=Admin%20adjusted%20MVP%20smoke",
@@ -953,7 +1070,7 @@ async function main() {
   console.log(
     `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/update/cancel, ` +
       "critical booking guards and concurrency, colleagues, events, preferences, " +
-      "capability policies, booking management, room image lifecycle, working hours, recurring " +
+      "capability policies, recurring bookings, booking management, room image lifecycle, working hours, recurring " +
       "unavailability, account credentials and administration",
   );
 }

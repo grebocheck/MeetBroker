@@ -88,10 +88,16 @@ export function CalendarPage({ user }: { user: User }) {
   );
 
   const cancel = useMutation({
-    mutationFn: (bookingId: string) =>
+    mutationFn: ({
+      bookingId,
+      scope,
+    }: {
+      bookingId: string;
+      scope: "OCCURRENCE" | "FUTURE";
+    }) =>
       api<void>(`/api/bookings/${bookingId}`, {
         method: "DELETE",
-        body: JSON.stringify({}),
+        body: JSON.stringify({ scope }),
       }),
     onSuccess: () => {
       setSelectedBooking(null);
@@ -491,6 +497,7 @@ export function CalendarPage({ user }: { user: User }) {
             roomName: room.name,
             startsAt: cancellingBooking.startsAt,
             endsAt: cancellingBooking.endsAt,
+            seriesId: cancellingBooking.seriesId,
             participantCount: cancellingBooking.participants.length,
           }}
           pending={cancel.isPending}
@@ -500,7 +507,9 @@ export function CalendarPage({ user }: { user: User }) {
             cancel.reset();
             setCancellingBooking(null);
           }}
-          onConfirm={() => cancel.mutate(cancellingBooking.id)}
+          onConfirm={(scope) =>
+            cancel.mutate({ bookingId: cancellingBooking.id, scope })
+          }
         />
       )}
     </div>
@@ -679,6 +688,7 @@ function BookingDrawer({
           </button>
         </div>
         <span className="eyebrow">
+          {booking.seriesId ? "Подія із серії · " : ""}
           {booking.participationMode === "OPEN"
             ? "Відкрита подія"
             : "Зустріч за запрошенням"}

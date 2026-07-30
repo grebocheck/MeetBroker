@@ -2245,6 +2245,11 @@ hr {
   color: var(--warning);
 }
 
+.status-badge--series {
+  background: var(--booking-other);
+  color: var(--booking-other-border);
+}
+
 .event-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -2387,6 +2392,42 @@ hr {
 .notification-row__copy small {
   margin-top: 4px;
   font-size: 0.65rem;
+}
+
+.cancel-scope {
+  margin: 16px 0 4px;
+}
+
+.cancel-scope > small {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.67rem;
+}
+
+.recurrence-field {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 3px 16px 3px 16px;
+  background: var(--surface-muted);
+}
+
+.recurrence-settings {
+  display: grid;
+  margin-top: 14px;
+  grid-template-columns: minmax(120px, 0.6fr) minmax(170px, 1fr);
+  gap: 12px;
+}
+
+.recurrence-settings > small,
+.recurrence-weekdays {
+  grid-column: 1 / -1;
+}
+
+.recurrence-settings > small {
+  color: var(--text-muted);
+  font-size: 0.67rem;
+  line-height: 1.45;
 }
 
 .notification-row__action {
@@ -3921,7 +3962,8 @@ hr {
   }
 
   .form-grid,
-  .people-picker {
+  .people-picker,
+  .recurrence-settings {
     grid-template-columns: 1fr;
   }
 

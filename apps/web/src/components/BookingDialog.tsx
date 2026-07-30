@@ -15,6 +15,7 @@ export interface BookingDraft {
 type BookingErrorTarget =
   | "title"
   | "time"
+  | "recurrence"
   | "participants"
   | "adminReason"
   | "form";
@@ -47,11 +48,27 @@ function bookingError(error: unknown): {
     },
     SLOT_TAKEN: {
       target: "time",
-      message: "Цей час уже зайнятий. Оберіть інший інтервал."
+      message:
+        typeof error.details === "object" &&
+        error.details !== null &&
+        "startsAt" in error.details
+          ? `У серії вже зайнятий час ${new Intl.DateTimeFormat("uk-UA", {
+              dateStyle: "medium",
+              timeStyle: "short"
+            }).format(new Date(String(error.details.startsAt)))}.`
+          : "Цей час уже зайнятий. Оберіть інший інтервал."
     },
     ROOM_UNAVAILABLE: {
       target: "time",
-      message: "Кімната недоступна протягом вибраного часу."
+      message:
+        typeof error.details === "object" &&
+        error.details !== null &&
+        "startsAt" in error.details
+          ? `Кімната недоступна для одного з повторень: ${new Intl.DateTimeFormat(
+              "uk-UA",
+              { dateStyle: "medium", timeStyle: "short" }
+            ).format(new Date(String(error.details.startsAt)))}.`
+          : "Кімната недоступна протягом вибраного часу."
     },
     ROOM_CAPACITY_EXCEEDED: {
       target: "participants",
@@ -73,6 +90,26 @@ function bookingError(error: unknown): {
         "reason" in error.details
           ? `Дію обмежено. Причина: ${String(error.details.reason)}`
           : "Ця дія тимчасово обмежена адміністратором."
+    },
+    RECURRENCE_END_REQUIRED: {
+      target: "recurrence",
+      message: "Вкажіть дату завершення серії."
+    },
+    RECURRENCE_WEEKDAYS_REQUIRED: {
+      target: "recurrence",
+      message: "Оберіть хоча б один день тижня."
+    },
+    INVALID_RECURRENCE_RANGE: {
+      target: "recurrence",
+      message: "Серія може тривати від одного дня до одного року."
+    },
+    EMPTY_RECURRENCE: {
+      target: "recurrence",
+      message: "Ці налаштування не створюють жодної події."
+    },
+    TOO_MANY_OCCURRENCES: {
+      target: "recurrence",
+      message: "Одна серія може містити не більше 100 подій."
     },
     ADMIN_EDIT_REASON_REQUIRED: {
       target: "adminReason",
@@ -118,9 +155,21 @@ export function BookingDialog({
   const [participantIds, setParticipantIds] = useState<string[]>(
     booking?.participants.map((participant) => participant.id) ?? []
   );
+  const defaultUntil = new Date(initialStartsAt);
+  defaultUntil.setDate(defaultUntil.getDate() + 28);
+  const [recurrence, setRecurrence] = useState<"NONE" | "DAILY" | "WEEKLY">(
+    "NONE"
+  );
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceUntil, setRecurrenceUntil] = useState(
+    toDateTimeLocal(defaultUntil).slice(0, 10)
+  );
+  const [weekdays, setWeekdays] = useState<number[]>([
+    initialStartsAt.getDay()
+  ]);
   const [adminReason, setAdminReason] = useState("");
   const [localError, setLocalError] = useState<{
-    target: "title" | "time" | "adminReason";
+    target: "title" | "time" | "recurrence" | "adminReason";
     message: string;
   } | null>(null);
   const colleagues = useQuery({
@@ -136,7 +185,7 @@ export function BookingDialog({
   );
   const save = useMutation({
     mutationFn: () =>
-      api<void | { id: string }>(
+      api<void | { id: string; seriesId: string | null; occurrenceCount: number }>(
         booking ? `/api/bookings/${booking.id}` : "/api/bookings",
         {
           method: booking ? "PATCH" : "POST",
@@ -147,6 +196,14 @@ export function BookingDialog({
             endsAt: new Date(endsAt).toISOString(),
             participationMode: mode,
             participantIds,
+            ...(!booking && recurrence !== "NONE"
+              ? {
+                  recurrence,
+                  recurrenceInterval,
+                  recurrenceUntil,
+                  weekdays: recurrence === "WEEKLY" ? weekdays : undefined
+                }
+              : {}),
             ...(administrative ? { adminReason: adminReason.trim() } : {})
           })
         }
@@ -182,6 +239,22 @@ export function BookingDialog({
         message: "Вкажіть причину адміністративної зміни."
       });
       return;
+    }
+    if (!editing && recurrence !== "NONE") {
+      if (!recurrenceUntil) {
+        setLocalError({
+          target: "recurrence",
+          message: "Вкажіть дату завершення серії."
+        });
+        return;
+      }
+      if (recurrence === "WEEKLY" && weekdays.length === 0) {
+        setLocalError({
+          target: "recurrence",
+          message: "Оберіть хоча б один день тижня."
+        });
+        return;
+      }
     }
     setLocalError(null);
     save.mutate();
@@ -307,6 +380,110 @@ export function BookingDialog({
               </small>
             )}
           </div>
+          {!editing && (
+            <fieldset className="segmented-field recurrence-field">
+              <legend>Повторення</legend>
+              <div className="segmented">
+                {[
+                  ["NONE", "Не повторюється"],
+                  ["DAILY", "Кожні N днів"],
+                  ["WEEKLY", "За днями тижня"]
+                ].map(([value, label]) => (
+                  <button
+                    type="button"
+                    className={recurrence === value ? "is-active" : ""}
+                    onClick={() => {
+                      setRecurrence(value as typeof recurrence);
+                      setLocalError(null);
+                      save.reset();
+                    }}
+                    key={value}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {recurrence !== "NONE" && (
+                <div className="recurrence-settings">
+                  <label className="field">
+                    <span>
+                      {recurrence === "DAILY"
+                        ? "Інтервал у днях"
+                        : "Інтервал у тижнях"}
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={recurrenceInterval}
+                      onChange={(event) =>
+                        setRecurrenceInterval(
+                          Math.max(1, Math.min(30, Number(event.target.value)))
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Повторювати до</span>
+                    <input
+                      type="date"
+                      value={recurrenceUntil}
+                      min={startsAt.slice(0, 10)}
+                      onChange={(event) => setRecurrenceUntil(event.target.value)}
+                    />
+                  </label>
+                  {recurrence === "WEEKLY" && (
+                    <div className="weekday-picker recurrence-weekdays">
+                      {[
+                        [1, "Пн"],
+                        [2, "Вт"],
+                        [3, "Ср"],
+                        [4, "Чт"],
+                        [5, "Пт"],
+                        [6, "Сб"],
+                        [0, "Нд"]
+                      ].map(([day, label]) => (
+                        <button
+                          type="button"
+                          className={
+                            weekdays.includes(day as number) ? "is-active" : ""
+                          }
+                          onClick={() =>
+                            setWeekdays((current) =>
+                              current.includes(day as number)
+                                ? current.filter((item) => item !== day)
+                                : [...current, day as number]
+                            )
+                          }
+                          key={day}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <small>
+                    Уся серія створюється атомарно: якщо хоча б один час
+                    зайнятий, жодна подія не буде додана.
+                  </small>
+                </div>
+              )}
+              {(localError?.target === "recurrence" ||
+                serverError?.target === "recurrence") && (
+                <small className="field-error" role="alert">
+                  {localError?.target === "recurrence"
+                    ? localError.message
+                    : serverError?.message}
+                </small>
+              )}
+            </fieldset>
+          )}
+          {editing && booking?.seriesId && (
+            <div className="subtle-box">
+              Це подія із серії. Зміни застосуються лише до неї; інші події
+              збережуть свій розклад.
+            </div>
+          )}
           <fieldset className="segmented-field">
             <legend>Хто може долучитися</legend>
             <div className="segmented">
@@ -369,8 +546,9 @@ export function BookingDialog({
             <Button variant="ghost" onClick={onClose}>
               Назад
             </Button>
-            <button
-              className="button button--primary"
+            <Button
+              type="submit"
+              variant="primary"
               disabled={save.isPending}
             >
               {save.isPending
@@ -379,8 +557,10 @@ export function BookingDialog({
                   : "Бронюємо…"
                 : editing
                   ? "Зберегти зміни"
-                  : "Забронювати"}
-            </button>
+                  : recurrence === "NONE"
+                    ? "Забронювати"
+                    : "Створити серію"}
+            </Button>
           </div>
         </form>
       </section>

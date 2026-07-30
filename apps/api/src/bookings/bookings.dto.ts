@@ -1,12 +1,16 @@
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsDateString,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
+  Min,
   MinLength
 } from "class-validator";
 
@@ -39,6 +43,29 @@ export class CreateBookingDto {
   @IsString()
   @MaxLength(300)
   overrideReason?: string;
+
+  @IsOptional()
+  @IsIn(["NONE", "DAILY", "WEEKLY"])
+  recurrence?: "NONE" | "DAILY" | "WEEKLY";
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(30)
+  recurrenceInterval?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  weekdays?: number[];
+
+  @IsOptional()
+  @IsDateString()
+  recurrenceUntil?: string;
 }
 
 export class UpdateBookingDto {
@@ -78,4 +105,8 @@ export class CancelBookingDto {
   @IsString()
   @MaxLength(300)
   reason?: string;
+
+  @IsOptional()
+  @IsIn(["OCCURRENCE", "FUTURE"])
+  scope?: "OCCURRENCE" | "FUTURE";
 }

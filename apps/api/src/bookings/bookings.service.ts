@@ -14,6 +14,11 @@ import type {
   UpdateBookingDto,
 } from "./bookings.dto";
 import { BookingRuleError, validateBookingRules } from "./booking-rules";
+import {
+  buildRecurrenceOccurrences,
+  RecurrenceError,
+  type RecurrenceOccurrence,
+} from "./recurrence";
 
 interface RoomRow {
   id: string;
@@ -105,6 +110,7 @@ export class BookingsService {
       starts_at: Date;
       ends_at: Date;
       participation_mode: "INVITE_ONLY" | "OPEN";
+      series_id: string | null;
       organizer_id: string;
       organizer_name: string;
       organizer_avatar_preset: string;
@@ -118,6 +124,7 @@ export class BookingsService {
           b.starts_at,
           b.ends_at,
           b.participation_mode,
+          b.series_id,
           u.id as organizer_id,
           u.name as organizer_name,
           u.avatar_preset as organizer_avatar_preset,
@@ -195,6 +202,7 @@ export class BookingsService {
         startsAt: booking.starts_at,
         endsAt: booking.ends_at,
         participationMode: booking.participation_mode,
+        seriesId: booking.series_id,
         organizer: {
           id: booking.organizer_id,
           name: booking.organizer_name,
@@ -230,6 +238,59 @@ export class BookingsService {
     const participantIds = [
       ...new Set((dto.participantIds ?? []).filter((id) => id !== user.id)),
     ];
+    const recurrence = dto.recurrence ?? "NONE";
+    const recurrenceInterval = dto.recurrenceInterval ?? 1;
+    const weekdays =
+      recurrence === "WEEKLY"
+        ? [...new Set(dto.weekdays ?? [])].sort((a, b) => a - b)
+        : null;
+    const recurrenceTimeZone = user.timezone ?? this.officeTimeZone;
+    let occurrences: RecurrenceOccurrence[] = [{ startsAt, endsAt }];
+
+    if (recurrence !== "NONE") {
+      if (!dto.recurrenceUntil) {
+        throw apiError(
+          HttpStatus.BAD_REQUEST,
+          "RECURRENCE_END_REQUIRED",
+          "Recurring booking must have an end date",
+        );
+      }
+      if (recurrence === "WEEKLY" && !weekdays?.length) {
+        throw apiError(
+          HttpStatus.BAD_REQUEST,
+          "RECURRENCE_WEEKDAYS_REQUIRED",
+          "Weekly recurrence must include at least one weekday",
+        );
+      }
+      try {
+        occurrences = buildRecurrenceOccurrences({
+          startsAt,
+          endsAt,
+          frequency: recurrence,
+          interval: recurrenceInterval,
+          weekdays,
+          until: dto.recurrenceUntil,
+          timeZone: recurrenceTimeZone,
+        });
+      } catch (error) {
+        if (!(error instanceof RecurrenceError)) throw error;
+        const mapped = {
+          INVALID_RANGE: [
+            "INVALID_RECURRENCE_RANGE",
+            "Recurrence must end between its start date and one year later",
+          ],
+          EMPTY: [
+            "EMPTY_RECURRENCE",
+            "Recurrence does not produce any bookings",
+          ],
+          TOO_MANY: [
+            "TOO_MANY_OCCURRENCES",
+            "A booking series cannot contain more than 100 events",
+          ],
+        }[error.code];
+        throw apiError(HttpStatus.BAD_REQUEST, mapped[0], mapped[1]);
+      }
+    }
 
     return this.database.transaction(async (client) => {
       await client.query("select pg_advisory_xact_lock(hashtext($1))", [
@@ -252,46 +313,7 @@ export class BookingsService {
       }
 
       await this.assertCanCreate(client, user.id, room.id);
-      const ruleError = validateBookingRules({
-        startsAt,
-        endsAt,
-        now: new Date(),
-        officeTimeZone: this.officeTimeZone,
-        workStart: room.work_start,
-        workEnd: room.work_end,
-      });
       const overrideReason = dto.overrideReason?.trim();
-      if (
-        ruleError &&
-        !(
-          user.role === "ADMIN" &&
-          ruleError === "OUTSIDE_WORKING_HOURS" &&
-          overrideReason
-        )
-      ) {
-        throw this.ruleException(ruleError);
-      }
-
-      const block = await client.query(
-        `
-          select id
-          from room_blocks
-          where room_id = $1
-            and cancelled_at is null
-            and starts_at < $3
-            and ends_at > $2
-          limit 1
-        `,
-        [room.id, startsAt, endsAt],
-      );
-      if (block.rowCount && !(user.role === "ADMIN" && overrideReason)) {
-        throw apiError(
-          HttpStatus.CONFLICT,
-          "ROOM_UNAVAILABLE",
-          "Room is unavailable during this time",
-        );
-      }
-
       if (participantIds.length + 1 > room.capacity) {
         throw apiError(
           HttpStatus.BAD_REQUEST,
@@ -308,101 +330,179 @@ export class BookingsService {
         );
       }
 
-      const bookingId = randomUUID();
-      try {
+      const seriesId = recurrence === "NONE" ? null : randomUUID();
+      if (seriesId) {
         await client.query(
           `
-            insert into bookings (
-              id, room_id, organizer_id, title, starts_at, ends_at,
-              participation_mode, override_reason
+            insert into booking_series (
+              id, organizer_id, room_id, frequency, recurrence_interval,
+              weekdays, starts_at, ends_at, recurrence_until, timezone
             )
-            values ($1, $2, $3, $4, $5, $6, $7, $8)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           `,
           [
-            bookingId,
-            room.id,
+            seriesId,
             user.id,
-            title,
+            room.id,
+            recurrence,
+            recurrenceInterval,
+            weekdays,
             startsAt,
             endsAt,
-            dto.participationMode ?? "INVITE_ONLY",
-            overrideReason || null,
+            dto.recurrenceUntil!.slice(0, 10),
+            recurrenceTimeZone,
           ],
         );
-      } catch (error) {
+      }
+
+      const bookingIds: string[] = [];
+      for (const [occurrenceIndex, occurrence] of occurrences.entries()) {
+        const ruleError = validateBookingRules({
+          startsAt: occurrence.startsAt,
+          endsAt: occurrence.endsAt,
+          now: new Date(),
+          officeTimeZone: this.officeTimeZone,
+          workStart: room.work_start,
+          workEnd: room.work_end,
+        });
         if (
-          error instanceof Error &&
-          "code" in error &&
-          (error as Error & { code: string }).code === "23P01"
+          ruleError &&
+          !(
+            user.role === "ADMIN" &&
+            ruleError === "OUTSIDE_WORKING_HOURS" &&
+            overrideReason
+          )
         ) {
+          throw this.ruleException(ruleError);
+        }
+
+        const block = await client.query(
+          `
+            select id
+            from room_blocks
+            where room_id = $1
+              and cancelled_at is null
+              and starts_at < $3
+              and ends_at > $2
+            limit 1
+          `,
+          [room.id, occurrence.startsAt, occurrence.endsAt],
+        );
+        if (block.rowCount && !(user.role === "ADMIN" && overrideReason)) {
           throw apiError(
             HttpStatus.CONFLICT,
-            "SLOT_TAKEN",
-            "This time slot is already booked",
+            "ROOM_UNAVAILABLE",
+            "Room is unavailable during one of the requested events",
+            { startsAt: occurrence.startsAt },
           );
         }
-        throw error;
-      }
 
-      for (const participant of participants) {
-        await client.query(
-          `
-            insert into booking_participants (booking_id, user_id, status)
-            values ($1, $2, 'INVITED')
-          `,
-          [bookingId, participant.id],
-        );
-        const invitation = this.invitationCopy(
-          user.name,
-          title,
-          room.name,
-          startsAt,
-          participant,
-        );
-        await this.notifications.enqueue(client, {
-          eventKey: `booking:${bookingId}:invite:${participant.id}`,
-          userId: participant.id,
-          type: "BOOKING_INVITATION",
-          category: "INVITATIONS",
-          title: invitation.title,
-          body: invitation.body,
-          bookingId,
-        });
-      }
+        const bookingId = randomUUID();
+        try {
+          await client.query(
+            `
+              insert into bookings (
+                id, room_id, organizer_id, title, starts_at, ends_at,
+                participation_mode, override_reason, series_id, occurrence_index
+              )
+              values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `,
+            [
+              bookingId,
+              room.id,
+              user.id,
+              title,
+              occurrence.startsAt,
+              occurrence.endsAt,
+              dto.participationMode ?? "INVITE_ONLY",
+              overrideReason || null,
+              seriesId,
+              seriesId ? occurrenceIndex : null,
+            ],
+          );
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            "code" in error &&
+            (error as Error & { code: string }).code === "23P01"
+          ) {
+            throw apiError(
+              HttpStatus.CONFLICT,
+              "SLOT_TAKEN",
+              "One of the requested time slots is already booked",
+              { startsAt: occurrence.startsAt },
+            );
+          }
+          throw error;
+        }
+        bookingIds.push(bookingId);
 
-      if (overrideReason) {
-        await client.query(
-          `
-            insert into audit_logs
-              (id, actor_id, action, target_type, target_id, details)
-            values ($1, $2, 'BOOKING_AVAILABILITY_OVERRIDE', 'BOOKING', $3, $4)
-          `,
-          [
-            randomUUID(),
-            user.id,
+        for (const participant of participants) {
+          await client.query(
+            `
+              insert into booking_participants (booking_id, user_id, status)
+              values ($1, $2, 'INVITED')
+            `,
+            [bookingId, participant.id],
+          );
+          const invitation = this.invitationCopy(
+            user.name,
+            title,
+            room.name,
+            occurrence.startsAt,
+            participant,
+          );
+          await this.notifications.enqueue(client, {
+            eventKey: `booking:${bookingId}:invite:${participant.id}`,
+            userId: participant.id,
+            type: "BOOKING_INVITATION",
+            category: "INVITATIONS",
+            title: invitation.title,
+            body: invitation.body,
             bookingId,
-            JSON.stringify({ reason: overrideReason }),
-          ],
+          });
+        }
+
+        if (overrideReason) {
+          await client.query(
+            `
+              insert into audit_logs
+                (id, actor_id, action, target_type, target_id, details)
+              values ($1, $2, 'BOOKING_AVAILABILITY_OVERRIDE', 'BOOKING', $3, $4)
+            `,
+            [
+              randomUUID(),
+              user.id,
+              bookingId,
+              JSON.stringify({ reason: overrideReason, seriesId }),
+            ],
+          );
+        }
+
+        await this.recordActivity(
+          client,
+          user.id,
+          "BOOKING_CREATED",
+          "BOOKING",
+          bookingId,
+          {
+            title,
+            roomName: room.name,
+            startsAt: occurrence.startsAt,
+            endsAt: occurrence.endsAt,
+            participationMode: dto.participationMode ?? "INVITE_ONLY",
+            participantCount: participants.length,
+            seriesId,
+            occurrenceIndex: seriesId ? occurrenceIndex : null,
+          },
         );
       }
 
-      await this.recordActivity(
-        client,
-        user.id,
-        "BOOKING_CREATED",
-        "BOOKING",
-        bookingId,
-        {
-          title,
-          roomName: room.name,
-          startsAt,
-          endsAt,
-          participationMode: dto.participationMode ?? "INVITE_ONLY",
-          participantCount: participants.length,
-        },
-      );
-
-      return { id: bookingId };
+      return {
+        id: bookingIds[0],
+        seriesId,
+        occurrenceCount: bookingIds.length,
+      };
     });
   }
 
@@ -724,6 +824,7 @@ export class BookingsService {
       room_name: string;
       organizer_id: string;
       participation_mode: string;
+      series_id: string | null;
       participant_status: string | null;
     }>(
       `
@@ -736,6 +837,7 @@ export class BookingsService {
           r.name as room_name,
           b.organizer_id,
           b.participation_mode,
+          b.series_id,
           bp.status as participant_status
         from bookings b
         join rooms r on r.id = b.room_id
@@ -758,6 +860,7 @@ export class BookingsService {
       room: { id: row.room_id, name: row.room_name },
       organizerId: row.organizer_id,
       participationMode: row.participation_mode,
+      seriesId: row.series_id,
       participantStatus: row.participant_status,
     }));
     return {
@@ -778,6 +881,7 @@ export class BookingsService {
       capacity: number;
       organizer_id: string;
       organizer_name: string;
+      series_id: string | null;
       participant_count: string;
       my_status: string | null;
     }>(
@@ -792,6 +896,7 @@ export class BookingsService {
           r.capacity,
           u.id as organizer_id,
           u.name as organizer_name,
+          b.series_id,
           count(bp.user_id) filter (where bp.status = 'ACCEPTED')::text
             as participant_count,
           max(bp.status) filter (where bp.user_id = $1) as my_status
@@ -819,6 +924,7 @@ export class BookingsService {
         capacity: row.capacity,
       },
       organizer: { id: row.organizer_id, name: row.organizer_name },
+      seriesId: row.series_id,
       participantCount: Number(row.participant_count) + 1,
       myStatus: row.my_status,
     }));
@@ -958,9 +1064,12 @@ export class BookingsService {
         title: string;
         organizer_id: string;
         room_id: string;
+        series_id: string | null;
+        starts_at: Date;
         cancelled_at: Date | null;
       }>(
-        `select id, title, organizer_id, room_id, cancelled_at
+        `select id, title, organizer_id, room_id, series_id, starts_at,
+                cancelled_at
          from bookings where id = $1 for update`,
         [bookingId],
       );
@@ -990,6 +1099,33 @@ export class BookingsService {
       const isAdministrativeCancellation =
         user.role === "ADMIN" && booking.organizer_id !== user.id;
       const cancellationReason = dto.reason?.trim();
+      const cancelFuture = dto.scope === "FUTURE" && Boolean(booking.series_id);
+      const targets = cancelFuture
+        ? await client.query<{
+            id: string;
+            title: string;
+            organizer_id: string;
+          }>(
+            `
+              select id, title, organizer_id
+              from bookings
+              where series_id = $1
+                and starts_at >= $2
+                and cancelled_at is null
+              order by starts_at
+              for update
+            `,
+            [booking.series_id, booking.starts_at],
+          )
+        : {
+            rows: [
+              {
+                id: booking.id,
+                title: booking.title,
+                organizer_id: booking.organizer_id,
+              },
+            ],
+          };
       if (isAdministrativeCancellation) {
         const reason = cancellationReason;
         if (!reason || reason.length < 3) {
@@ -1005,49 +1141,78 @@ export class BookingsService {
               (id, actor_id, action, target_type, target_id, details)
             values ($1, $2, 'BOOKING_CANCELLED_BY_ADMIN', 'BOOKING', $3, $4)
           `,
-          [randomUUID(), user.id, bookingId, JSON.stringify({ reason })],
+          [
+            randomUUID(),
+            user.id,
+            bookingId,
+            JSON.stringify({
+              reason,
+              scope: cancelFuture ? "FUTURE" : "OCCURRENCE",
+              seriesId: booking.series_id,
+              occurrenceCount: targets.rows.length,
+            }),
+          ],
         );
       }
       await client.query(
         `
           update bookings
           set cancelled_at = now(), cancelled_by = $2, updated_at = now()
-          where id = $1
+          where id = any($1::uuid[])
         `,
-        [bookingId, user.id],
+        [targets.rows.map((target) => target.id), user.id],
       );
-
-      const participants = await client.query<{ user_id: string }>(
-        "select user_id from booking_participants where booking_id = $1",
-        [bookingId],
-      );
-      const recipientIds = new Set(
-        participants.rows.map((participant) => participant.user_id),
-      );
-      if (isAdministrativeCancellation) {
-        recipientIds.add(booking.organizer_id);
+      if (cancelFuture) {
+        await client.query(
+          `
+            update booking_series
+            set cancelled_from = case
+              when cancelled_from is null or cancelled_from > $2 then $2
+              else cancelled_from
+            end
+            where id = $1
+          `,
+          [booking.series_id, booking.starts_at],
+        );
       }
-      for (const recipientId of recipientIds) {
-        await this.notifications.enqueue(client, {
-          eventKey: `booking:${bookingId}:cancel:${recipientId}`,
-          userId: recipientId,
-          type: "BOOKING_CANCELLED",
-          category: "CHANGES",
-          title: "Зустріч скасовано",
-          body: cancellationReason
-            ? `Зустріч «${booking.title}» було скасовано. Причина: ${cancellationReason}.`
-            : `Зустріч «${booking.title}» було скасовано.`,
-          bookingId,
-        });
+
+      for (const target of targets.rows) {
+        const participants = await client.query<{ user_id: string }>(
+          "select user_id from booking_participants where booking_id = $1",
+          [target.id],
+        );
+        const recipientIds = new Set(
+          participants.rows.map((participant) => participant.user_id),
+        );
+        if (isAdministrativeCancellation) {
+          recipientIds.add(target.organizer_id);
+        }
+        for (const recipientId of recipientIds) {
+          await this.notifications.enqueue(client, {
+            eventKey: `booking:${target.id}:cancel:${recipientId}`,
+            userId: recipientId,
+            type: "BOOKING_CANCELLED",
+            category: "CHANGES",
+            title: "Зустріч скасовано",
+            body: cancellationReason
+              ? `Зустріч «${target.title}» було скасовано. Причина: ${cancellationReason}.`
+              : `Зустріч «${target.title}» було скасовано.`,
+            bookingId: target.id,
+          });
+        }
       }
       if (!isAdministrativeCancellation) {
         await this.recordActivity(
           client,
           user.id,
-          "BOOKING_CANCELLED",
-          "BOOKING",
-          bookingId,
-          { title: booking.title },
+          cancelFuture ? "BOOKING_SERIES_CANCELLED" : "BOOKING_CANCELLED",
+          cancelFuture ? "BOOKING_SERIES" : "BOOKING",
+          cancelFuture ? booking.series_id! : bookingId,
+          {
+            title: booking.title,
+            scope: cancelFuture ? "FUTURE" : "OCCURRENCE",
+            occurrenceCount: targets.rows.length,
+          },
         );
       }
     });

@@ -18,6 +18,7 @@ interface MyBooking {
   room: { id: string; name: string };
   organizerId: string;
   participationMode: string;
+  seriesId: string | null;
   participantStatus: "INVITED" | "ACCEPTED" | "DECLINED" | null;
 }
 
@@ -46,10 +47,16 @@ export function BookingListPage({ user }: { user: User }) {
   const visibleBookings =
     bookings.data?.pages.flatMap((page) => page.bookings) ?? [];
   const cancel = useMutation({
-    mutationFn: (id: string) =>
+    mutationFn: ({
+      id,
+      scope,
+    }: {
+      id: string;
+      scope: "OCCURRENCE" | "FUTURE";
+    }) =>
       api<void>(`/api/bookings/${id}`, {
         method: "DELETE",
-        body: JSON.stringify({})
+        body: JSON.stringify({ scope })
       }),
     onSuccess: () => {
       setCancellingBooking(null);
@@ -190,6 +197,11 @@ export function BookingListPage({ user }: { user: User }) {
                           ? "Прийнято"
                           : "Відмовлено"}
                   </span>
+                  {booking.seriesId && (
+                    <span className="status-badge status-badge--series">
+                      Серія
+                    </span>
+                  )}
                   {section === "future" &&
                     (organizer ? (
                       <button
@@ -263,7 +275,8 @@ export function BookingListPage({ user }: { user: User }) {
             title: cancellingBooking.title,
             roomName: cancellingBooking.room.name,
             startsAt: cancellingBooking.startsAt,
-            endsAt: cancellingBooking.endsAt
+            endsAt: cancellingBooking.endsAt,
+            seriesId: cancellingBooking.seriesId,
           }}
           pending={cancel.isPending}
           error={cancel.error}
@@ -272,7 +285,9 @@ export function BookingListPage({ user }: { user: User }) {
             cancel.reset();
             setCancellingBooking(null);
           }}
-          onConfirm={() => cancel.mutate(cancellingBooking.id)}
+          onConfirm={(scope) =>
+            cancel.mutate({ id: cancellingBooking.id, scope })
+          }
         />
       )}
     </div>

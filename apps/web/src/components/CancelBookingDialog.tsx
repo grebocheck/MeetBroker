@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ApiError } from "../lib/api";
 import { Button } from "./ui/Button";
 import { ModalLayer } from "./ui/ModalLayer";
@@ -7,6 +8,7 @@ export interface CancelBookingDetails {
   roomName: string;
   startsAt: string;
   endsAt: string;
+  seriesId?: string | null;
   participantCount?: number;
 }
 
@@ -23,8 +25,9 @@ export function CancelBookingDialog({
   error: unknown;
   timeZone?: string;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (scope: "OCCURRENCE" | "FUTURE") => void;
 }) {
+  const [scope, setScope] = useState<"OCCURRENCE" | "FUTURE">("OCCURRENCE");
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
   const date = new Intl.DateTimeFormat("uk-UA", {
@@ -100,6 +103,31 @@ export function CancelBookingDialog({
           </dl>
         </div>
 
+        {booking.seriesId && (
+          <fieldset className="segmented-field cancel-scope">
+            <legend>Що саме скасувати</legend>
+            <div className="segmented">
+              <button
+                type="button"
+                className={scope === "OCCURRENCE" ? "is-active" : ""}
+                onClick={() => setScope("OCCURRENCE")}
+              >
+                Лише цю подію
+              </button>
+              <button
+                type="button"
+                className={scope === "FUTURE" ? "is-active" : ""}
+                onClick={() => setScope("FUTURE")}
+              >
+                Цю й наступні
+              </button>
+            </div>
+            <small>
+              Попередні події серії та їхня історія не зміняться.
+            </small>
+          </fieldset>
+        )}
+
         {Boolean(error) && (
           <div className="form-error" role="alert">
             {error instanceof ApiError
@@ -118,7 +146,7 @@ export function CancelBookingDialog({
           </Button>
           <Button
             variant="danger"
-            onClick={onConfirm}
+            onClick={() => onConfirm(scope)}
             disabled={pending}
           >
             {pending ? "Скасовуємо…" : "Так, скасувати"}

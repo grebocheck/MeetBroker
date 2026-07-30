@@ -54,6 +54,7 @@ interface AdminBooking {
   startsAt: string;
   endsAt: string;
   participationMode: "INVITE_ONLY" | "OPEN";
+  seriesId: string | null;
   overrideReason: string | null;
   cancelledAt: string | null;
   cancellationReason: string | null;
@@ -274,6 +275,8 @@ function BookingsAdmin() {
                           ? "Скасовано"
                           : isPast
                             ? "Завершено"
+                            : booking.seriesId
+                              ? "Подія із серії"
                             : booking.participationMode === "OPEN"
                               ? "Відкрита подія"
                               : "Запрошення"}
@@ -339,6 +342,7 @@ function BookingsAdmin() {
                 startsAt: editing.startsAt,
                 endsAt: editing.endsAt,
                 participationMode: editing.participationMode,
+                seriesId: editing.seriesId,
                 organizer: editing.organizer,
                 participants: editing.participants,
               } satisfies Booking

@@ -124,6 +124,7 @@ export class AdminService {
       starts_at: Date;
       ends_at: Date;
       participation_mode: "INVITE_ONLY" | "OPEN";
+      series_id: string | null;
       override_reason: string | null;
       cancelled_at: Date | null;
       cancellation_reason: string | null;
@@ -145,6 +146,7 @@ export class AdminService {
           b.starts_at,
           b.ends_at,
           b.participation_mode,
+          b.series_id,
           b.override_reason,
           b.cancelled_at,
           cancellation_audit.details->>'reason' as cancellation_reason,
@@ -223,6 +225,7 @@ export class AdminService {
       startsAt: booking.starts_at,
       endsAt: booking.ends_at,
       participationMode: booking.participation_mode,
+      seriesId: booking.series_id,
       overrideReason: booking.override_reason,
       cancelledAt: booking.cancelled_at,
       cancellationReason: booking.cancellation_reason,

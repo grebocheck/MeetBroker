@@ -58,6 +58,7 @@ export interface Booking {
   startsAt: string;
   endsAt: string;
   participationMode: "INVITE_ONLY" | "OPEN";
+  seriesId: string | null;
   organizer: Person;
   participants: Person[];
 }
