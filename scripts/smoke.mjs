@@ -585,6 +585,7 @@ async function verifyCriticalBookingGuards(
 async function verifyCapabilityPolicies({
   adminCookie,
   userCookie,
+  credentials,
   userId,
   room,
 }) {
@@ -741,12 +742,15 @@ async function verifyCapabilityPolicies({
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(userCredentials),
+        body: JSON.stringify(credentials),
       },
       "ACCOUNT_LOGIN",
     );
     await removeRestriction(restrictionId);
-    check(await login(userCredentials), "Login did not recover after policy revoke");
+    check(
+      await login(credentials),
+      "Login did not recover after policy revoke",
+    );
   } finally {
     for (const restrictionId of [...restrictions]) {
       await fetch(`${baseUrl}/api/admin/restrictions/${restrictionId}`, {
@@ -975,26 +979,27 @@ async function main() {
     users.body?.pagination?.total >= users.body.users.length,
     "Admin user pagination metadata is invalid",
   );
-  const managedUser = users.body.users.find(
-    (user) => user.email === userCredentials.email,
+  const policyUser = users.body.users.find(
+    (user) => user.email === securityCredentials.email,
   );
-  check(managedUser, "Smoke user is missing from admin management");
+  check(policyUser, "Policy smoke user is missing from admin management");
   const searchedUsers = await request(
     `/api/admin/users?search=${encodeURIComponent(
-      userCredentials.email,
+      securityCredentials.email,
     )}&page=1&limit=1`,
     { headers: { cookie: adminCookie } },
   );
   check(
     searchedUsers.body?.users?.length === 1 &&
-      searchedUsers.body.users[0].id === managedUser.id &&
+      searchedUsers.body.users[0].id === policyUser.id &&
       searchedUsers.body.pagination?.total === 1,
     "Admin user search and pagination are inconsistent",
   );
   await verifyCapabilityPolicies({
     adminCookie,
-    userCookie,
-    userId: managedUser.id,
+    userCookie: secondUserCookie,
+    credentials: securityCredentials,
+    userId: policyUser.id,
     room: roomsResult.body.rooms.at(-1),
   });
   await verifyRecurringBookings(userCookie, roomsResult.body.rooms.at(-1));
