@@ -31,8 +31,7 @@
   --success: #0878a5;
   --shadow-sm: 0 6px 18px rgba(10, 68, 136, 0.1);
   --shadow-md: 0 24px 60px rgba(5, 52, 111, 0.17);
-  --page-mark-color: color-mix(in srgb, var(--text) 18%, var(--surface));
-  --card-mark-color: color-mix(in srgb, var(--text) 18%, var(--surface-raised));
+  --page-mark-color: color-mix(in srgb, var(--primary) 24%, var(--surface));
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 18px;
@@ -72,8 +71,7 @@
   --success: #67d9e9;
   --shadow-sm: 0 8px 22px rgba(0, 0, 0, 0.26);
   --shadow-md: 0 26px 70px rgba(0, 0, 0, 0.42);
-  --page-mark-color: color-mix(in srgb, var(--text) 28%, var(--surface));
-  --card-mark-color: color-mix(in srgb, var(--text) 30%, var(--surface-raised));
+  --page-mark-color: color-mix(in srgb, var(--primary) 38%, var(--surface));
 }
 
 * {
@@ -5401,7 +5399,7 @@ hr {
   z-index: 1;
   top: 34px;
   right: -12px;
-  color: var(--card-mark-color);
+  color: color-mix(in srgb, var(--primary) 11%, transparent);
   font-family: "Unbounded Variable", sans-serif;
   font-size: clamp(4.5rem, 9vw, 8.5rem);
   font-weight: 850;
