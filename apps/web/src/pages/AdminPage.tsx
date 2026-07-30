@@ -115,7 +115,7 @@ export function AdminPage() {
   return (
     <div
       className="page editorial-page admin-page"
-      data-page-mark="CONTROL / ADMIN"
+      data-page-mark="CONTROL"
     >
       <header className="page-header admin-hero">
         <div>

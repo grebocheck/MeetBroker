@@ -43,7 +43,7 @@ export function EventsPage({ user }: { user: User }) {
   return (
     <div
       className="page editorial-page events-page"
-      data-page-mark="OPEN / EVENTS"
+      data-page-mark="EVENTS"
     >
       <header className="page-header">
         <div>

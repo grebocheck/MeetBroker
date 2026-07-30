@@ -716,8 +716,8 @@ hr {
   position: absolute;
   z-index: -2;
   top: 42px;
-  right: -1.5vw;
-  max-width: 78%;
+  right: clamp(14px, 4vw, 62px);
+  left: clamp(14px, 4vw, 62px);
   overflow: hidden;
   color: color-mix(in srgb, var(--primary) 7%, transparent);
   content: attr(data-page-mark);
@@ -729,6 +729,7 @@ hr {
   line-height: 0.82;
   pointer-events: none;
   text-align: right;
+  text-overflow: clip;
   white-space: nowrap;
 }
 
@@ -3596,12 +3597,6 @@ hr {
   max-width: none;
   margin: 0;
   padding-top: 28px;
-}
-
-.admin-page::before {
-  top: 18px;
-  right: -3vw;
-  font-size: clamp(5.8rem, 11vw, 12.5rem);
 }
 
 .admin-page::after {
