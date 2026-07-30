@@ -35,18 +35,8 @@
   --radius-md: 10px;
   --radius-lg: 18px;
   --shape-action: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-  --shape-nav: polygon(
-    8px 0,
-    100% 0,
-    calc(100% - 8px) 100%,
-    0 100%
-  );
-  --shape-nav-origin: polygon(
-    0 0,
-    100% 0,
-    calc(100% - 12px) 100%,
-    0 100%
-  );
+  --shape-nav: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  --shape-nav-origin: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
 }
 
 :root[data-theme="dark"] {
@@ -808,12 +798,11 @@ hr {
   overflow: hidden;
   min-height: 112px;
   border-radius: 3px 18px 3px 18px;
-  background:
-    linear-gradient(
-      112deg,
-      color-mix(in srgb, var(--surface-raised) 96%, transparent) 0 74%,
-      color-mix(in srgb, var(--primary) 9%, var(--surface-raised)) 74% 100%
-    );
+  background: linear-gradient(
+    112deg,
+    color-mix(in srgb, var(--surface-raised) 96%, transparent) 0 74%,
+    color-mix(in srgb, var(--primary) 9%, var(--surface-raised)) 74% 100%
+  );
   box-shadow: var(--shadow-sm);
 }
 
@@ -1453,15 +1442,9 @@ hr {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  min-height: 66px;
-  padding: 11px 20px;
-  border-bottom: 1px solid var(--border);
-  background:
-    linear-gradient(
-      105deg,
-      color-mix(in srgb, var(--primary) 8%, var(--surface-raised)),
-      var(--surface-raised) 54%
-    );
+  min-width: 0;
+  padding: 0 8px;
+  grid-area: filters;
 }
 
 .schedule-controls .toolbar-actions {
@@ -1472,7 +1455,11 @@ hr {
 .schedule-controls .compact-select select {
   border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
   border-radius: 3px 12px 3px 12px;
-  background: color-mix(in srgb, var(--surface-muted) 56%, var(--surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--surface-muted) 56%,
+    var(--surface-raised)
+  );
   color: var(--text);
   color-scheme: light dark;
 }
@@ -1677,13 +1664,15 @@ hr {
   box-shadow: 0 22px 54px rgba(0, 13, 42, 0.34);
 }
 
-.calendar-card__toolbar {
-  display: flex;
+.calendar-table-toolbar {
+  display: grid;
   align-items: center;
-  justify-content: space-between;
+  grid-template-areas: "navigation filters timezone";
+  grid-template-columns: minmax(340px, auto) minmax(430px, 1fr) auto;
   min-height: 76px;
   padding: 12px 22px;
   border-bottom: 1px solid var(--border);
+  gap: 12px;
   background:
     linear-gradient(
       105deg,
@@ -1697,10 +1686,15 @@ hr {
     );
 }
 
+.calendar-card__toolbar {
+  display: contents;
+}
+
 .week-nav {
   display: flex;
   align-items: center;
   gap: 8px;
+  grid-area: navigation;
 }
 
 .week-nav strong {
@@ -1715,6 +1709,7 @@ hr {
   align-items: flex-end;
   flex-direction: column;
   gap: 3px;
+  grid-area: timezone;
 }
 
 .calendar-scroll {
@@ -1794,12 +1789,11 @@ hr {
 }
 
 .day-heading.is-today {
-  background:
-    linear-gradient(
-      125deg,
-      color-mix(in srgb, var(--primary) 19%, var(--surface-raised)),
-      color-mix(in srgb, var(--cyan) 8%, var(--surface-raised))
-    );
+  background: linear-gradient(
+    125deg,
+    color-mix(in srgb, var(--primary) 19%, var(--surface-raised)),
+    color-mix(in srgb, var(--cyan) 8%, var(--surface-raised))
+  );
   color: var(--text);
   box-shadow: inset 0 3px 0 var(--primary);
 }
@@ -2035,12 +2029,11 @@ hr {
   gap: 22px;
   color: var(--text-muted);
   font-size: 0.68rem;
-  background:
-    linear-gradient(
-      105deg,
-      color-mix(in srgb, var(--primary) 7%, var(--surface-raised)),
-      var(--surface-raised) 42%
-    );
+  background: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--primary) 7%, var(--surface-raised)),
+    var(--surface-raised) 42%
+  );
 }
 
 .calendar-legend > div {
@@ -3117,12 +3110,11 @@ hr {
   overflow: hidden;
   border: 1px dashed var(--border);
   border-radius: 3px 15px 3px 15px;
-  background:
-    linear-gradient(
-      118deg,
-      color-mix(in srgb, var(--surface-muted) 92%, transparent),
-      color-mix(in srgb, var(--primary) 8%, var(--surface-raised))
-    );
+  background: linear-gradient(
+    118deg,
+    color-mix(in srgb, var(--surface-muted) 92%, transparent),
+    color-mix(in srgb, var(--primary) 8%, var(--surface-raised))
+  );
   background-position: center;
   background-size: cover;
 }
@@ -3878,12 +3870,11 @@ hr {
 
 .room-catalog__item.is-active {
   border-color: var(--primary);
-  background:
-    linear-gradient(
-      100deg,
-      color-mix(in srgb, var(--primary) 20%, var(--surface-muted)),
-      var(--surface-muted)
-    );
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--primary) 20%, var(--surface-muted)),
+    var(--surface-muted)
+  );
   box-shadow: inset 3px 0 var(--accent);
 }
 
@@ -4026,7 +4017,11 @@ hr {
   padding: 20px;
   border: 1px solid color-mix(in srgb, var(--primary) 48%, var(--border));
   border-radius: 3px 18px 3px 18px;
-  background: color-mix(in srgb, var(--surface-muted) 78%, var(--surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--surface-muted) 78%,
+    var(--surface-raised)
+  );
 }
 
 .room-block-editor__room {
@@ -4057,7 +4052,11 @@ hr {
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 4px 18px 4px 18px;
-  background: color-mix(in srgb, var(--surface-muted) 58%, var(--surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--surface-muted) 58%,
+    var(--surface-raised)
+  );
   grid-template-columns: 52px minmax(0, 1fr) auto;
   gap: 12px;
   container-type: inline-size;
@@ -4659,7 +4658,12 @@ hr {
   width: min(38vw, 560px);
   height: 320px;
   background:
-    linear-gradient(138deg, transparent 0 18%, rgba(36, 150, 255, 0.08) 18.3% 62%, transparent 62.3%),
+    linear-gradient(
+      138deg,
+      transparent 0 18%,
+      rgba(36, 150, 255, 0.08) 18.3% 62%,
+      transparent 62.3%
+    ),
     repeating-linear-gradient(
       138deg,
       transparent 0 42px,
@@ -4676,12 +4680,11 @@ hr {
   padding: 28px 32px;
   overflow: hidden;
   border-color: color-mix(in srgb, var(--primary) 46%, var(--border));
-  background:
-    linear-gradient(
-      112deg,
-      color-mix(in srgb, var(--surface-raised) 96%, transparent) 0 62%,
-      color-mix(in srgb, var(--primary) 18%, var(--surface-muted)) 62% 100%
-    );
+  background: linear-gradient(
+    112deg,
+    color-mix(in srgb, var(--surface-raised) 96%, transparent) 0 62%,
+    color-mix(in srgb, var(--primary) 18%, var(--surface-muted)) 62% 100%
+  );
 }
 
 .meetings-next::after {
@@ -4846,13 +4849,7 @@ hr {
   margin-top: 8px;
   padding: 44px 18px 22px;
   overflow: hidden;
-  background:
-    linear-gradient(
-      118deg,
-      #041438 0,
-      #07275b 52%,
-      #0757a9 100%
-    );
+  background: linear-gradient(118deg, #041438 0, #07275b 52%, #0757a9 100%);
   clip-path: polygon(
     18px 0,
     calc(100% - 108px) 0,
@@ -5069,10 +5066,16 @@ hr {
   border-left: 4px solid var(--primary);
   border-radius: 10px;
   color: var(--text);
-  background: color-mix(in srgb, var(--surface-muted) 64%, var(--surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--surface-muted) 64%,
+    var(--surface-raised)
+  );
   text-align: left;
   cursor: pointer;
-  transition: transform 160ms ease, border-color 160ms ease,
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
     background 160ms ease;
 }
 
@@ -5180,6 +5183,20 @@ hr {
   border-radius: 10px;
   background: var(--surface);
   box-shadow: var(--shadow);
+}
+
+@media (max-width: 1400px) {
+  .calendar-table-toolbar {
+    grid-template-areas:
+      "navigation timezone"
+      "filters filters";
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .schedule-controls {
+    padding: 9px 0 0;
+    border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  }
 }
 
 @media (max-width: 1280px) {
@@ -5354,7 +5371,7 @@ hr {
   }
 
   .schedule-controls {
-    padding: 10px 12px;
+    padding: 10px 0 0;
   }
 
   .schedule-controls .toolbar-actions {
@@ -5615,8 +5632,13 @@ hr {
     font-size: 1.8rem;
   }
 
-  .calendar-card__toolbar {
+  .calendar-table-toolbar {
     padding: 12px 18px;
+    grid-template-areas:
+      "navigation"
+      "filters"
+      "timezone";
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .week-grid {
@@ -5639,7 +5661,6 @@ hr {
   }
 
   .page-header,
-  .calendar-card__toolbar,
   .calendar-toolbar {
     align-items: stretch;
     flex-direction: column;
