@@ -89,6 +89,13 @@ interface AdminRoomBlock {
   occurrenceCount: number;
 }
 
+interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 export function AdminPage() {
   const { t } = useI18n();
   const [section, setSection] = useState<
@@ -143,17 +150,21 @@ function BookingsAdmin() {
   const [status, setStatus] = useState("upcoming");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<AdminBooking | null>(null);
   const [editing, setEditing] = useState<AdminBooking | null>(null);
   const [reason, setReason] = useState("");
   const query = new URLSearchParams({ status });
   if (search) query.set("search", search);
+  query.set("page", String(page));
+  query.set("limit", "15");
   const bookings = useQuery({
-    queryKey: ["admin-bookings", status, search],
+    queryKey: ["admin-bookings", status, search, page],
     queryFn: () =>
-      api<{ bookings: AdminBooking[] }>(
+      api<{ bookings: AdminBooking[]; pagination: PaginationMeta }>(
         `/api/admin/bookings?${query.toString()}`,
       ),
+    placeholderData: (previousData) => previousData,
   });
   const rooms = useQuery({
     queryKey: ["rooms"],
@@ -197,7 +208,10 @@ function BookingsAdmin() {
               <button
                 key={value}
                 className={status === value ? "is-active" : ""}
-                onClick={() => setStatus(value)}
+                onClick={() => {
+                  setStatus(value);
+                  setPage(1);
+                }}
               >
                 {label}
               </button>
@@ -209,6 +223,7 @@ function BookingsAdmin() {
             onSubmit={(event) => {
               event.preventDefault();
               setSearch(searchInput.trim());
+              setPage(1);
             }}
           >
             <label className="field">
@@ -226,7 +241,7 @@ function BookingsAdmin() {
           </form>
           <span className="result-count">
             {t("admin.bookingCount", {
-              count: bookings.data?.bookings.length ?? 0,
+              count: bookings.data?.pagination.total ?? 0,
             })}
           </span>
         </div>
@@ -242,13 +257,14 @@ function BookingsAdmin() {
             {t("admin.bookingsEmpty")}
           </div>
         ) : (
-          <div className="admin-booking-list">
-            {bookings.data?.bookings.map((booking) => {
-              const startsAt = new Date(booking.startsAt);
-              const endsAt = new Date(booking.endsAt);
-              const isPast = endsAt <= new Date();
-              return (
-                <article className="admin-booking-row" key={booking.id}>
+          <>
+            <div className="admin-booking-list">
+              {bookings.data?.bookings.map((booking) => {
+                const startsAt = new Date(booking.startsAt);
+                const endsAt = new Date(booking.endsAt);
+                const isPast = endsAt <= new Date();
+                return (
+                  <article className="admin-booking-row" key={booking.id}>
                   <time dateTime={booking.startsAt}>
                     <strong>
                       {new Intl.DateTimeFormat(dateLocale, {
@@ -306,10 +322,20 @@ function BookingsAdmin() {
                   >
                     {t("admin.details")}
                   </Button>
-                </article>
-              );
-            })}
-          </div>
+                  </article>
+                );
+              })}
+            </div>
+            {bookings.data && (
+              <Pagination
+                page={bookings.data.pagination.page}
+                totalPages={bookings.data.pagination.totalPages}
+                total={bookings.data.pagination.total}
+                itemLabel={t("admin.bookingItems")}
+                onPageChange={setPage}
+              />
+            )}
+          </>
         )}
       </section>
 
@@ -585,12 +611,22 @@ function AdminBookingDialog({
 function UsersAdmin() {
   const { t } = useI18n();
   const [filter, setFilter] = useState("pending");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [managingUserId, setManagingUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const query = new URLSearchParams({ status: filter });
+  if (search) query.set("search", search);
+  query.set("page", String(page));
+  query.set("limit", "12");
   const users = useQuery({
-    queryKey: ["admin-users", filter],
+    queryKey: ["admin-users", filter, search, page],
     queryFn: () =>
-      api<{ users: AdminUser[] }>(`/api/admin/users?status=${filter}`),
+      api<{ users: AdminUser[]; pagination: PaginationMeta }>(
+        `/api/admin/users?${query.toString()}`,
+      ),
+    placeholderData: (previousData) => previousData,
   });
   const action = useMutation({
     mutationFn: ({
@@ -616,7 +652,7 @@ function UsersAdmin() {
 
   return (
     <section className="admin-card">
-      <div className="admin-card__toolbar">
+      <div className="admin-card__toolbar admin-booking-toolbar">
         <div className="segmented">
           {[
             ["pending", t("admin.pending")],
@@ -627,14 +663,41 @@ function UsersAdmin() {
             <button
               key={value}
               className={filter === value ? "is-active" : ""}
-              onClick={() => setFilter(value)}
+              onClick={() => {
+                setFilter(value);
+                setPage(1);
+              }}
             >
               {label}
             </button>
           ))}
         </div>
+        <form
+          className="admin-booking-search"
+          role="search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSearch(searchInput.trim());
+            setPage(1);
+          }}
+        >
+          <label className="field">
+            <span className="sr-only">{t("admin.searchUsers")}</span>
+            <input
+              type="search"
+              placeholder={t("admin.userSearchPlaceholder")}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+            />
+          </label>
+          <Button type="submit" size="small">
+            {t("admin.search")}
+          </Button>
+        </form>
         <span className="result-count">
-          {t("admin.userCount", { count: users.data?.users.length ?? 0 })}
+          {t("admin.userCount", {
+            count: users.data?.pagination.total ?? 0,
+          })}
         </span>
       </div>
       {action.error && (
@@ -645,6 +708,10 @@ function UsersAdmin() {
       <div className="admin-user-list">
         {users.isLoading ? (
           <div className="subtle-box">{t("admin.loadingUsers")}</div>
+        ) : users.error ? (
+          <div className="form-error">
+            {errorMessage(users.error, t, "admin.usersLoadError")}
+          </div>
         ) : users.data?.users.length === 0 ? (
           <div className="empty-inline">{t("admin.usersEmpty")}</div>
         ) : (
@@ -709,6 +776,15 @@ function UsersAdmin() {
           ))
         )}
       </div>
+      {users.data && (
+        <Pagination
+          page={users.data.pagination.page}
+          totalPages={users.data.pagination.totalPages}
+          total={users.data.pagination.total}
+          itemLabel={t("admin.userItems")}
+          onPageChange={setPage}
+        />
+      )}
       {managingUser && (
         <UserAccessDialog
           user={managingUser}
