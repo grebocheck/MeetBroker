@@ -17,12 +17,23 @@ import type {
   NotificationChannelName
 } from "../../notifications/notification-channel";
 
-const usersReference = pgTable("users", {
-  id: uuid("id").primaryKey()
+export const notificationUsers = pgTable("users", {
+  id: uuid("id").primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  locale: varchar("locale", { length: 10 }).$type<"uk" | "en">().notNull(),
+  timezone: varchar("timezone", { length: 80 })
 });
 
-const bookingsReference = pgTable("bookings", {
-  id: uuid("id").primaryKey()
+export const notificationBookings = pgTable("bookings", {
+  id: uuid("id").primaryKey(),
+  roomId: uuid("room_id").notNull(),
+  organizerId: uuid("organizer_id")
+    .notNull()
+    .references(() => notificationUsers.id),
+  title: varchar("title", { length: 100 }).notNull(),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true })
 });
 
 export interface NotificationOutboxPayload {
@@ -39,11 +50,11 @@ export const notifications = pgTable(
     id: uuid("id").primaryKey(),
     userId: uuid("user_id")
       .notNull()
-      .references(() => usersReference.id, { onDelete: "cascade" }),
+      .references(() => notificationUsers.id, { onDelete: "cascade" }),
     type: varchar("type", { length: 60 }).notNull(),
     title: varchar("title", { length: 160 }).notNull(),
     body: text("body").notNull(),
-    bookingId: uuid("booking_id").references(() => bookingsReference.id, {
+    bookingId: uuid("booking_id").references(() => notificationBookings.id, {
       onDelete: "cascade"
     }),
     readAt: timestamp("read_at", { withTimezone: true }),
@@ -64,7 +75,7 @@ export const notificationSubscriptions = pgTable(
   {
     userId: uuid("user_id")
       .notNull()
-      .references(() => usersReference.id, { onDelete: "cascade" }),
+      .references(() => notificationUsers.id, { onDelete: "cascade" }),
     category: text("category").$type<NotificationCategory>().notNull(),
     channel: text("channel").$type<NotificationChannelName>().notNull(),
     enabled: boolean("enabled").notNull().default(true),
@@ -87,7 +98,7 @@ export const telegramConnections = pgTable(
   {
     userId: uuid("user_id")
       .primaryKey()
-      .references(() => usersReference.id, { onDelete: "cascade" }),
+      .references(() => notificationUsers.id, { onDelete: "cascade" }),
     chatId: text("chat_id").notNull(),
     connectedAt: timestamp("connected_at", { withTimezone: true })
       .notNull()
@@ -102,7 +113,7 @@ export const telegramLinkTokens = pgTable(
     id: uuid("id").primaryKey(),
     userId: uuid("user_id")
       .notNull()
-      .references(() => usersReference.id, { onDelete: "cascade" }),
+      .references(() => notificationUsers.id, { onDelete: "cascade" }),
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     usedAt: timestamp("used_at", { withTimezone: true }),
@@ -141,5 +152,25 @@ export const notificationOutbox = pgTable(
     index("notification_outbox_pending_idx")
       .on(table.nextAttemptAt)
       .where(sql`${table.status} in ('PENDING', 'FAILED')`)
+  ]
+);
+
+export const notificationBookingParticipants = pgTable(
+  "booking_participants",
+  {
+    bookingId: uuid("booking_id")
+      .notNull()
+      .references(() => notificationBookings.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => notificationUsers.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 20 })
+      .$type<"INVITED" | "ACCEPTED" | "DECLINED">()
+      .notNull()
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.bookingId, table.userId]
+    })
   ]
 );

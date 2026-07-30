@@ -8,6 +8,8 @@ import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool, PoolClient, QueryResult, QueryResultRow } from "pg";
 import * as schema from "./schema";
 
+export type AppDatabase = NodePgDatabase<typeof schema>;
+
 export interface SqlExecutor {
   query<T extends QueryResultRow = QueryResultRow>(
     text: string,
@@ -18,7 +20,7 @@ export interface SqlExecutor {
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnApplicationShutdown {
   private readonly pool: Pool;
-  readonly orm: NodePgDatabase<typeof schema>;
+  readonly orm: AppDatabase;
 
   constructor(config: ConfigService) {
     const connectionString = config.get<string>("DATABASE_URL");
@@ -47,6 +49,10 @@ export class DatabaseService implements OnModuleInit, OnApplicationShutdown {
     values: unknown[] = []
   ): Promise<QueryResult<T>> {
     return this.pool.query<T>(text, values);
+  }
+
+  ormFor(client: PoolClient): AppDatabase {
+    return drizzle(client, { schema });
   }
 
   async transaction<T>(
