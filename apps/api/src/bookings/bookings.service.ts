@@ -1,7 +1,10 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type { PoolClient } from "pg";
+import sharp from "sharp";
 import { AccessPoliciesService } from "../access-policies/access-policies.service";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
@@ -58,6 +61,7 @@ interface AttendeeConflictRow {
 @Injectable()
 export class BookingsService {
   private readonly officeTimeZone: string;
+  private readonly uploadDir: string;
 
   constructor(
     private readonly database: DatabaseService,
@@ -67,6 +71,9 @@ export class BookingsService {
   ) {
     this.officeTimeZone =
       config.get<string>("OFFICE_TIMEZONE") ?? "Europe/Kyiv";
+    this.uploadDir =
+      config.get<string>("UPLOAD_DIR") ??
+      resolve(process.cwd(), "storage/uploads");
   }
 
   async schedule(
@@ -132,6 +139,7 @@ export class BookingsService {
       organizer_name: string;
       organizer_avatar_preset: string;
       organizer_avatar_path: string | null;
+      image_path: string | null;
       participants: unknown;
     }>(
       `
@@ -146,6 +154,7 @@ export class BookingsService {
           u.name as organizer_name,
           u.avatar_preset as organizer_avatar_preset,
           u.avatar_path as organizer_avatar_path,
+          b.image_path,
           coalesce(
             jsonb_agg(
               jsonb_build_object(
@@ -227,6 +236,9 @@ export class BookingsService {
         endsAt: booking.ends_at,
         participationMode: booking.participation_mode,
         seriesId: booking.series_id,
+        imageUrl: booking.image_path
+          ? `/uploads/${booking.image_path}`
+          : null,
         organizer: {
           id: booking.organizer_id,
           name: booking.organizer_name,
@@ -978,6 +990,7 @@ export class BookingsService {
       ends_at: Date;
       meeting_type: "ROOM" | "ONLINE";
       meeting_url: string | null;
+      image_path: string | null;
       room_id: string | null;
       room_name: string | null;
       organizer_id: string;
@@ -993,6 +1006,7 @@ export class BookingsService {
           b.ends_at,
           b.meeting_type,
           b.meeting_url,
+          b.image_path,
           r.id as room_id,
           r.name as room_name,
           b.organizer_id,
@@ -1019,6 +1033,7 @@ export class BookingsService {
       endsAt: row.ends_at,
       meetingType: row.meeting_type,
       meetingUrl: row.meeting_url,
+      imageUrl: row.image_path ? `/uploads/${row.image_path}` : null,
       room: row.room_id ? { id: row.room_id, name: row.room_name } : null,
       organizerId: row.organizer_id,
       participationMode: row.participation_mode,
@@ -1059,6 +1074,7 @@ export class BookingsService {
       ends_at: Date;
       meeting_type: "ROOM" | "ONLINE";
       meeting_url: string | null;
+      image_path: string | null;
       room_id: string | null;
       room_name: string | null;
       organizer_id: string;
@@ -1078,6 +1094,7 @@ export class BookingsService {
           b.ends_at,
           b.meeting_type,
           b.meeting_url,
+          b.image_path,
           r.id as room_id,
           r.name as room_name,
           organizer.id as organizer_id,
@@ -1130,6 +1147,7 @@ export class BookingsService {
         endsAt: row.ends_at,
         meetingType: row.meeting_type,
         meetingUrl: row.meeting_url,
+        imageUrl: row.image_path ? `/uploads/${row.image_path}` : null,
         room: row.room_id
           ? { id: row.room_id, name: row.room_name }
           : null,
@@ -1158,6 +1176,7 @@ export class BookingsService {
       ends_at: Date;
       meeting_type: "ROOM" | "ONLINE";
       meeting_url: string | null;
+      image_path: string | null;
       room_id: string | null;
       room_name: string | null;
       capacity: number;
@@ -1175,6 +1194,7 @@ export class BookingsService {
           b.ends_at,
           b.meeting_type,
           b.meeting_url,
+          b.image_path,
           r.id as room_id,
           r.name as room_name,
           coalesce(r.capacity, 51) as capacity,
@@ -1207,6 +1227,7 @@ export class BookingsService {
         row.organizer_id === userId || row.my_status === "ACCEPTED"
           ? row.meeting_url
           : null,
+      imageUrl: row.image_path ? `/uploads/${row.image_path}` : null,
       room: row.room_id
         ? {
             id: row.room_id,
@@ -1561,6 +1582,140 @@ export class BookingsService {
         );
       }
     });
+  }
+
+  async saveImage(
+    user: CurrentUser,
+    bookingId: string,
+    file: Express.Multer.File,
+  ) {
+    const result = await this.database.query<{
+      organizer_id: string;
+      image_path: string | null;
+      cancelled_at: Date | null;
+    }>(
+      `
+        select organizer_id, image_path, cancelled_at
+        from bookings
+        where id = $1
+      `,
+      [bookingId],
+    );
+    const booking = result.rows[0];
+    if (!booking || booking.cancelled_at) {
+      throw apiError(
+        HttpStatus.NOT_FOUND,
+        "BOOKING_NOT_FOUND",
+        "Booking was not found",
+      );
+    }
+    if (booking.organizer_id !== user.id && user.role !== "ADMIN") {
+      throw apiError(
+        HttpStatus.FORBIDDEN,
+        "NOT_BOOKING_OWNER",
+        "Only the organizer can update this meeting image",
+      );
+    }
+
+    let processed: Buffer;
+    try {
+      processed = await sharp(file.buffer, {
+        failOn: "warning",
+        limitInputPixels: 30_000_000,
+      })
+        .rotate()
+        .resize(1400, 788, { fit: "cover", position: "attention" })
+        .webp({ quality: 82 })
+        .toBuffer();
+    } catch {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "INVALID_BOOKING_IMAGE",
+        "Meeting image must be a valid image",
+      );
+    }
+
+    await mkdir(this.uploadDir, { recursive: true });
+    const filename = `booking-${randomUUID()}.webp`;
+    await writeFile(resolve(this.uploadDir, filename), processed, {
+      flag: "wx",
+    });
+    try {
+      await this.database.transaction(async (client) => {
+        await client.query(
+          `
+            update bookings
+            set image_path = $2, updated_at = now()
+            where id = $1 and cancelled_at is null
+          `,
+          [bookingId, filename],
+        );
+        await this.recordActivity(
+          client,
+          user.id,
+          "BOOKING_IMAGE_UPDATED",
+          "BOOKING",
+          bookingId,
+        );
+      });
+    } catch (error) {
+      await unlink(resolve(this.uploadDir, filename)).catch(() => undefined);
+      throw error;
+    }
+    if (booking.image_path && booking.image_path !== filename) {
+      await unlink(resolve(this.uploadDir, booking.image_path)).catch(
+        () => undefined,
+      );
+    }
+    return { imageUrl: `/uploads/${filename}` };
+  }
+
+  async removeImage(user: CurrentUser, bookingId: string): Promise<void> {
+    const result = await this.database.query<{
+      organizer_id: string;
+      image_path: string | null;
+      cancelled_at: Date | null;
+    }>(
+      `
+        select organizer_id, image_path, cancelled_at
+        from bookings
+        where id = $1
+      `,
+      [bookingId],
+    );
+    const booking = result.rows[0];
+    if (!booking || booking.cancelled_at) {
+      throw apiError(
+        HttpStatus.NOT_FOUND,
+        "BOOKING_NOT_FOUND",
+        "Booking was not found",
+      );
+    }
+    if (booking.organizer_id !== user.id && user.role !== "ADMIN") {
+      throw apiError(
+        HttpStatus.FORBIDDEN,
+        "NOT_BOOKING_OWNER",
+        "Only the organizer can remove this meeting image",
+      );
+    }
+    await this.database.transaction(async (client) => {
+      await client.query(
+        "update bookings set image_path = null, updated_at = now() where id = $1",
+        [bookingId],
+      );
+      await this.recordActivity(
+        client,
+        user.id,
+        "BOOKING_IMAGE_REMOVED",
+        "BOOKING",
+        bookingId,
+      );
+    });
+    if (booking.image_path) {
+      await unlink(resolve(this.uploadDir, booking.image_path)).catch(
+        () => undefined,
+      );
+    }
   }
 
   private async assertCanCreate(

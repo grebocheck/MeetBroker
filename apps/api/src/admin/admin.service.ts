@@ -187,6 +187,7 @@ export class AdminService {
       ends_at: Date;
       meeting_type: "ROOM" | "ONLINE";
       meeting_url: string | null;
+      image_path: string | null;
       participation_mode: "INVITE_ONLY" | "OPEN";
       series_id: string | null;
       override_reason: string | null;
@@ -211,6 +212,7 @@ export class AdminService {
           b.ends_at,
           b.meeting_type,
           b.meeting_url,
+          b.image_path,
           b.participation_mode,
           b.series_id,
           b.override_reason,
@@ -326,6 +328,9 @@ export class AdminService {
         endsAt: booking.ends_at,
         meetingType: booking.meeting_type,
         meetingUrl: booking.meeting_url,
+        imageUrl: booking.image_path
+          ? `/uploads/${booking.image_path}`
+          : null,
         participationMode: booking.participation_mode,
         seriesId: booking.series_id,
         overrideReason: booking.override_reason,

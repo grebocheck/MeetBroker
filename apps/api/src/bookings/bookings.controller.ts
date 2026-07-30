@@ -4,13 +4,19 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
   Query,
-  Req
+  Req,
+  UploadedFile,
+  UseInterceptors,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { Approved } from "../auth/auth.decorators";
+import { apiError } from "../common/http-error";
 import type { AuthenticatedRequest } from "../common/types";
 import {
   CancelBookingDto,
@@ -23,7 +29,16 @@ import { BookingsService } from "./bookings.service";
 @Approved()
 @Controller("api/bookings")
 export class BookingsController {
-  constructor(private readonly bookings: BookingsService) {}
+  private readonly maxBookingImageBytes: number;
+
+  constructor(
+    private readonly bookings: BookingsService,
+    config: ConfigService
+  ) {
+    this.maxBookingImageBytes = Number(
+      config.get("MAX_BOOKING_IMAGE_BYTES") ?? 12_582_912
+    );
+  }
 
   @Get("schedule")
   schedule(
@@ -75,6 +90,36 @@ export class BookingsController {
     @Body() dto: UpdateBookingDto
   ): Promise<void> {
     await this.bookings.update(request.user, id, dto);
+  }
+
+  @Post(":id/image")
+  @UseInterceptors(
+    FileInterceptor("image", {
+      limits: { fileSize: 12_582_912, files: 1 }
+    })
+  )
+  uploadImage(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    if (!file || file.size > this.maxBookingImageBytes) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "BOOKING_IMAGE_REQUIRED",
+        "Booking image is required or is too large to process"
+      );
+    }
+    return this.bookings.saveImage(request.user, id, file);
+  }
+
+  @Delete(":id/image")
+  @HttpCode(204)
+  async removeImage(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string
+  ): Promise<void> {
+    await this.bookings.removeImage(request.user, id);
   }
 
   @Get("open")
