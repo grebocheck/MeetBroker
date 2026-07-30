@@ -36,11 +36,35 @@ const fallbackTimeZones = [
   "UTC"
 ];
 
+const currentTimeZoneAliases: Readonly<Record<string, string>> = {
+  "Africa/Asmera": "Africa/Asmara",
+  "America/Godthab": "America/Nuuk",
+  "Asia/Calcutta": "Asia/Kolkata",
+  "Asia/Katmandu": "Asia/Kathmandu",
+  "Asia/Rangoon": "Asia/Yangon",
+  "Asia/Saigon": "Asia/Ho_Chi_Minh",
+  "Atlantic/Faeroe": "Atlantic/Faroe",
+  "Europe/Kiev": "Europe/Kyiv",
+  "Pacific/Ponape": "Pacific/Pohnpei",
+  "Pacific/Truk": "Pacific/Chuuk"
+};
+
+function normalizeTimeZone(value: string): string {
+  return currentTimeZoneAliases[value] ?? value;
+}
+
 function supportedTimeZones(): string[] {
   const intl = Intl as typeof Intl & {
     supportedValuesOf?: (key: "timeZone") => string[];
   };
-  return intl.supportedValuesOf?.("timeZone") ?? fallbackTimeZones;
+  const browserTimeZones =
+    intl.supportedValuesOf?.("timeZone") ?? fallbackTimeZones;
+  return Array.from(
+    new Set([
+      ...browserTimeZones.map(normalizeTimeZone),
+      ...fallbackTimeZones.map(normalizeTimeZone)
+    ])
+  ).sort((left, right) => left.localeCompare(right));
 }
 
 interface NotificationSubscription {
@@ -75,8 +99,9 @@ export function ProfilePage({ user }: { user: User }) {
     name: user.name,
     bio: user.bio ?? "",
     avatarPreset: user.avatarPreset,
-    timezone:
+    timezone: normalizeTimeZone(
       user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+    )
   });
   const timeZoneOptions = useMemo<SearchSelectOption[]>(() => {
     const zones = supportedTimeZones();
