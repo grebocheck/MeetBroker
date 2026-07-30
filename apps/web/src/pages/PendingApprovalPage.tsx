@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { navigate } from "../lib/router";
 import type { User } from "../types";
+import { Button } from "../components/ui/Button";
 
 export function PendingApprovalPage({ user }: { user: User }) {
   const queryClient = useQueryClient();
@@ -32,15 +33,14 @@ export function PendingApprovalPage({ user }: { user: User }) {
           <strong>{user.email}</strong>
         </div>
         <div className="button-row">
-          <button
-            className="button button--secondary"
+          <Button
             onClick={() => queryClient.invalidateQueries({ queryKey: ["me"] })}
           >
             Оновити статус
-          </button>
-          <button className="button button--ghost" onClick={() => logout.mutate()}>
+          </Button>
+          <Button variant="ghost" onClick={() => logout.mutate()}>
             Вийти
-          </button>
+          </Button>
         </div>
       </div>
     </div>

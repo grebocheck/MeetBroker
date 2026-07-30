@@ -8,6 +8,7 @@ import { api, ApiError } from "../lib/api";
 import { navigate } from "../lib/router";
 import type { User } from "../types";
 import { CancelBookingDialog } from "../components/CancelBookingDialog";
+import { Button } from "../components/ui/Button";
 
 interface MyBooking {
   id: string;
@@ -194,8 +195,9 @@ export function BookingListPage({ user }: { user: User }) {
                       </button>
                     ) : booking.participantStatus === "INVITED" ? (
                       <div className="button-row button-row--tight">
-                        <button
-                          className="button button--primary button--small"
+                        <Button
+                          variant="primary"
+                          size="small"
                           onClick={() =>
                             respond.mutate({
                               id: booking.id,
@@ -204,9 +206,10 @@ export function BookingListPage({ user }: { user: User }) {
                           }
                         >
                           Прийняти
-                        </button>
-                        <button
-                          className="button button--ghost button--small"
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="small"
                           onClick={() =>
                             respond.mutate({
                               id: booking.id,
@@ -215,7 +218,7 @@ export function BookingListPage({ user }: { user: User }) {
                           }
                         >
                           Відмовитися
-                        </button>
+                        </Button>
                       </div>
                     ) : null)}
                 </div>

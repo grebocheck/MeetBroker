@@ -651,7 +651,6 @@ hr {
 
 .button--primary,
 .button--danger,
-.button--ghost,
 .button--slanted {
   border-radius: 0;
   clip-path: var(--shape-action);
@@ -678,6 +677,24 @@ hr {
   color: var(--text-muted);
 }
 
+.button--ghost.button--slanted {
+  position: relative;
+  overflow: clip;
+  border: 0;
+  background: transparent;
+  isolation: isolate;
+}
+
+.button--ghost.button--slanted::before {
+  position: absolute;
+  z-index: -1;
+  background: transparent;
+  clip-path: var(--shape-action);
+  content: "";
+  inset: 0;
+  transition: background-color 180ms ease;
+}
+
 .button--secondary.button--slanted {
   position: relative;
   border: 0;
@@ -700,8 +717,15 @@ hr {
   z-index: 1;
 }
 
-.button--secondary:hover,
-.button--ghost:hover {
+.button--secondary:hover {
+  background: var(--surface-muted);
+}
+
+.button--ghost.button--slanted:hover {
+  background: transparent;
+}
+
+.button--ghost.button--slanted:hover::before {
   background: var(--surface-muted);
 }
 
