@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { spatialNavigationScore } from "./InputNavigation";
+import {
+  linearNavigationStep,
+  spatialNavigationScore,
+} from "./InputNavigation";
 
 function rect(left: number, top: number, width = 100, height = 40) {
   return {
@@ -13,6 +16,14 @@ function rect(left: number, top: number, width = 100, height = 40) {
 }
 
 describe("spatial keyboard navigation", () => {
+  it("uses linear movement only inside matching composite widgets", () => {
+    expect(linearNavigationStep(null, "up")).toBe(0);
+    expect(linearNavigationStep("menu", "up")).toBe(-1);
+    expect(linearNavigationStep("listbox", "down")).toBe(1);
+    expect(linearNavigationStep("tablist", "left")).toBe(-1);
+    expect(linearNavigationStep("tablist", "up")).toBe(0);
+  });
+
   it("rejects controls outside the requested direction", () => {
     expect(spatialNavigationScore(rect(100, 100), rect(0, 100), "right")).toBe(
       null,

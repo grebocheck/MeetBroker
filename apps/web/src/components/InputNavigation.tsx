@@ -19,15 +19,13 @@ type NavigationRect = Pick<
 
 function navigationScope(current: HTMLElement | null): HTMLElement {
   const modal = document.querySelector<HTMLElement>("[aria-modal='true']");
+  const composite = current?.closest<HTMLElement>(
+    "[role='menu'], [role='listbox'], [role='tablist']",
+  );
+  if (composite && (!modal || modal.contains(composite))) return composite;
   if (modal) return modal;
 
-  const openDetails = current?.closest<HTMLElement>("details[open]");
-  if (openDetails) return openDetails;
-
-  const composite = current?.closest<HTMLElement>(
-    "[role='menu'], [role='listbox'], [role='grid'], [role='tablist']",
-  );
-  return composite ?? document.body;
+  return document.body;
 }
 
 function focusableElements(current: HTMLElement | null = null): HTMLElement[] {
@@ -35,6 +33,8 @@ function focusableElements(current: HTMLElement | null = null): HTMLElement[] {
   return Array.from(
     scope.querySelectorAll<HTMLElement>(focusableSelector),
   ).filter((element) => {
+    const closedDetails = element.closest("details:not([open])");
+    if (closedDetails && element.tagName !== "SUMMARY") return false;
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
     return (
@@ -105,6 +105,22 @@ export function spatialNavigationScore(
   );
 }
 
+export function linearNavigationStep(
+  role: string | null,
+  direction: Direction,
+): -1 | 0 | 1 {
+  if (role === "tablist") {
+    if (direction === "left") return -1;
+    if (direction === "right") return 1;
+    return 0;
+  }
+  if (role === "menu" || role === "listbox") {
+    if (direction === "up") return -1;
+    if (direction === "down") return 1;
+  }
+  return 0;
+}
+
 function moveFocus(direction: Direction): boolean {
   const current =
     document.activeElement instanceof HTMLElement
@@ -118,10 +134,55 @@ function moveFocus(direction: Direction): boolean {
     return true;
   }
 
+  if (
+    direction === "down" &&
+    current instanceof HTMLElement &&
+    current.tagName === "SUMMARY"
+  ) {
+    const details = current.closest<HTMLDetailsElement>("details");
+    if (details && !details.open) details.open = true;
+    const firstMenuItem = details
+      ?.querySelector<HTMLElement>("[role='menu']")
+      ?.querySelector<HTMLElement>(focusableSelector);
+    if (firstMenuItem) {
+      firstMenuItem.focus({ preventScroll: true });
+      firstMenuItem.scrollIntoView({ block: "nearest", inline: "nearest" });
+      return true;
+    }
+  }
+
+  const currentDetails =
+    current.tagName === "SUMMARY"
+      ? current.closest<HTMLDetailsElement>("details")
+      : null;
+  const spatialCandidates = currentDetails
+    ? candidates.filter(
+        (candidate) =>
+          candidate === current || !currentDetails.contains(candidate),
+      )
+    : candidates;
+
+  const composite = current.closest<HTMLElement>(
+    "[role='menu'], [role='listbox'], [role='tablist']",
+  );
+  const linearDirection = linearNavigationStep(
+    composite?.getAttribute("role") ?? null,
+    direction,
+  );
+  if (linearDirection) {
+    const currentIndex = candidates.indexOf(current);
+    const nextIndex =
+      (currentIndex + linearDirection + candidates.length) % candidates.length;
+    const next = candidates[nextIndex];
+    next.focus({ preventScroll: true });
+    next.scrollIntoView({ block: "nearest", inline: "nearest" });
+    return true;
+  }
+
   const origin = current.getBoundingClientRect();
   let best: { element: HTMLElement; score: number } | undefined;
 
-  for (const element of candidates) {
+  for (const element of spatialCandidates) {
     if (element === current) continue;
     const rect = element.getBoundingClientRect();
     const score = spatialNavigationScore(origin, rect, direction);
@@ -225,6 +286,23 @@ export function InputNavigation() {
     const onKeyDown = (event: KeyboardEvent) => {
       setInputMode("keyboard");
       if (event.defaultPrevented) return;
+      const active =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      if (event.key === "Escape" || event.key === "ArrowLeft") {
+        const details = active
+          ?.closest<HTMLElement>("[role='menu']")
+          ?.closest<HTMLDetailsElement>("details[open]");
+        if (details) {
+          details.open = false;
+          details
+            .querySelector<HTMLElement>("summary")
+            ?.focus({ preventScroll: true });
+          event.preventDefault();
+          return;
+        }
+      }
       const direction = keyboardDirection(event);
       if (!direction) return;
       const target =
