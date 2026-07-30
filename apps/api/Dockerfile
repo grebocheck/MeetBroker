@@ -4,7 +4,7 @@ RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
-RUN npm ci
+RUN npm ci --workspace @meetbroker/api --include-workspace-root
 
 FROM dependencies AS build
 COPY apps/api apps/api
@@ -17,7 +17,7 @@ RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --workspace @meetbroker/api --include-workspace-root
 COPY --from=build /app/apps/api/dist apps/api/dist
 COPY apps/api/src/database/migrate.mjs apps/api/src/database/migrate.mjs
 COPY apps/api/src/database/migrations apps/api/src/database/migrations

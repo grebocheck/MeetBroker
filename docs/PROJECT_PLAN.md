@@ -102,9 +102,11 @@ browser
 worker ─────────────┘
 ```
 
-`backend` і `worker` можуть використовувати один application image, але
-запускають різні процеси. Міграції та сіди запускаються як службові
-одноразові команди, а не як постійні сервіси.
+`backend` і `worker` використовують один application image, але запускають
+різні процеси. У поточному single-instance Docker Compose API застосовує
+міграції та опційний demo seed перед запуском NestJS, а worker чекає його
+health check. Для multi-replica production це має бути окремий deployment
+job на тому самому API image, а не додатковий application image.
 
 ## Етапи та критерії готовності
 

@@ -23,7 +23,13 @@ npm run smoke
 | Користувач | `user@meetbroker.local` | `User12345!` |
 | Користувач | `anna@meetbroker.local` | `User12345!` |
 
-Міграції застосовуються контейнером `migrate` через `node-pg-migrate`.
+Міграції застосовуються API-контейнером через `node-pg-migrate` перед
+запуском NestJS. Worker очікує healthy API, тому не починає обробку до
+завершення міграцій.
+Ця схема розрахована на один API instance у поточному Docker Compose. Для
+production із кількома replicas міграції слід запускати окремим deployment
+job, який використовує той самий API image, а не збирає власний.
+
 Демонстраційні дані створюються лише з `SEED_DEMO_DATA=true`, яке вже
 вказане у `.env.example`; у production цю змінну потрібно вимкнути.
 Повторний запуск є безпечним. Для реальної інсталяції також потрібно змінити
@@ -53,10 +59,10 @@ npm run db:migrate:create -- add_room_equipment
 ```
 
 Локальні команди очікують `DATABASE_URL`. Для бази всередині Compose status
-можна виконати так:
+можна виконати одноразовим API-контейнером без запуску сервера:
 
 ```bash
-docker compose run --rm migrate \
+docker compose run --rm api \
   npm run db:migrate:status:prod --workspace @meetbroker/api
 ```
 
