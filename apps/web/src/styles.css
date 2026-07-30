@@ -365,6 +365,7 @@ hr {
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -381,6 +382,28 @@ hr {
     color 180ms ease,
     transform 180ms ease;
   will-change: transform;
+}
+
+.nav-badge {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  margin-left: auto;
+  padding: 0 5px;
+  place-items: center;
+  border: 2px solid #0c64ca;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.61rem;
+  font-weight: 850;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(255, 76, 145, 0.32);
+}
+
+.nav-item:hover .nav-badge,
+.nav-item--active .nav-badge {
+  border-color: #f6fbff;
 }
 
 .nav-item svg {
@@ -3832,6 +3855,17 @@ hr {
   .nav-item {
     justify-content: center;
     width: 46px;
+  }
+
+  .nav-badge {
+    position: absolute;
+    top: 2px;
+    right: -5px;
+    min-width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0 4px;
+    font-size: 0.56rem;
   }
 
   .sidebar-utilities {

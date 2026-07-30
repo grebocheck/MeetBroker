@@ -79,3 +79,24 @@ export interface Schedule {
   bookings: Booking[];
   blocks: RoomBlock[];
 }
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  bookingId: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationsResponse {
+  notifications: NotificationItem[];
+  unreadCount: number;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}

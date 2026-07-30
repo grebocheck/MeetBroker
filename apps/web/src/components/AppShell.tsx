@@ -1,9 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ComponentType, SVGProps } from "react";
 import { api } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Link, navigate } from "../lib/router";
-import type { Capability, User } from "../types";
+import type { Capability, NotificationsResponse, User } from "../types";
 import type { MessageKey } from "../locales/uk";
 import { AdminPage } from "../pages/AdminPage";
 import { BookingListPage } from "../pages/BookingListPage";
@@ -47,6 +47,14 @@ const capabilityKeys: Record<Capability, MessageKey> = {
 export function AppShell({ user, path }: { user: User; path: string }) {
   const { dateLocale, locale, t } = useI18n();
   const queryClient = useQueryClient();
+  const notificationSummary = useQuery({
+    queryKey: ["notifications", "summary"],
+    queryFn: () =>
+      api<NotificationsResponse>("/api/notifications?page=1&limit=1"),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  });
+  const unreadCount = notificationSummary.data?.unreadCount ?? 0;
   const logout = useMutation({
     mutationFn: () => api<void>("/api/auth/logout", { method: "POST" }),
     onSuccess: () => {
@@ -119,6 +127,16 @@ export function AppShell({ user, path }: { user: User; path: string }) {
                 >
                   <Icon />
                   <span>{item.label}</span>
+                  {item.href === "/notifications" && unreadCount > 0 && (
+                    <strong
+                      className="nav-badge"
+                      aria-label={t("notifications.unreadCount", {
+                        count: unreadCount,
+                      })}
+                    >
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </strong>
+                  )}
                 </Link>
               );
             })}

@@ -3,29 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "../components/ui/Button";
 import { Pagination } from "../components/ui/Pagination";
 import { api } from "../lib/api";
+import { errorMessage } from "../lib/error-message";
 import { useI18n } from "../lib/i18n";
 import { navigate } from "../lib/router";
-
-interface NotificationItem {
-  id: string;
-  type: string;
-  title: string;
-  body: string;
-  bookingId: string | null;
-  read: boolean;
-  createdAt: string;
-}
-
-interface NotificationsResponse {
-  notifications: NotificationItem[];
-  unreadCount: number;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
+import type { NotificationItem, NotificationsResponse } from "../types";
 
 export function NotificationsPage() {
   const { dateLocale, t } = useI18n();
@@ -51,8 +32,12 @@ export function NotificationsPage() {
   });
 
   const markRead = (item: NotificationItem) => {
-    if (!item.read && !read.isPending) read.mutate(item.id);
+    if (!item.read && !read.isPending) {
+      read.reset();
+      read.mutate(item.id);
+    }
   };
+  const actionError = read.error ?? readAll.error;
 
   return (
     <div className="page narrow-page">
@@ -69,7 +54,11 @@ export function NotificationsPage() {
             disabled={
               !notifications.data?.unreadCount || readAll.isPending
             }
-            onClick={() => readAll.mutate()}
+            onClick={() => {
+              read.reset();
+              readAll.reset();
+              readAll.mutate();
+            }}
           >
             {readAll.isPending
               ? t("notifications.marking")
@@ -89,6 +78,24 @@ export function NotificationsPage() {
           <div><i /><span /><span /></div>
           <div><i /><span /><span /></div>
         </div>
+      ) : notifications.isError ? (
+        <div className="state-panel state-panel--error">
+          <strong>{t("notifications.loadError")}</strong>
+          <span>
+            {errorMessage(
+              notifications.error,
+              t,
+              "notifications.loadError"
+            )}
+          </span>
+          <Button
+            variant="secondary"
+            size="small"
+            onClick={() => notifications.refetch()}
+          >
+            {t("retry")}
+          </Button>
+        </div>
       ) : notifications.data?.notifications.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state__icon">✓</span>
@@ -97,6 +104,15 @@ export function NotificationsPage() {
         </div>
       ) : (
         <>
+          {actionError && (
+            <div className="form-error" role="alert">
+              {errorMessage(
+                actionError,
+                t,
+                "notifications.actionError"
+              )}
+            </div>
+          )}
           <div className="notification-list">
             {notifications.data?.notifications.map((item) => (
               <article
