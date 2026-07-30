@@ -1,12 +1,15 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { DatabaseService, SqlExecutor } from "../database/database.service";
+import type { PoolClient } from "pg";
+import { DatabaseService } from "../database/database.service";
 import {
   notifications,
+  notificationOutbox,
   notificationSubscriptions,
-  telegramConnections
+  telegramConnections,
+  telegramLinkTokens
 } from "../database/schema";
 import { createOpaqueToken, hashToken } from "../common/crypto";
 import { apiError } from "../common/http-error";
@@ -39,57 +42,51 @@ export class NotificationsService {
   }
 
   async enqueue(
-    executor: SqlExecutor,
+    client: PoolClient,
     event: NotificationEvent
   ): Promise<void> {
+    const orm = this.database.ormFor(client);
     const notificationId = randomUUID();
-    const queued = await executor.query(
-      `
-        insert into notification_outbox
-          (id, event_key, event_type, payload)
-        values ($1, $2, $3, $4::jsonb)
-        on conflict (event_key) do nothing
-        returning id
-      `,
-      [
-        randomUUID(),
-        event.eventKey,
-        event.type,
-        JSON.stringify({
+    const queued = await orm
+      .insert(notificationOutbox)
+      .values({
+        id: randomUUID(),
+        eventKey: event.eventKey,
+        eventType: event.type,
+        payload: {
           userId: event.userId,
           category: event.category,
           title: event.title,
           body: event.body,
           activeBookingIds: event.activeBookingIds
-        })
-      ]
-    );
-    if (!queued.rowCount) return;
+        }
+      })
+      .onConflictDoNothing({ target: notificationOutbox.eventKey })
+      .returning({ id: notificationOutbox.id });
+    if (!queued.length) return;
 
-    await executor.query(
-      `
-        insert into notifications
-          (id, user_id, type, title, body, booking_id)
-        select $1, $2, $3, $4, $5, $6
-        where exists (
-          select 1
-          from notification_subscriptions
-          where user_id = $2
-            and category = $7
-            and channel = 'IN_APP'
-            and enabled
+    const inAppSubscription = await orm
+      .select({ enabled: notificationSubscriptions.enabled })
+      .from(notificationSubscriptions)
+      .where(
+        and(
+          eq(notificationSubscriptions.userId, event.userId),
+          eq(notificationSubscriptions.category, event.category),
+          eq(notificationSubscriptions.channel, "IN_APP"),
+          eq(notificationSubscriptions.enabled, true)
         )
-      `,
-      [
-        notificationId,
-        event.userId,
-        event.type,
-        event.title,
-        event.body,
-        event.bookingId ?? null,
-        event.category
-      ]
-    );
+      )
+      .limit(1);
+    if (!inAppSubscription.length) return;
+
+    await orm.insert(notifications).values({
+      id: notificationId,
+      userId: event.userId,
+      type: event.type,
+      title: event.title,
+      body: event.body,
+      bookingId: event.bookingId ?? null
+    });
   }
 
   async list(userId: string, page = 1, limit = 12) {
@@ -200,7 +197,7 @@ export class NotificationsService {
           notificationSubscriptions.category,
           notificationSubscriptions.channel
         ],
-        set: { enabled: dto.enabled, updatedAt: new Date() }
+        set: { enabled: dto.enabled, updatedAt: sql`now()` }
       });
     return this.getPreferences(userId);
   }
@@ -214,14 +211,12 @@ export class NotificationsService {
       );
     }
     const token = createOpaqueToken();
-    await this.database.query(
-      `
-        insert into telegram_link_tokens
-          (id, user_id, token_hash, expires_at)
-        values ($1, $2, $3, now() + interval '10 minutes')
-      `,
-      [randomUUID(), userId, hashToken(token)]
-    );
+    await this.database.orm.insert(telegramLinkTokens).values({
+      id: randomUUID(),
+      userId,
+      tokenHash: hashToken(token),
+      expiresAt: sql`now() + interval '10 minutes'`
+    });
     return {
       url: `https://t.me/${this.botUsername}?start=${token}`,
       expiresInSeconds: 600
@@ -229,19 +224,19 @@ export class NotificationsService {
   }
 
   async disconnectTelegram(userId: string): Promise<void> {
-    await this.database.transaction(async (client) => {
-      await client.query(
-        "delete from telegram_connections where user_id = $1",
-        [userId]
-      );
-      await client.query(
-        `
-          update notification_subscriptions
-          set enabled = false, updated_at = now()
-          where user_id = $1 and channel = 'TELEGRAM'
-        `,
-        [userId]
-      );
+    await this.database.orm.transaction(async (tx) => {
+      await tx
+        .delete(telegramConnections)
+        .where(eq(telegramConnections.userId, userId));
+      await tx
+        .update(notificationSubscriptions)
+        .set({ enabled: false, updatedAt: sql`now()` })
+        .where(
+          and(
+            eq(notificationSubscriptions.userId, userId),
+            eq(notificationSubscriptions.channel, "TELEGRAM")
+          )
+        );
     });
   }
 
@@ -260,31 +255,31 @@ export class NotificationsService {
     const token = text?.match(/^\/start\s+(\S+)$/)?.[1];
     if (!token) return { connected: false };
 
-    const result = await this.database.query<{ user_id: string }>(
-      `
-        update telegram_link_tokens
-        set used_at = now()
-        where token_hash = $1
-          and used_at is null
-          and expires_at > now()
-        returning user_id
-      `,
-      [hashToken(token)]
-    );
-    const userId = result.rows[0]?.user_id;
-    if (!userId) return { connected: false };
+    const userId = await this.database.orm.transaction(async (tx) => {
+      const consumed = await tx
+        .update(telegramLinkTokens)
+        .set({ usedAt: sql`now()` })
+        .where(
+          and(
+            eq(telegramLinkTokens.tokenHash, hashToken(token)),
+            isNull(telegramLinkTokens.usedAt),
+            gt(telegramLinkTokens.expiresAt, sql`now()`)
+          )
+        )
+        .returning({ userId: telegramLinkTokens.userId });
+      const connectedUserId = consumed[0]?.userId;
+      if (!connectedUserId) return undefined;
 
-    await this.database.transaction(async (client) => {
-      await client.query(
-        `
-          insert into telegram_connections (user_id, chat_id)
-          values ($1, $2)
-          on conflict (user_id)
-          do update set chat_id = excluded.chat_id, connected_at = now()
-        `,
-        [userId, chatId]
-      );
+      await tx
+        .insert(telegramConnections)
+        .values({ userId: connectedUserId, chatId })
+        .onConflictDoUpdate({
+          target: telegramConnections.userId,
+          set: { chatId, connectedAt: sql`now()` }
+        });
+      return connectedUserId;
     });
+    if (!userId) return { connected: false };
     return { connected: true, chatId };
   }
 }

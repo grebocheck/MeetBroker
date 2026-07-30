@@ -1,29 +1,32 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import {
+  and,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  sql
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { DatabaseService } from "../database/database.service";
+import {
+  notificationBookingParticipants,
+  notificationBookings,
+  notificationOutbox,
+  notificationSubscriptions,
+  notificationUsers,
+  telegramConnections
+} from "../database/schema";
 import {
   categoryForEventType,
   ExternalNotificationChannelName,
-  NotificationCategory,
   NotificationRecipient
 } from "./notification-channel";
 import { NotificationChannelRegistry } from "./notification-channel.registry";
 import { NotificationsService } from "./notifications.service";
-
-interface OutboxPayload {
-  userId: string;
-  category?: NotificationCategory;
-  title: string;
-  body: string;
-  activeBookingIds?: string[];
-}
-
-interface OutboxRow {
-  id: string;
-  event_type: string;
-  payload: OutboxPayload;
-  attempts: number;
-}
 
 @Injectable()
 export class NotificationWorkerService {
@@ -46,58 +49,67 @@ export class NotificationWorkerService {
       this.enqueueDueStartReminders(),
       this.enqueueDueEndWarnings()
     ]);
-    const jobs = await this.database.transaction(async (client) => {
-      const result = await client.query<OutboxRow>(
-        `
-          select id, event_type, payload, attempts
-          from notification_outbox
-          where status in ('PENDING', 'FAILED')
-            and next_attempt_at <= now()
-            and attempts < 8
-          order by created_at
-          limit 20
-          for update skip locked
-        `
-      );
-      if (result.rows.length) {
-        await client.query(
-          `
-            update notification_outbox
-            set status = 'PROCESSING', attempts = attempts + 1
-            where id = any($1::uuid[])
-          `,
-          [result.rows.map((job) => job.id)]
-        );
+    const jobs = await this.database.orm.transaction(async (tx) => {
+      const pending = await tx
+        .select({
+          id: notificationOutbox.id,
+          eventType: notificationOutbox.eventType,
+          payload: notificationOutbox.payload,
+          attempts: notificationOutbox.attempts
+        })
+        .from(notificationOutbox)
+        .where(
+          and(
+            inArray(notificationOutbox.status, ["PENDING", "FAILED"]),
+            lte(notificationOutbox.nextAttemptAt, sql`now()`),
+            lt(notificationOutbox.attempts, 8)
+          )
+        )
+        .orderBy(notificationOutbox.createdAt)
+        .limit(20)
+        .for("update", { skipLocked: true });
+      if (pending.length) {
+        await tx
+          .update(notificationOutbox)
+          .set({
+            status: "PROCESSING",
+            attempts: sql`${notificationOutbox.attempts} + 1`
+          })
+          .where(
+            inArray(
+              notificationOutbox.id,
+              pending.map((job) => job.id)
+            )
+          );
       }
-      return result.rows;
+      return pending;
     });
 
     for (const job of jobs) {
       try {
-        await this.deliver(job.payload, job.event_type);
-        await this.database.query(
-          `
-            update notification_outbox
-            set status = 'SENT', processed_at = now(), last_error = null
-            where id = $1
-          `,
-          [job.id]
-        );
+        await this.deliver(job.payload, job.eventType);
+        await this.database.orm
+          .update(notificationOutbox)
+          .set({
+            status: "SENT",
+            processedAt: sql`now()`,
+            lastError: null
+          })
+          .where(eq(notificationOutbox.id, job.id));
       } catch (error) {
         const message =
           error instanceof Error ? error.message.slice(0, 500) : String(error);
         const delayMinutes = Math.min(60, 2 ** Math.min(job.attempts, 5));
-        await this.database.query(
-          `
-            update notification_outbox
-            set
-              status = 'FAILED',
-              last_error = $2,
-              next_attempt_at = now() + ($3 || ' minutes')::interval
-            where id = $1
-          `,
-          [job.id, message, String(delayMinutes)]
-        );
+        await this.database.orm
+          .update(notificationOutbox)
+          .set({
+            status: "FAILED",
+            lastError: message,
+            nextAttemptAt: sql`now() + (${String(
+              delayMinutes
+            )} || ' minutes')::interval`
+          })
+          .where(eq(notificationOutbox.id, job.id));
         this.logger.warn(`Delivery ${job.id} failed: ${message}`);
       }
     }
@@ -105,55 +117,63 @@ export class NotificationWorkerService {
   }
 
   private async deliver(
-    payload: OutboxPayload,
+    payload: typeof notificationOutbox.$inferSelect.payload,
     eventType: string
   ): Promise<void> {
     if (payload.activeBookingIds?.length) {
       const bookingIds = [...new Set(payload.activeBookingIds)];
-      const active = await this.database.query<{ count: string }>(
-        `
-          select count(*)::text as count
-          from bookings
-          where id = any($1::uuid[])
-            and cancelled_at is null
-        `,
-        [bookingIds]
-      );
-      if (Number(active.rows[0]?.count ?? 0) !== bookingIds.length) return;
+      const active = await this.database.orm
+        .select({ count: sql<number>`count(*)::int` })
+        .from(notificationBookings)
+        .where(
+          and(
+            inArray(notificationBookings.id, bookingIds),
+            isNull(notificationBookings.cancelledAt)
+          )
+        );
+      if (Number(active[0]?.count ?? 0) !== bookingIds.length) return;
     }
-    const result = await this.database.query<{
-      email: string;
-      telegram_chat_id: string | null;
-      enabled_channels: ExternalNotificationChannelName[];
-    }>(
-      `
-        select
-          u.email,
-          t.chat_id as telegram_chat_id,
-          coalesce(
-            array_agg(s.channel) filter (
-              where s.enabled and s.channel in ('EMAIL', 'TELEGRAM')
-            ),
-            array[]::text[]
-          ) as enabled_channels
-        from users u
-        left join telegram_connections t on t.user_id = u.id
-        left join notification_subscriptions s
-          on s.user_id = u.id and s.category = $2
-        where u.id = $1
-        group by u.id, u.email, t.chat_id
-      `,
-      [payload.userId, payload.category ?? categoryForEventType(eventType)]
-    );
-    const target = result.rows[0];
+    const targetRows = await this.database.orm
+      .select({
+        email: notificationUsers.email,
+        telegramChatId: telegramConnections.chatId
+      })
+      .from(notificationUsers)
+      .leftJoin(
+        telegramConnections,
+        eq(telegramConnections.userId, notificationUsers.id)
+      )
+      .where(eq(notificationUsers.id, payload.userId))
+      .limit(1);
+    const target = targetRows[0];
     if (!target) return;
+    const subscriptions = await this.database.orm
+      .select({ channel: notificationSubscriptions.channel })
+      .from(notificationSubscriptions)
+      .where(
+        and(
+          eq(notificationSubscriptions.userId, payload.userId),
+          eq(
+            notificationSubscriptions.category,
+            payload.category ?? categoryForEventType(eventType)
+          ),
+          eq(notificationSubscriptions.enabled, true),
+          inArray(notificationSubscriptions.channel, ["EMAIL", "TELEGRAM"])
+        )
+      );
+    const enabledChannels = subscriptions
+      .map(({ channel }) => channel)
+      .filter(
+        (channel): channel is ExternalNotificationChannelName =>
+          channel === "EMAIL" || channel === "TELEGRAM"
+      );
     const recipient: NotificationRecipient = {
       userId: payload.userId,
       email: target.email,
-      telegramChatId: target.telegram_chat_id
+      telegramChatId: target.telegramChatId
     };
     await Promise.all(
-      target.enabled_channels.map(async (name) => {
+      enabledChannels.map(async (name) => {
         const channel = this.channels.get(name);
         if (!channel?.isAvailable() || !channel.canDeliver(recipient)) return;
         await channel.deliver(recipient, {
@@ -165,55 +185,74 @@ export class NotificationWorkerService {
   }
 
   private async enqueueDueStartReminders(): Promise<void> {
-    const result = await this.database.query<{
-      booking_id: string;
-      title: string;
-      starts_at: Date;
-      user_id: string;
-      locale: "uk" | "en";
-      timezone: string | null;
-    }>(
-      `
-        with recipients as (
-          select b.id as booking_id, b.organizer_id as user_id
-          from bookings b
-          where b.cancelled_at is null
-            and b.starts_at > now()
-            and b.starts_at <= now() + ($1 || ' minutes')::interval
-          union
-          select b.id, bp.user_id
-          from bookings b
-          join booking_participants bp on bp.booking_id = b.id
-          where b.cancelled_at is null
-            and bp.status = 'ACCEPTED'
-            and b.starts_at > now()
-            and b.starts_at <= now() + ($1 || ' minutes')::interval
-        )
-        select
-          b.id as booking_id,
-          b.title,
-          b.starts_at,
-          u.id as user_id,
-          u.locale,
-          u.timezone
-        from recipients r
-        join bookings b on b.id = r.booking_id
-        join users u on u.id = r.user_id
-      `,
-      [String(this.notifyBeforeMinutes)]
+    const dueWindow = and(
+      isNull(notificationBookings.cancelledAt),
+      gt(notificationBookings.startsAt, sql`now()`),
+      lte(
+        notificationBookings.startsAt,
+        sql`now() + (${String(
+          this.notifyBeforeMinutes
+        )} || ' minutes')::interval`
+      )
     );
+    const reminderSelection = {
+      bookingId: notificationBookings.id,
+      title: notificationBookings.title,
+      startsAt: notificationBookings.startsAt,
+      userId: notificationUsers.id,
+      locale: notificationUsers.locale,
+      timezone: notificationUsers.timezone
+    };
+    const [organizers, participants] = await Promise.all([
+      this.database.orm
+        .select(reminderSelection)
+        .from(notificationBookings)
+        .innerJoin(
+          notificationUsers,
+          eq(notificationUsers.id, notificationBookings.organizerId)
+        )
+        .where(dueWindow),
+      this.database.orm
+        .select(reminderSelection)
+        .from(notificationBookings)
+        .innerJoin(
+          notificationBookingParticipants,
+          eq(
+            notificationBookingParticipants.bookingId,
+            notificationBookings.id
+          )
+        )
+        .innerJoin(
+          notificationUsers,
+          eq(notificationUsers.id, notificationBookingParticipants.userId)
+        )
+        .where(
+          and(
+            dueWindow,
+            eq(notificationBookingParticipants.status, "ACCEPTED")
+          )
+        )
+    ]);
+    const reminders = [
+      ...new Map(
+        [...organizers, ...participants].map((reminder) => [
+          `${reminder.bookingId}:${reminder.userId}`,
+          reminder
+        ])
+      ).values()
+    ];
 
-    for (const reminder of result.rows) {
+    for (const reminder of reminders) {
       const locale = reminder.locale === "en" ? "en-GB" : "uk-UA";
       const formatted = new Intl.DateTimeFormat(locale, {
         hour: "2-digit",
         minute: "2-digit",
         timeZone: reminder.timezone ?? "Europe/Kyiv"
-      }).format(reminder.starts_at);
+      }).format(reminder.startsAt);
       await this.database.transaction((client) =>
         this.notifications.enqueue(client, {
-          eventKey: `booking:${reminder.booking_id}:reminder:${reminder.user_id}`,
-          userId: reminder.user_id,
+          eventKey: `booking:${reminder.bookingId}:reminder:${reminder.userId}`,
+          userId: reminder.userId,
           type: "BOOKING_REMINDER",
           category: "REMINDERS",
           title:
@@ -224,59 +263,63 @@ export class NotificationWorkerService {
             reminder.locale === "en"
               ? `“${reminder.title}” starts at ${formatted}.`
               : `«${reminder.title}» починається о ${formatted}.`,
-          bookingId: reminder.booking_id,
-          activeBookingIds: [reminder.booking_id]
+          bookingId: reminder.bookingId,
+          activeBookingIds: [reminder.bookingId]
         })
       );
     }
   }
 
   private async enqueueDueEndWarnings(): Promise<void> {
-    const result = await this.database.query<{
-      booking_id: string;
-      title: string;
-      ends_at: Date;
-      next_booking_id: string;
-      next_title: string;
-      user_id: string;
-      locale: "uk" | "en";
-      timezone: string | null;
-    }>(
-      `
-        select
-          current_booking.id as booking_id,
-          current_booking.title,
-          current_booking.ends_at,
-          next_booking.id as next_booking_id,
-          next_booking.title as next_title,
-          current_booking.organizer_id as user_id,
-          users.locale,
-          users.timezone
-        from bookings current_booking
-        join bookings next_booking
-          on next_booking.room_id = current_booking.room_id
-          and next_booking.starts_at = current_booking.ends_at
-          and next_booking.cancelled_at is null
-        join users on users.id = current_booking.organizer_id
-        where current_booking.cancelled_at is null
-          and current_booking.ends_at > now()
-          and current_booking.ends_at
-            <= now() + ($1 || ' minutes')::interval
-      `,
-      [String(this.notifyBeforeMinutes)]
-    );
+    const nextBooking = alias(notificationBookings, "next_booking");
+    const warnings = await this.database.orm
+      .select({
+        bookingId: notificationBookings.id,
+        title: notificationBookings.title,
+        endsAt: notificationBookings.endsAt,
+        nextBookingId: nextBooking.id,
+        nextTitle: nextBooking.title,
+        userId: notificationBookings.organizerId,
+        locale: notificationUsers.locale,
+        timezone: notificationUsers.timezone
+      })
+      .from(notificationBookings)
+      .innerJoin(
+        nextBooking,
+        and(
+          eq(nextBooking.roomId, notificationBookings.roomId),
+          eq(nextBooking.startsAt, notificationBookings.endsAt),
+          isNull(nextBooking.cancelledAt)
+        )
+      )
+      .innerJoin(
+        notificationUsers,
+        eq(notificationUsers.id, notificationBookings.organizerId)
+      )
+      .where(
+        and(
+          isNull(notificationBookings.cancelledAt),
+          gt(notificationBookings.endsAt, sql`now()`),
+          lte(
+            notificationBookings.endsAt,
+            sql`now() + (${String(
+              this.notifyBeforeMinutes
+            )} || ' minutes')::interval`
+          )
+        )
+      );
 
-    for (const warning of result.rows) {
+    for (const warning of warnings) {
       const locale = warning.locale === "en" ? "en-GB" : "uk-UA";
       const formatted = new Intl.DateTimeFormat(locale, {
         hour: "2-digit",
         minute: "2-digit",
         timeZone: warning.timezone ?? "Europe/Kyiv"
-      }).format(warning.ends_at);
+      }).format(warning.endsAt);
       await this.database.transaction((client) =>
         this.notifications.enqueue(client, {
-          eventKey: `booking:${warning.booking_id}:end-warning:${warning.user_id}`,
-          userId: warning.user_id,
+          eventKey: `booking:${warning.bookingId}:end-warning:${warning.userId}`,
+          userId: warning.userId,
           type: "BOOKING_END_WARNING",
           category: "REMINDERS",
           title:
@@ -285,10 +328,10 @@ export class NotificationWorkerService {
               : "Наступний слот уже зайнятий",
           body:
             warning.locale === "en"
-              ? `“${warning.title}” ends at ${formatted}. “${warning.next_title}” starts immediately after it.`
-              : `«${warning.title}» завершується о ${formatted}. Одразу після неї починається «${warning.next_title}».`,
-          bookingId: warning.booking_id,
-          activeBookingIds: [warning.booking_id, warning.next_booking_id]
+              ? `“${warning.title}” ends at ${formatted}. “${warning.nextTitle}” starts immediately after it.`
+              : `«${warning.title}» завершується о ${formatted}. Одразу після неї починається «${warning.nextTitle}».`,
+          bookingId: warning.bookingId,
+          activeBookingIds: [warning.bookingId, warning.nextBookingId]
         })
       );
     }
