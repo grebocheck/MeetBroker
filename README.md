@@ -70,6 +70,25 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 docker compose up -d --force-recreate api worker
 ```
 
+Спосіб отримання Telegram updates задається явно:
+
+```dotenv
+TELEGRAM_UPDATE_MODE=POLLING
+```
+
+`POLLING` призначений для локального demo: worker використовує Bot API
+`getUpdates`, тому `localhost` не потребує публічного HTTPS webhook.
+`WEBHOOK` призначений для production із доступним з інтернету
+`APP_ORIGIN`; webhook треба зареєструвати на
+`/api/notifications/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>`.
+`DISABLED` повністю вимикає отримання команд ботом. Polling і webhook не
+можуть працювати для одного бота одночасно.
+
+Підключення з профілю створює одноразовий token на 10 хвилин і показує
+керований діалог: прямий `tg://` deep link для встановленого застосунку,
+fallback через `t.me` та копіювання посилання. Після натискання Start бот
+підтверджує прив'язку повідомленням, а профіль автоматично оновлює статус.
+
 Корисні команди для схеми:
 
 ```bash

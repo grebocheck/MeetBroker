@@ -1400,3 +1400,39 @@ capability-based обмеження. Тимчасові заборони маю�
 
 - документаційний коміт цього запису; зміна підписок виконана в demo-базі й
   навмисно не є зміною схеми або seed.
+
+## Запит 051 — підключення Telegram без редиректу на telegram.org
+
+> Кнопка Telegram відкривала нову вкладку, після чого браузер переводив на
+> `https://telegram.org/`, а прив'язка не завершувалася.
+
+### Результат
+
+- через Bot API перевірено, що token належить `@Heridium_bot`, а
+  `TELEGRAM_BOT_USERNAME` збігається з реальним username;
+- `getWebhookInfo` підтвердив першопричину backend-рівня: webhook не був
+  зареєстрований, тому `/start` не міг потрапити до MeetBroker;
+- додано явний `TELEGRAM_UPDATE_MODE` зі значеннями `POLLING`, `WEBHOOK` і
+  `DISABLED`; локальний `.env` та `.env.example` використовують `POLLING`;
+- worker отримує message updates через `getUpdates` із long polling,
+  послідовно підтверджує offset і не блокує notification outbox;
+- polling перевірено на реальному bot token: worker стартує без conflict,
+  webhook порожній, pending updates немає;
+- username нормалізується з `name`, `@name` або `https://t.me/name` і
+  перевіряється до створення посилання;
+- API повертає два deep links із тим самим одноразовим token:
+  `tg://resolve` для встановленого клієнта та `https://t.me` як fallback;
+- асинхронний `window.open` прибрано: кнопка спершу показує модальний
+  покроковий сценарій із прямим відкриттям застосунку, fallback і
+  копіюванням посилання;
+- поки модальне вікно відкрите, профіль перевіряє статус раз на 1.5 секунди;
+  після Start бот надсилає підтвердження, а діалог закривається;
+- додано unit-тести нормалізації username та однаковості start token у двох
+  типах посилань;
+- 27 unit/UI-тестів, повний typecheck, production build, Docker rebuild,
+  API link contract і Bot API polling health завершилися успішно.
+
+### Пов'язані коміти
+
+- `023a7ce` — додано локальний Telegram polling і керований сценарій
+  підключення.
