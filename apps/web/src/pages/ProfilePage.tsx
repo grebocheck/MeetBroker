@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { errorMessage } from "../lib/error-message";
@@ -10,6 +10,10 @@ import {
   type SearchSelectOption
 } from "../components/SearchSelect";
 import { Button } from "../components/ui/Button";
+import {
+  TelegramConnectDialog,
+  type TelegramConnectInfo
+} from "../components/TelegramConnectDialog";
 
 type NotificationCategory =
   | "INVITATIONS"
@@ -56,6 +60,8 @@ export function ProfilePage({ user }: { user: User }) {
   const queryClient = useQueryClient();
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [telegramConnect, setTelegramConnect] =
+    useState<TelegramConnectInfo | null>(null);
   const [emailForm, setEmailForm] = useState({
     email: user.pendingEmail ?? user.email,
     currentPassword: ""
@@ -84,7 +90,8 @@ export function ProfilePage({ user }: { user: User }) {
   }, [profile.timezone]);
   const preferences = useQuery({
     queryKey: ["notification-preferences"],
-    queryFn: () => api<Preferences>("/api/notifications/preferences")
+    queryFn: () => api<Preferences>("/api/notifications/preferences"),
+    refetchInterval: telegramConnect ? 1_500 : false
   });
   const save = useMutation({
     mutationFn: () =>
@@ -133,10 +140,10 @@ export function ProfilePage({ user }: { user: User }) {
   });
   const telegramLink = useMutation({
     mutationFn: () =>
-      api<{ url: string }>("/api/notifications/telegram/link", {
+      api<TelegramConnectInfo>("/api/notifications/telegram/link", {
         method: "POST"
       }),
-    onSuccess: ({ url }) => window.open(url, "_blank", "noopener,noreferrer")
+    onSuccess: setTelegramConnect
   });
   const disconnectTelegram = useMutation({
     mutationFn: () =>
@@ -144,6 +151,11 @@ export function ProfilePage({ user }: { user: User }) {
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["notification-preferences"] })
   });
+  useEffect(() => {
+    if (telegramConnect && preferences.data?.telegramConnected) {
+      setTelegramConnect(null);
+    }
+  }, [preferences.data?.telegramConnected, telegramConnect]);
   const changeEmail = useMutation({
     mutationFn: () =>
       api<{
@@ -351,6 +363,15 @@ export function ProfilePage({ user }: { user: User }) {
                   {showEmailForm ? t("close") : t("profile.change")}
                 </Button>
               </div>
+              {telegramLink.error && (
+                <div className="form-error" role="alert">
+                  {errorMessage(
+                    telegramLink.error,
+                    t,
+                    "profile.telegramConnectError"
+                  )}
+                </div>
+              )}
               {showEmailForm && (
                 <form
                   className="account-inline-form"
@@ -631,6 +652,12 @@ export function ProfilePage({ user }: { user: User }) {
           )}
         </section>
       </div>
+      {telegramConnect && (
+        <TelegramConnectDialog
+          connection={telegramConnect}
+          onClose={() => setTelegramConnect(null)}
+        />
+      )}
     </div>
   );
 }

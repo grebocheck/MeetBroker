@@ -5,6 +5,7 @@ import { NotificationWorkerService } from "./notification-worker.service";
 import { NotificationsController } from "./notifications.controller";
 import { NotificationsService } from "./notifications.service";
 import { TelegramNotificationChannel } from "./telegram-notification.channel";
+import { TelegramPollingService } from "./telegram-polling.service";
 
 @Module({
   controllers: [NotificationsController],
@@ -13,8 +14,13 @@ import { TelegramNotificationChannel } from "./telegram-notification.channel";
     NotificationWorkerService,
     EmailNotificationChannel,
     TelegramNotificationChannel,
+    TelegramPollingService,
     NotificationChannelRegistry
   ],
-  exports: [NotificationsService, NotificationWorkerService]
+  exports: [
+    NotificationsService,
+    NotificationWorkerService,
+    TelegramPollingService
+  ]
 })
 export class NotificationsModule {}

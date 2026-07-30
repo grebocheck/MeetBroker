@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from "@nestjs/common";
+import { HttpStatus, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -15,6 +15,11 @@ import { createOpaqueToken, hashToken } from "../common/crypto";
 import { apiError } from "../common/http-error";
 import type { UpdateNotificationPreferencesDto } from "./notifications.dto";
 import type { NotificationCategory } from "./notification-channel";
+import { TelegramNotificationChannel } from "./telegram-notification.channel";
+import {
+  normalizeTelegramBotUsername,
+  telegramConnectLinks
+} from "./telegram-links";
 
 export interface NotificationEvent {
   eventKey: string;
@@ -29,14 +34,18 @@ export interface NotificationEvent {
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
   private readonly botUsername: string | undefined;
   private readonly webhookSecret: string;
 
   constructor(
     private readonly database: DatabaseService,
+    private readonly telegramChannel: TelegramNotificationChannel,
     config: ConfigService
   ) {
-    this.botUsername = config.get<string>("TELEGRAM_BOT_USERNAME") || undefined;
+    this.botUsername = normalizeTelegramBotUsername(
+      config.get<string>("TELEGRAM_BOT_USERNAME")
+    );
     this.webhookSecret =
       config.get<string>("TELEGRAM_WEBHOOK_SECRET") ?? "change-me";
   }
@@ -217,8 +226,10 @@ export class NotificationsService {
       tokenHash: hashToken(token),
       expiresAt: sql`now() + interval '10 minutes'`
     });
+    const links = telegramConnectLinks(this.botUsername, token);
     return {
-      url: `https://t.me/${this.botUsername}?start=${token}`,
+      ...links,
+      botUsername: this.botUsername,
       expiresInSeconds: 600
     };
   }
@@ -252,7 +263,15 @@ export class NotificationsService {
         "Webhook not found"
       );
     }
-    const token = text?.match(/^\/start\s+(\S+)$/)?.[1];
+    return this.connectTelegramStart(text, chatId);
+  }
+
+  async connectTelegramStart(
+    text: string | undefined,
+    chatId: string | undefined
+  ): Promise<{ connected: boolean; chatId?: string }> {
+    if (!chatId) return { connected: false };
+    const token = text?.match(/^\/start(?:@\w+)?\s+(\S+)$/)?.[1];
     if (!token) return { connected: false };
 
     const userId = await this.database.orm.transaction(async (tx) => {
@@ -280,6 +299,21 @@ export class NotificationsService {
       return connectedUserId;
     });
     if (!userId) return { connected: false };
+    try {
+      await this.telegramChannel.deliver(
+        { userId, email: "", telegramChatId: chatId },
+        {
+          title: "MeetBroker",
+          body: "Telegram успішно підключено. Тепер ви можете вибрати потрібні групи сповіщень у профілі."
+        }
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Telegram connection acknowledgement failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
     return { connected: true, chatId };
   }
 }
