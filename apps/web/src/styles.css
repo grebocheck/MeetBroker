@@ -31,6 +31,8 @@
   --success: #0878a5;
   --shadow-sm: 0 6px 18px rgba(10, 68, 136, 0.1);
   --shadow-md: 0 24px 60px rgba(5, 52, 111, 0.17);
+  --page-mark-color: color-mix(in srgb, var(--text) 18%, var(--surface));
+  --card-mark-color: color-mix(in srgb, var(--text) 18%, var(--surface-raised));
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 18px;
@@ -70,6 +72,8 @@
   --success: #67d9e9;
   --shadow-sm: 0 8px 22px rgba(0, 0, 0, 0.26);
   --shadow-md: 0 26px 70px rgba(0, 0, 0, 0.42);
+  --page-mark-color: color-mix(in srgb, var(--text) 28%, var(--surface));
+  --card-mark-color: color-mix(in srgb, var(--text) 30%, var(--surface-raised));
 }
 
 * {
@@ -760,7 +764,7 @@ hr {
   right: clamp(14px, 4vw, 62px);
   left: clamp(14px, 4vw, 62px);
   overflow: hidden;
-  color: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--page-mark-color);
   content: attr(data-page-mark);
   font-family: "Unbounded Variable", sans-serif;
   font-size: clamp(4.8rem, 10vw, 11.5rem);
@@ -796,10 +800,6 @@ hr {
   clip-path: polygon(23% 0, 100% 0, 100% 72%, 68% 100%, 0 61%);
   content: "";
   pointer-events: none;
-}
-
-:root[data-theme="dark"] .editorial-page::before {
-  color: color-mix(in srgb, var(--primary) 18%, var(--surface));
 }
 
 .editorial-page > * {
@@ -1496,7 +1496,7 @@ hr {
   right: 0;
   overflow: hidden;
   max-width: 64%;
-  color: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--page-mark-color);
   font-family: "Unbounded Variable", sans-serif;
   font-size: clamp(4.8rem, 10vw, 11.5rem);
   font-style: italic;
@@ -5401,7 +5401,7 @@ hr {
   z-index: 1;
   top: 34px;
   right: -12px;
-  color: color-mix(in srgb, var(--primary) 15%, var(--surface-raised));
+  color: var(--card-mark-color);
   font-family: "Unbounded Variable", sans-serif;
   font-size: clamp(4.5rem, 9vw, 8.5rem);
   font-weight: 850;
@@ -5410,10 +5410,6 @@ hr {
   transform: rotate(-8deg);
   content: "NEXT";
   pointer-events: none;
-}
-
-:root[data-theme="dark"] .meetings-next::before {
-  color: color-mix(in srgb, var(--primary) 26%, var(--surface-raised));
 }
 
 .meetings-next__visual {
