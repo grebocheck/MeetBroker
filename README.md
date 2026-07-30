@@ -45,6 +45,12 @@ docker compose run --rm migrate \
   npm run db:migrate:status:prod --workspace @meetbroker/api
 ```
 
+Версіями схеми керує лише `node-pg-migrate`; Drizzle не генерує й не
+застосовує міграції. Notification API та worker уже повністю використовують
+типізований Drizzle runtime-шар. Решта стабільних модулів поки працює через
+параметризований `pg` і переноситься лише окремими інкрементами. Нова
+runtime-логіка має використовувати Drizzle.
+
 ## Що входить до MVP
 
 - ковзний шестиденний календар від вибраної дати й захищене від перетинів
