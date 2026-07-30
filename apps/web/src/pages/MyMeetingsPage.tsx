@@ -176,8 +176,13 @@ export function MyMeetingsPage({ user }: { user: User }) {
         </div>
       </section>
 
-      <section className="personal-agenda card">
-        <div className="meetings-calendar__toolbar">
+      <div className="agenda-stage">
+        <div className="agenda-stage__caption" aria-hidden="true">
+          <span>MeetBroker</span>
+          <strong>06 / DAYS</strong>
+        </div>
+        <section className="personal-agenda card">
+          <div className="meetings-calendar__toolbar">
           <div className="calendar-navigation">
             <Button
               variant="secondary"
@@ -216,87 +221,91 @@ export function MyMeetingsPage({ user }: { user: User }) {
               }).format(days[days.length - 1])}
             </strong>
           </div>
-        </div>
+          </div>
 
-        {meetings.isLoading ? (
-          <div className="state-panel">{t("meetings.loading")}</div>
-        ) : meetings.isError ? (
-          <div className="state-panel state-panel--error">
-            <strong>{t("meetings.loadError")}</strong>
-            <span>{errorMessage(meetings.error, t, "meetings.loadError")}</span>
-          </div>
-        ) : (
-          <div className="agenda-days">
-            {days.map((day) => {
-              const dayMeetings =
-                grouped.get(day.toISOString().slice(0, 10)) ?? [];
-              const today = sameDay(day, new Date());
-              return (
-                <section
-                  className={`agenda-day${today ? " agenda-day--today" : ""}`}
-                  key={day.toISOString()}
-                >
-                  <header className="agenda-day__date">
-                    <span>
-                      {new Intl.DateTimeFormat(dateLocale, {
-                        weekday: "short",
-                        timeZone,
-                      }).format(day)}
-                    </span>
-                    <strong>{day.getDate()}</strong>
-                    {today && <small>{t("today")}</small>}
-                  </header>
-                  <div className="agenda-day__meetings">
-                    {dayMeetings.length === 0 ? (
-                      <div className="agenda-day__empty">
-                        <span>{t("meetings.freeDay")}</span>
-                      </div>
-                    ) : (
-                      dayMeetings.map((meeting) => (
-                        <button
-                          className={`agenda-meeting agenda-meeting--${meeting.meetingType.toLowerCase()}`}
-                          onClick={() => setSelected(meeting)}
-                          key={meeting.id}
-                        >
-                          <span className="agenda-meeting__time">
-                            <strong>{formatTime(meeting.startsAt)}</strong>
-                            <small>{formatTime(meeting.endsAt)}</small>
-                          </span>
-                          <span className="agenda-meeting__copy">
-                            <strong>{meeting.title}</strong>
-                            <small>
-                              {meeting.meetingType === "ONLINE"
-                                ? t("booking.onlineMeeting")
-                                : meeting.room?.name}
-                              <span aria-hidden="true"> · </span>
-                              {meeting.organizer.name}
-                            </small>
-                          </span>
-                          <span className="agenda-meeting__badges">
-                            <em>
-                              {meeting.myRole === "ORGANIZER"
-                                ? t("meetings.organizer")
-                                : t("meetings.invited")}
-                            </em>
-                            {meeting.participantStatus === "INVITED" && (
-                              <em className="is-pending">
-                                {t("meetings.awaitingResponse")}
+          {meetings.isLoading ? (
+            <div className="state-panel">{t("meetings.loading")}</div>
+          ) : meetings.isError ? (
+            <div className="state-panel state-panel--error">
+              <strong>{t("meetings.loadError")}</strong>
+              <span>{errorMessage(meetings.error, t, "meetings.loadError")}</span>
+            </div>
+          ) : (
+            <div className="agenda-days">
+              {days.map((day) => {
+                const dayMeetings =
+                  grouped.get(day.toISOString().slice(0, 10)) ?? [];
+                const today = sameDay(day, new Date());
+                return (
+                  <section
+                    className={`agenda-day${today ? " agenda-day--today" : ""}`}
+                    key={day.toISOString()}
+                  >
+                    <header className="agenda-day__date">
+                      <span>
+                        {new Intl.DateTimeFormat(dateLocale, {
+                          weekday: "short",
+                          timeZone,
+                        }).format(day)}
+                      </span>
+                      <strong>{day.getDate()}</strong>
+                      {today && <small>{t("today")}</small>}
+                    </header>
+                    <div className="agenda-day__meetings">
+                      {dayMeetings.length === 0 ? (
+                        <div className="agenda-day__empty">
+                          <span>{t("meetings.freeDay")}</span>
+                        </div>
+                      ) : (
+                        dayMeetings.map((meeting) => (
+                          <button
+                            className={`agenda-meeting agenda-meeting--${meeting.meetingType.toLowerCase()}`}
+                            onClick={() => setSelected(meeting)}
+                            key={meeting.id}
+                          >
+                            <span className="agenda-meeting__time">
+                              <strong>{formatTime(meeting.startsAt)}</strong>
+                              <small>{formatTime(meeting.endsAt)}</small>
+                            </span>
+                            <span className="agenda-meeting__copy">
+                              <strong>{meeting.title}</strong>
+                              <small>
+                                {meeting.meetingType === "ONLINE"
+                                  ? t("booking.onlineMeeting")
+                                  : meeting.room?.name}
+                                <span aria-hidden="true"> · </span>
+                                {meeting.organizer.name}
+                              </small>
+                            </span>
+                            <span className="agenda-meeting__badges">
+                              <em>
+                                {meeting.myRole === "ORGANIZER"
+                                  ? t("meetings.organizer")
+                                  : t("meetings.invited")}
                               </em>
-                            )}
-                          </span>
-                          <span className="agenda-meeting__arrow" aria-hidden="true">
-                            ›
-                          </span>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                              {meeting.participantStatus === "INVITED" && (
+                                <em className="is-pending">
+                                  {t("meetings.awaitingResponse")}
+                                </em>
+                              )}
+                            </span>
+                            <span
+                              className="agenda-meeting__arrow"
+                              aria-hidden="true"
+                            >
+                              ›
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </div>
 
       {selected && (
         <ModalLayer role="presentation" onMouseDown={() => setSelected(null)}>
