@@ -433,7 +433,7 @@ export function BookingDialog({
   return (
     <ModalLayer role="presentation" onMouseDown={onClose}>
       <section
-        className="modal"
+        className="modal booking-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-dialog-title"

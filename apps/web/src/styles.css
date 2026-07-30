@@ -2145,33 +2145,125 @@ hr {
   z-index: 100;
   inset: 0;
   display: grid;
-  background: rgba(20, 28, 23, 0.38);
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
+  overflow: hidden;
+  background:
+    linear-gradient(
+      124deg,
+      rgba(1, 10, 31, 0.9) 0 24%,
+      rgba(3, 31, 74, 0.74) 24.2% 52%,
+      rgba(1, 9, 28, 0.84) 52.2%
+    ),
+    rgba(1, 8, 24, 0.84);
+  -webkit-backdrop-filter: blur(9px) saturate(0.72);
+  backdrop-filter: blur(9px) saturate(0.72);
+}
+
+.modal-backdrop::before,
+.modal-backdrop::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+}
+
+.modal-backdrop::before {
+  top: -16%;
+  right: -8%;
+  width: min(68vw, 980px);
+  height: 72%;
+  border-left: 1px solid rgba(93, 220, 255, 0.24);
+  background:
+    repeating-linear-gradient(
+      134deg,
+      transparent 0 42px,
+      rgba(83, 202, 255, 0.11) 43px 45px
+    ),
+    linear-gradient(112deg, transparent 12%, rgba(8, 108, 214, 0.2));
+  clip-path: polygon(26% 0, 100% 0, 100% 74%, 68% 100%, 0 60%);
+  transform: skewX(-8deg);
+}
+
+.modal-backdrop::after {
+  bottom: -24%;
+  left: -10%;
+  width: min(50vw, 760px);
+  height: 62%;
+  background:
+    repeating-linear-gradient(
+      134deg,
+      transparent 0 52px,
+      rgba(105, 216, 255, 0.08) 53px 55px
+    ),
+    linear-gradient(120deg, rgba(7, 94, 196, 0.2), transparent 68%);
+  clip-path: polygon(0 18%, 34% 0, 100% 42%, 72% 100%, 0 82%);
 }
 
 .modal-backdrop {
   place-items: center;
   padding: 20px;
+  animation: modal-backdrop-in 180ms ease-out both;
+}
+
+.modal-backdrop > * {
+  position: relative;
+  z-index: 1;
 }
 
 .modal {
+  --modal-pad: clamp(24px, 3vw, 34px);
+  position: relative;
   width: min(620px, 100%);
   max-height: calc(100vh - 40px);
   overflow-y: auto;
-  padding: 26px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-md);
+  overflow-x: hidden;
+  padding: var(--modal-pad);
+  border: 1px solid color-mix(in srgb, var(--cyan) 46%, var(--border));
+  border-radius: 3px 28px 3px 28px;
+  background:
+    linear-gradient(
+      136deg,
+      color-mix(in srgb, var(--primary) 7%, var(--surface-raised)),
+      transparent 38%
+    ),
+    var(--surface-raised);
+  box-shadow:
+    0 38px 100px rgba(0, 5, 24, 0.58),
+    -8px 8px 0 rgba(20, 143, 245, 0.18);
+  animation: modal-panel-in 260ms cubic-bezier(0.18, 0.82, 0.2, 1) both;
+  isolation: isolate;
+}
+
+.modal::before {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--primary) 0 58%,
+    var(--cyan) 58% 84%,
+    var(--accent) 84%
+  );
+  clip-path: polygon(0 0, 100% 0, calc(100% - 46px) 100%, 0 100%);
+  content: "";
+  pointer-events: none;
+}
+
+.modal::after {
+  position: absolute;
+  right: 22px;
+  bottom: 8px;
+  width: 34%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--accent));
+  content: "";
+  pointer-events: none;
 }
 
 .modal--confirm {
-  position: relative;
-  overflow-x: hidden;
   width: min(560px, 100%);
   border-color: color-mix(in srgb, var(--danger-fill) 52%, var(--border));
-  border-radius: 4px 24px 4px 24px;
 }
 
 .modal--confirm::before {
@@ -2185,6 +2277,10 @@ hr {
   content: "";
 }
 
+.modal--confirm::after {
+  background: linear-gradient(90deg, transparent, var(--danger-fill));
+}
+
 .modal__header,
 .drawer__header,
 .settings-card__heading {
@@ -2194,11 +2290,103 @@ hr {
   gap: 20px;
 }
 
+.modal__header {
+  position: relative;
+  min-height: 96px;
+  margin: calc(var(--modal-pad) * -1) calc(var(--modal-pad) * -1) 24px;
+  padding: calc(var(--modal-pad) + 10px) var(--modal-pad) 22px;
+  border-bottom: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  background:
+    linear-gradient(
+      116deg,
+      color-mix(in srgb, var(--primary) 12%, var(--surface-raised)) 0 68%,
+      color-mix(in srgb, var(--cyan) 12%, var(--surface-raised)) 68%
+    );
+  isolation: isolate;
+}
+
+.modal__header::before {
+  position: absolute;
+  z-index: -1;
+  top: 17px;
+  right: 74px;
+  color: color-mix(in srgb, var(--primary) 10%, transparent);
+  content: "DIALOG";
+  font-family: "Unbounded Variable", sans-serif;
+  font-size: clamp(2.6rem, 8vw, 5.4rem);
+  font-style: italic;
+  font-weight: 850;
+  letter-spacing: -0.09em;
+  line-height: 0.8;
+  pointer-events: none;
+}
+
+.booking-dialog .modal__header::before {
+  content: "RESERVE";
+}
+
+.meeting-details-modal .modal__header::before {
+  content: "DETAILS";
+}
+
+.access-dialog .modal__header::before {
+  content: "ACCESS";
+}
+
+.telegram-connect-dialog .modal__header::before {
+  content: "LINK";
+}
+
+.admin-booking-modal .modal__header::before {
+  content: "CONTROL";
+}
+
+.modal--confirm .modal__header::before {
+  content: "ALERT";
+}
+
+.modal__header > div {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.modal__header h2 {
+  max-width: 520px;
+  margin-bottom: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.modal__header > .icon-button {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+  border-radius: 2px 11px 2px 11px;
+  background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
+}
+
+.modal__header > .icon-button:hover {
+  border-color: var(--primary);
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
 .modal__actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
-  padding-top: 8px;
+  margin: 26px calc(var(--modal-pad) * -1) calc(var(--modal-pad) * -1);
+  padding: 18px var(--modal-pad) 20px;
+  border-top: 1px solid var(--border);
+  background:
+    linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--primary) 8%, var(--surface-muted)),
+      var(--surface-raised) 62%
+    );
 }
 
 .access-dialog {
@@ -2208,9 +2396,14 @@ hr {
 .access-dialog__section {
   margin-top: 20px;
   padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 3px 18px 3px 18px;
-  background: var(--surface-muted);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  border-radius: 2px 18px 2px 18px;
+  background:
+    linear-gradient(
+      132deg,
+      color-mix(in srgb, var(--primary) 7%, var(--surface-muted)),
+      var(--surface-muted) 54%
+    );
 }
 
 .access-dialog__heading {
@@ -2296,8 +2489,13 @@ hr {
   padding: 18px;
   border: 1px solid var(--border);
   border-left: 5px solid var(--danger-fill);
-  border-radius: 3px 16px 3px 16px;
-  background: var(--surface-muted);
+  border-radius: 2px 18px 2px 18px;
+  background:
+    linear-gradient(
+      122deg,
+      color-mix(in srgb, var(--danger-fill) 9%, var(--surface-muted)),
+      var(--surface-muted) 52%
+    );
 }
 
 .cancel-summary > strong {
@@ -2579,13 +2777,73 @@ hr {
 }
 
 .drawer {
+  position: relative;
   width: min(420px, 100%);
   height: 100%;
   overflow-y: auto;
-  padding: 30px;
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-md);
+  padding: 38px 34px 30px;
+  border-left: 1px solid rgba(95, 210, 255, 0.46);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--primary) 10%, var(--surface-raised)),
+      transparent 36%
+    ),
+    var(--surface-raised);
+  box-shadow:
+    -28px 0 80px rgba(0, 5, 24, 0.5),
+    inset 6px 0 color-mix(in srgb, var(--primary) 74%, var(--cyan));
   animation: drawer-slide-in 240ms cubic-bezier(0.2, 0.78, 0.2, 1) both;
+}
+
+.drawer::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 9px;
+  background: linear-gradient(
+    90deg,
+    var(--primary),
+    var(--cyan) 72%,
+    var(--accent)
+  );
+  clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%);
+  content: "";
+}
+
+.drawer::after {
+  position: absolute;
+  z-index: 0;
+  top: 54px;
+  right: -32px;
+  width: 230px;
+  height: 170px;
+  background: repeating-linear-gradient(
+    134deg,
+    transparent 0 25px,
+    color-mix(in srgb, var(--primary) 8%, transparent) 26px 28px
+  );
+  clip-path: polygon(30% 0, 100% 0, 100% 72%, 62% 100%, 0 58%);
+  content: "";
+  pointer-events: none;
+}
+
+.drawer > * {
+  position: relative;
+  z-index: 1;
+}
+
+.drawer__header {
+  margin: -6px -4px 0;
+  padding: 0 4px 22px;
+  border-bottom: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+}
+
+.drawer__header > .icon-button {
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+  border-radius: 2px 11px 2px 11px;
+  background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
 }
 
 .drawer-backdrop.is-closing {
@@ -2624,6 +2882,26 @@ hr {
   to {
     opacity: 0;
     transform: translateX(100%);
+  }
+}
+
+@keyframes modal-backdrop-in {
+  from {
+    background-color: transparent;
+    -webkit-backdrop-filter: blur(0) saturate(1);
+    backdrop-filter: blur(0) saturate(1);
+  }
+}
+
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.975) skewX(-0.8deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -2718,6 +2996,8 @@ hr {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal,
   .drawer-backdrop,
   .drawer-backdrop.is-closing,
   .drawer,
@@ -6162,9 +6442,40 @@ hr {
     padding: 0;
   }
 
+  .modal-backdrop::before,
+  .modal-backdrop::after {
+    opacity: 0.56;
+  }
+
   .modal {
+    --modal-pad: 20px;
     max-height: 92vh;
-    border-radius: 20px 20px 0 0;
+    border-radius: 0;
+    box-shadow:
+      0 -24px 70px rgba(0, 5, 24, 0.52),
+      inset 0 5px color-mix(in srgb, var(--primary) 72%, var(--cyan));
+  }
+
+  .modal__header {
+    min-height: 84px;
+    padding-top: calc(var(--modal-pad) + 8px);
+  }
+
+  .modal__header::before {
+    right: 54px;
+    font-size: clamp(2.5rem, 16vw, 4.2rem);
+  }
+
+  .modal__header h2 {
+    font-size: clamp(1.2rem, 6vw, 1.6rem);
+  }
+
+  .modal__actions {
+    justify-content: stretch;
+  }
+
+  .modal__actions .button {
+    flex: 1;
   }
 
   .access-dialog__danger {
