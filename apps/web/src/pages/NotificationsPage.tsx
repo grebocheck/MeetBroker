@@ -42,7 +42,7 @@ export function NotificationsPage() {
   return (
     <div
       className="page editorial-page notifications-page"
-      data-page-mark="SIGNAL / LOG"
+      data-page-mark="LOG"
     >
       <header className="page-header">
         <div>

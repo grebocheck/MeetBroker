@@ -771,13 +771,19 @@ hr {
   animation-delay: 80ms;
 }
 
-.editorial-page .page-header {
+.editorial-page .page-header,
+.calendar-toolbar,
+.meetings-calendar-header {
+  position: relative;
+  align-items: flex-end;
   min-height: 126px;
   padding-bottom: 24px;
   border-bottom: 1px solid color-mix(in srgb, var(--primary) 32%, var(--border));
 }
 
-.editorial-page .page-header::after {
+.editorial-page .page-header::after,
+.calendar-toolbar::after,
+.meetings-calendar-header::after {
   position: absolute;
   bottom: -2px;
   left: 0;
@@ -875,7 +881,7 @@ hr {
 }
 
 .notifications-page .page-header {
-  width: min(1120px, 100%);
+  width: 100%;
   justify-content: flex-start;
 }
 
@@ -1429,24 +1435,13 @@ hr {
 }
 
 .calendar-toolbar {
-  position: relative;
-  align-items: center;
-  min-height: 132px;
   margin-bottom: 18px;
-  padding: 12px 0 24px;
-  border-bottom: 1px solid color-mix(in srgb, var(--primary) 34%, var(--border));
+  padding-top: 12px;
   isolation: isolate;
 }
 
 .calendar-toolbar::after {
-  position: absolute;
-  bottom: -2px;
-  left: 0;
   width: min(390px, 42vw);
-  height: 4px;
-  background: linear-gradient(90deg, var(--primary), var(--cyan), transparent);
-  clip-path: var(--shape-action);
-  content: "";
 }
 
 .calendar-toolbar__word {
@@ -2146,55 +2141,14 @@ hr {
   inset: 0;
   display: grid;
   overflow: hidden;
-  background:
-    linear-gradient(
-      124deg,
-      rgba(1, 10, 31, 0.9) 0 24%,
-      rgba(3, 31, 74, 0.74) 24.2% 52%,
-      rgba(1, 9, 28, 0.84) 52.2%
-    ),
-    rgba(1, 8, 24, 0.84);
-  -webkit-backdrop-filter: blur(9px) saturate(0.72);
-  backdrop-filter: blur(9px) saturate(0.72);
+  background: rgba(20, 28, 23, 0.38);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
 }
 
 .modal-backdrop::before,
 .modal-backdrop::after {
-  position: absolute;
-  content: "";
-  pointer-events: none;
-}
-
-.modal-backdrop::before {
-  top: -16%;
-  right: -8%;
-  width: min(68vw, 980px);
-  height: 72%;
-  border-left: 1px solid rgba(93, 220, 255, 0.24);
-  background:
-    repeating-linear-gradient(
-      134deg,
-      transparent 0 42px,
-      rgba(83, 202, 255, 0.11) 43px 45px
-    ),
-    linear-gradient(112deg, transparent 12%, rgba(8, 108, 214, 0.2));
-  clip-path: polygon(26% 0, 100% 0, 100% 74%, 68% 100%, 0 60%);
-  transform: skewX(-8deg);
-}
-
-.modal-backdrop::after {
-  bottom: -24%;
-  left: -10%;
-  width: min(50vw, 760px);
-  height: 62%;
-  background:
-    repeating-linear-gradient(
-      134deg,
-      transparent 0 52px,
-      rgba(105, 216, 255, 0.08) 53px 55px
-    ),
-    linear-gradient(120deg, rgba(7, 94, 196, 0.2), transparent 68%);
-  clip-path: polygon(0 18%, 34% 0, 100% 42%, 72% 100%, 0 82%);
+  display: none;
 }
 
 .modal-backdrop {
@@ -3887,9 +3841,8 @@ hr {
 }
 
 .admin-hero {
-  align-items: center;
-  min-height: 144px;
-  margin-bottom: 18px;
+  align-items: flex-end;
+  margin-bottom: 22px;
 }
 
 .admin-hero > div:first-child {
@@ -3934,31 +3887,18 @@ hr {
   position: relative;
   z-index: 3;
   display: grid;
-  width: min(980px, calc(100% - 44px));
-  margin: 0 0 -1px 22px;
-  padding: 8px 54px 8px 10px;
-  background:
-    linear-gradient(105deg, #04173d, #073975 72%, #075aa8),
-    var(--surface-sidebar);
-  clip-path: polygon(12px 0, 100% 0, calc(100% - 34px) 100%, 0 100%);
+  width: min(980px, 100%);
+  margin: 0 0 18px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px 16px 3px 16px;
+  background: color-mix(in srgb, var(--surface-muted) 82%, transparent);
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 5px;
-  box-shadow: 0 16px 36px rgba(2, 27, 70, 0.2);
+  gap: 4px;
 }
 
 .admin-section-tabs::after {
-  position: absolute;
-  top: 0;
-  right: 26px;
-  width: 64px;
-  height: 100%;
-  background: repeating-linear-gradient(
-    132deg,
-    transparent 0 10px,
-    rgba(102, 218, 255, 0.18) 11px 12px
-  );
-  content: "";
-  pointer-events: none;
+  display: none;
 }
 
 .admin-section-tabs button {
@@ -3966,15 +3906,15 @@ hr {
   display: grid;
   align-items: center;
   min-width: 0;
-  min-height: 54px;
+  min-height: 48px;
   padding: 7px 14px;
   border: 0;
   background: transparent;
-  color: rgba(229, 245, 255, 0.7);
+  color: var(--text-muted);
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 9px;
   text-align: left;
-  clip-path: var(--shape-action);
+  border-radius: 3px 12px 3px 12px;
   transition:
     color 160ms ease,
     background 160ms ease,
@@ -3982,15 +3922,17 @@ hr {
 }
 
 .admin-section-tabs button:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: #fff;
+  background: color-mix(in srgb, var(--surface-raised) 72%, transparent);
+  color: var(--text);
   transform: translateY(-1px);
 }
 
 .admin-section-tabs button.is-active {
-  background: #f6fbff;
-  color: #07101f;
-  box-shadow: inset 0 -4px var(--primary);
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow:
+    inset 0 -3px var(--primary),
+    var(--shadow-sm);
 }
 
 .admin-section-tabs button > span {
@@ -4017,76 +3959,19 @@ hr {
 
 .admin-workspace {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   min-height: 360px;
-  padding: 42px 14px 16px;
-  background: linear-gradient(118deg, #031333, #07306a 60%, #0862b7);
-  clip-path: polygon(
-    18px 0,
-    calc(100% - 118px) 0,
-    100% 58px,
-    100% calc(100% - 22px),
-    calc(100% - 28px) 100%,
-    38px 100%,
-    0 calc(100% - 38px),
-    0 18px
-  );
-  box-shadow: 0 26px 70px rgba(3, 25, 67, 0.22);
+  padding: 0;
   isolation: isolate;
 }
 
-.admin-workspace::before {
-  position: absolute;
-  z-index: -1;
-  top: -86%;
-  right: -6%;
-  width: 66%;
-  height: 190%;
-  border-left: 1px solid rgba(108, 220, 255, 0.3);
-  background:
-    repeating-linear-gradient(
-      132deg,
-      transparent 0 30px,
-      rgba(92, 207, 255, 0.13) 31px 33px
-    ),
-    linear-gradient(112deg, transparent 10%, rgba(24, 139, 255, 0.24));
-  content: "";
-  transform: skewX(-13deg);
-}
-
+.admin-workspace::before,
 .admin-workspace::after {
-  position: absolute;
-  right: 22px;
-  bottom: 7px;
-  width: 34%;
-  height: 4px;
-  background: linear-gradient(90deg, transparent, var(--cyan), var(--accent));
-  clip-path: var(--shape-action);
-  content: "";
+  display: none;
 }
 
 .admin-workspace__caption {
-  position: absolute;
-  top: 12px;
-  right: 136px;
-  left: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: rgba(231, 247, 255, 0.76);
-  font-family: "Unbounded Variable", sans-serif;
-  font-size: 0.56rem;
-  font-weight: 720;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.admin-workspace__caption span {
-  color: var(--cyan);
-}
-
-.admin-workspace__caption strong {
-  font: inherit;
+  display: none;
 }
 
 .admin-workspace__content {
@@ -4097,7 +3982,7 @@ hr {
 
 .admin-workspace .admin-card,
 .admin-workspace .room-management__bar {
-  border-radius: 0;
+  border-radius: 3px 20px 3px 20px;
   box-shadow: 0 18px 46px rgba(0, 11, 36, 0.24);
 }
 
@@ -5849,8 +5734,8 @@ hr {
   }
 
   .admin-section-tabs {
-    width: calc(100% - 28px);
-    margin-left: 14px;
+    width: min(980px, 100%);
+    margin-left: 0;
   }
 
   .admin-workspace .admin-card__toolbar {
@@ -6007,9 +5892,9 @@ hr {
   }
 
   .admin-section-tabs {
-    width: calc(100% - 16px);
-    margin-left: 8px;
-    padding: 7px 32px 7px 8px;
+    width: 100%;
+    margin-left: 0;
+    padding: 4px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -6026,17 +5911,8 @@ hr {
   }
 
   .admin-workspace {
-    padding: 38px 7px 14px;
-    clip-path: polygon(
-      12px 0,
-      calc(100% - 58px) 0,
-      100% 34px,
-      100% calc(100% - 16px),
-      calc(100% - 18px) 100%,
-      22px 100%,
-      0 calc(100% - 24px),
-      0 12px
-    );
+    padding: 0;
+    clip-path: none;
   }
 
   .admin-workspace__caption {
