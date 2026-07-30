@@ -86,7 +86,10 @@ export function BookingListPage({ user }: { user: User }) {
   });
 
   return (
-    <div className="page narrow-page">
+    <div
+      className="page editorial-page bookings-page"
+      data-page-mark="BOOKINGS"
+    >
       <header className="page-header">
         <div>
           <span className="eyebrow">{t("bookings.eyebrow")}</span>

@@ -41,7 +41,10 @@ export function EventsPage({ user }: { user: User }) {
   });
 
   return (
-    <div className="page narrow-page">
+    <div
+      className="page editorial-page events-page"
+      data-page-mark="OPEN / EVENTS"
+    >
       <header className="page-header">
         <div>
           <span className="eyebrow">{t("events.eyebrow")}</span>

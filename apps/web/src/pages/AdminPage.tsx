@@ -105,7 +105,10 @@ export function AdminPage() {
     "users" | "bookings" | "rooms" | "audit"
   >("users");
   return (
-    <div className="page admin-page">
+    <div
+      className="page editorial-page admin-page"
+      data-page-mark="CONTROL / ADMIN"
+    >
       <header className="page-header">
         <div>
           <span className="eyebrow">{t("admin.eyebrow")}</span>

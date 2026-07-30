@@ -655,6 +655,204 @@ hr {
   margin: 0 auto;
 }
 
+.editorial-page {
+  position: relative;
+  overflow: hidden;
+  max-width: none;
+  isolation: isolate;
+}
+
+.editorial-page::before {
+  position: absolute;
+  z-index: -2;
+  top: 104px;
+  right: -1.5vw;
+  max-width: 78%;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--primary) 7%, transparent);
+  content: attr(data-page-mark);
+  font-family: "Unbounded Variable", sans-serif;
+  font-size: clamp(4.8rem, 10vw, 11.5rem);
+  font-style: italic;
+  font-weight: 850;
+  letter-spacing: -0.09em;
+  line-height: 0.82;
+  pointer-events: none;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.editorial-page::after {
+  position: absolute;
+  z-index: -3;
+  top: 74px;
+  right: -7%;
+  width: min(62vw, 960px);
+  height: 390px;
+  background:
+    linear-gradient(
+      137deg,
+      transparent 0 21%,
+      color-mix(in srgb, var(--cyan) 13%, transparent) 21.2% 58%,
+      transparent 58.2%
+    ),
+    repeating-linear-gradient(
+      137deg,
+      transparent 0 46px,
+      color-mix(in srgb, var(--primary) 10%, transparent) 47px 49px
+    );
+  clip-path: polygon(23% 0, 100% 0, 100% 72%, 68% 100%, 0 61%);
+  content: "";
+  pointer-events: none;
+}
+
+.editorial-page > * {
+  position: relative;
+  z-index: 1;
+  animation: editorial-reveal 360ms both cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.editorial-page > :nth-child(2) {
+  animation-delay: 45ms;
+}
+
+.editorial-page > :nth-child(n + 3) {
+  animation-delay: 80ms;
+}
+
+.editorial-page .page-header {
+  min-height: 126px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid color-mix(in srgb, var(--primary) 32%, var(--border));
+}
+
+.editorial-page .page-header::after {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: min(340px, 42vw);
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--cyan), transparent);
+  clip-path: var(--shape-action);
+  content: "";
+}
+
+.bookings-page .booking-list {
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(430px, 100%), 1fr));
+  gap: 12px;
+}
+
+.bookings-page .load-more-row,
+.bookings-page .load-more-error {
+  grid-column: 1 / -1;
+}
+
+.bookings-page .booking-row {
+  position: relative;
+  overflow: hidden;
+  min-height: 112px;
+  border-radius: 3px 18px 3px 18px;
+  background:
+    linear-gradient(
+      112deg,
+      color-mix(in srgb, var(--surface-raised) 96%, transparent) 0 74%,
+      color-mix(in srgb, var(--primary) 9%, var(--surface-raised)) 74% 100%
+    );
+  box-shadow: var(--shadow-sm);
+}
+
+.bookings-page .booking-row::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 72px;
+  height: 5px;
+  background: linear-gradient(90deg, var(--primary), var(--cyan));
+  content: "";
+}
+
+.events-page .event-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr));
+}
+
+.events-page .event-card {
+  min-height: 334px;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.events-page .event-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 54%, var(--border));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+.notifications-page .notification-list {
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr));
+  gap: 12px;
+}
+
+.notifications-page .notification-row {
+  position: relative;
+  overflow: hidden;
+  min-height: 112px;
+}
+
+.notifications-page .notification-row::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 46px;
+  height: 5px;
+  background: var(--border);
+  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%);
+  content: "";
+}
+
+.notifications-page .notification-row.is-unread::after {
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.profile-page .settings-layout {
+  grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr);
+  gap: clamp(18px, 2vw, 30px);
+}
+
+.profile-page .settings-card {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(24px, 2.4vw, 36px);
+}
+
+.profile-page .settings-card::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 84px;
+  height: 7px;
+  background: linear-gradient(90deg, var(--cyan), var(--primary));
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%);
+  content: "";
+}
+
+@keyframes editorial-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .page-header {
   display: flex;
   align-items: flex-end;
@@ -2202,7 +2400,8 @@ hr {
   .drawer-backdrop,
   .drawer-backdrop.is-closing,
   .drawer,
-  .drawer-backdrop.is-closing .drawer {
+  .drawer-backdrop.is-closing .drawer,
+  .editorial-page > * {
     animation-duration: 1ms;
   }
 }
@@ -4402,7 +4601,7 @@ hr {
 .agenda-stage__caption {
   position: absolute;
   top: 11px;
-  right: 34px;
+  right: 126px;
   left: 28px;
   display: flex;
   align-items: center;
@@ -4699,6 +4898,10 @@ hr {
     grid-template-columns: 1fr;
   }
 
+  .profile-page .settings-layout {
+    grid-template-columns: 1fr;
+  }
+
   .meeting-stat {
     min-height: 150px;
   }
@@ -4840,7 +5043,7 @@ hr {
 
   .agenda-stage__caption {
     top: 10px;
-    right: 20px;
+    right: 62px;
     left: 18px;
     font-size: 0.5rem;
   }

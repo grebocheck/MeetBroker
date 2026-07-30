@@ -40,7 +40,10 @@ export function NotificationsPage() {
   const actionError = read.error ?? readAll.error;
 
   return (
-    <div className="page narrow-page">
+    <div
+      className="page editorial-page notifications-page"
+      data-page-mark="SIGNAL / LOG"
+    >
       <header className="page-header">
         <div>
           <span className="eyebrow">{t("notifications.eyebrow")}</span>
