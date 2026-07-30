@@ -2430,7 +2430,7 @@ hr {
   background: color-mix(in srgb, var(--surface-raised) 92%, var(--danger-soft));
 }
 
-.access-dialog__danger textarea {
+.access-dialog__danger-field textarea {
   min-height: 72px;
 }
 

@@ -234,8 +234,8 @@ export function UserAccessDialog({
               <span>{t("accessDialog.newHint")}</span>
             </div>
           </div>
-          <label>
-            {t("accessDialog.capability")}
+          <label className="field">
+            <span>{t("accessDialog.capability")}</span>
             <select
               value={capability}
               onChange={(event) => {
@@ -254,8 +254,8 @@ export function UserAccessDialog({
               {t(capabilityHintKeys[capability])}
             </small>
           </label>
-          <label>
-            {t("accessDialog.scope")}
+          <label className="field">
+            <span>{t("accessDialog.scope")}</span>
             <select
               value={roomId}
               onChange={(event) => setRoomId(event.target.value)}
@@ -275,8 +275,8 @@ export function UserAccessDialog({
             )}
           </label>
           <div className="form-grid">
-            <label>
-              {t("accessDialog.start")}
+            <label className="field">
+              <span>{t("accessDialog.start")}</span>
               <input
                 type="datetime-local"
                 value={startsAt}
@@ -286,8 +286,8 @@ export function UserAccessDialog({
                 {t("accessDialog.startHint")}
               </small>
             </label>
-            <label>
-              {t("accessDialog.end")}
+            <label className="field">
+              <span>{t("accessDialog.end")}</span>
               <input
                 type="datetime-local"
                 value={expiresAt}
@@ -296,8 +296,8 @@ export function UserAccessDialog({
               <small className="field-hint">{t("accessDialog.endHint")}</small>
             </label>
           </div>
-          <label>
-            {t("accessDialog.reason")}
+          <label className="field">
+            <span>{t("accessDialog.reason")}</span>
             <textarea
               value={reason}
               onChange={(event) => setReason(event.target.value)}
@@ -331,12 +331,15 @@ export function UserAccessDialog({
             <strong>{t("accessDialog.revokeAllTitle")}</strong>
             <span>{t("accessDialog.revokeAllHint")}</span>
           </div>
-          <textarea
-            value={revokeReason}
-            onChange={(event) => setRevokeReason(event.target.value)}
-            maxLength={300}
-            placeholder={t("accessDialog.revokeAllPlaceholder")}
-          />
+          <label className="field access-dialog__danger-field">
+            <span className="sr-only">{t("accessDialog.revokeAllTitle")}</span>
+            <textarea
+              value={revokeReason}
+              onChange={(event) => setRevokeReason(event.target.value)}
+              maxLength={300}
+              placeholder={t("accessDialog.revokeAllPlaceholder")}
+            />
+          </label>
           <Button
             variant="danger"
             onClick={() => revokeAccess.mutate()}
