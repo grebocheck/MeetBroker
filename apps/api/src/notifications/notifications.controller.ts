@@ -8,13 +8,13 @@ import {
   Patch,
   Post,
   Query,
-  Req
+  Req,
 } from "@nestjs/common";
 import { Approved, Public } from "../auth/auth.decorators";
 import type { AuthenticatedRequest } from "../common/types";
 import {
   TelegramWebhookDto,
-  UpdateNotificationPreferencesDto
+  UpdateNotificationPreferencesDto,
 } from "./notifications.dto";
 import { NotificationsService } from "./notifications.service";
 
@@ -27,12 +27,12 @@ export class NotificationsController {
   async list(
     @Req() request: AuthenticatedRequest,
     @Query("page") page?: string,
-    @Query("limit") limit?: string
+    @Query("limit") limit?: string,
   ) {
     return this.notifications.list(
       request.user.id,
       Number(page),
-      Number(limit)
+      Number(limit),
     );
   }
 
@@ -48,7 +48,7 @@ export class NotificationsController {
   @HttpCode(204)
   async markRead(
     @Req() request: AuthenticatedRequest,
-    @Param("id") id: string
+    @Param("id") id: string,
   ): Promise<void> {
     await this.notifications.markRead(request.user.id, id);
   }
@@ -61,7 +61,7 @@ export class NotificationsController {
   @Patch("preferences")
   async updatePreferences(
     @Req() request: AuthenticatedRequest,
-    @Body() dto: UpdateNotificationPreferencesDto
+    @Body() dto: UpdateNotificationPreferencesDto,
   ) {
     return this.notifications.updatePreferences(request.user.id, dto);
   }
@@ -74,22 +74,30 @@ export class NotificationsController {
   @Delete("telegram")
   @HttpCode(204)
   async disconnectTelegram(
-    @Req() request: AuthenticatedRequest
+    @Req() request: AuthenticatedRequest,
   ): Promise<void> {
     await this.notifications.disconnectTelegram(request.user.id);
+  }
+
+  @Approved()
+  @Post("telegram/test")
+  @HttpCode(202)
+  async testTelegram(@Req() request: AuthenticatedRequest) {
+    await this.notifications.sendTelegramTest(request.user.id);
+    return { queued: true };
   }
 
   @Public()
   @Post("telegram/webhook/:secret")
   async telegramWebhook(
     @Param("secret") secret: string,
-    @Body() dto: TelegramWebhookDto
+    @Body() dto: TelegramWebhookDto,
   ) {
     const chatId = dto.message?.chat?.id;
     return this.notifications.handleTelegramStart(
       secret,
       dto.message?.text,
-      chatId === undefined ? undefined : String(chatId)
+      chatId === undefined ? undefined : String(chatId),
     );
   }
 }

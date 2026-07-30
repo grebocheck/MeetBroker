@@ -128,6 +128,8 @@ export const uk = {
   "admin.awaitingApproval": "Очікує схвалення",
   "admin.approve": "Схвалити",
   "admin.manageAccess": "Керувати доступом",
+  "admin.cliManaged": "Захищено · CLI",
+  "admin.restoreAccess": "Відновити доступ",
   "admin.maintenance": "Технічне обслуговування",
   "admin.companySpaces": "Простори компанії",
   "admin.meetingRooms": "Переговорні",
@@ -232,6 +234,7 @@ export const uk = {
   "admin.pendingEmail": "Нова email-адреса",
   "audit.USER_APPROVED": "Схвалено користувача",
   "audit.USER_ACCESS_REVOKED": "Відкликано доступ",
+  "audit.USER_ACCESS_RESTORED": "Відновлено доступ",
   "audit.USER_RESTRICTED": "Додано обмеження",
   "audit.USER_RESTRICTION_REVOKED": "Знято обмеження",
   "audit.USER_ROLE_CHANGED": "Змінено роль",
@@ -306,8 +309,7 @@ export const uk = {
   "accessDialog.changeError": "Не вдалося змінити політику доступу.",
   "accessDialog.applying": "Застосовуємо…",
   "accessDialog.add": "Додати обмеження",
-  "accessDialog.revokeAllTitle":
-    "Повністю відкликати корпоративний доступ",
+  "accessDialog.revokeAllTitle": "Повністю відкликати корпоративний доступ",
   "accessDialog.revokeAllHint":
     "Сесії буде завершено, а вхід заблоковано безстроково.",
   "accessDialog.revokeAllPlaceholder":
@@ -577,8 +579,7 @@ export const uk = {
   "profile.presetAvatar": "Готовий аватар",
   "profile.avatarLabel": "Аватар {number}",
   "profile.ownPhoto": "Або власне фото",
-  "profile.photoHint":
-    "JPG, PNG чи WebP — автоматично обріжемо й оптимізуємо",
+  "profile.photoHint": "JPG, PNG чи WebP — автоматично обріжемо й оптимізуємо",
   "profile.processing": "Обробляємо…",
   "profile.chooseFile": "Обрати файл",
   "profile.timeZone": "Часовий пояс",
@@ -602,7 +603,14 @@ export const uk = {
   "profile.telegramConnected": "Бот підключено",
   "profile.telegramAvailable": "Отримуйте запрошення в один дотик",
   "profile.telegramUnavailable": "Бот не налаштований для цієї компанії",
-  "profile.telegramConnectError": "Не вдалося підготувати підключення Telegram.",
+  "profile.telegramConnectError":
+    "Не вдалося підготувати підключення Telegram.",
+  "profile.telegramTest": "Надіслати тест",
+  "profile.telegramTesting": "Надсилаємо…",
+  "profile.telegramTestQueued":
+    "Тестове сповіщення поставлено в чергу Telegram.",
+  "profile.telegramTestError":
+    "Не вдалося надіслати тестове Telegram-сповіщення.",
   "profile.disconnect": "Від’єднати",
   "profile.connect": "Підключити",
   "telegramConnect.eyebrow": "Канал сповіщень",
@@ -642,48 +650,68 @@ export const uk = {
   "profile.changePassword": "Змінити пароль",
   "errors.generic": "Не вдалося виконати дію. Спробуйте ще раз.",
   "errors.network": "Немає зв’язку із сервером. Перевірте мережу й повторіть.",
-  "errors.ACCESS_REVOKED": "Корпоративний доступ до облікового запису відкликано.",
-  "errors.ADMIN_EDIT_REASON_REQUIRED": "Адміністратор має вказати причину зміни.",
+  "errors.ACCESS_REVOKED":
+    "Корпоративний доступ до облікового запису відкликано.",
+  "errors.ADMIN_MANAGED_BY_CLI":
+    "Доступ і роль адміністратора змінюються лише через серверну CLI.",
+  "errors.ADMIN_EDIT_REASON_REQUIRED":
+    "Адміністратор має вказати причину зміни.",
   "errors.ADMIN_REQUIRED": "Для цієї дії потрібні права адміністратора.",
-  "errors.APPROVAL_REQUIRED": "Обліковий запис ще очікує схвалення адміністратора.",
-  "errors.ATTENDEE_BUSY":
-    "Користувач уже зайнятий іншою зустріччю в цей час.",
+  "errors.APPROVAL_REQUIRED":
+    "Обліковий запис ще очікує схвалення адміністратора.",
+  "errors.ATTENDEE_BUSY": "Користувач уже зайнятий іншою зустріччю в цей час.",
   "errors.AVATAR_REQUIRED": "Оберіть зображення для аватара.",
-  "errors.BLOCK_DURATION_TOO_LONG": "Період недоступності перевищує дозволену тривалість.",
+  "errors.BLOCK_DURATION_TOO_LONG":
+    "Період недоступності перевищує дозволену тривалість.",
   "errors.BOOKING_NOT_FOUND": "Бронювання не знайдено або воно вже недоступне.",
   "errors.CANCELLATION_REASON_REQUIRED": "Вкажіть причину скасування.",
-  "errors.CANNOT_DEMOTE_SELF": "Не можна забрати права адміністратора у власного облікового запису.",
-  "errors.CANNOT_RESTRICT_SELF": "Не можна обмежити власний адміністративний доступ.",
-  "errors.CANNOT_REVOKE_SELF": "Не можна відкликати власний адміністративний доступ.",
+  "errors.CANNOT_DEMOTE_SELF":
+    "Не можна забрати права адміністратора у власного облікового запису.",
+  "errors.CANNOT_RESTRICT_SELF":
+    "Не можна обмежити власний адміністративний доступ.",
+  "errors.CANNOT_REVOKE_SELF":
+    "Не можна відкликати власний адміністративний доступ.",
   "errors.CAPABILITY_RESTRICTED": "Ця дія тимчасово обмежена адміністратором.",
   "errors.CAPABILITY_RESTRICTED_REASON": "Ця дія обмежена: {reason}",
   "errors.CURRENT_PASSWORD_INCORRECT": "Поточний пароль указано неправильно.",
   "errors.DURATION": "Тривалість зустрічі має бути від 30 хвилин до 4 годин.",
-  "errors.EMAIL_CHANGE_SUPERSEDED": "Цей запит на зміну email уже замінено новішим.",
+  "errors.EMAIL_CHANGE_SUPERSEDED":
+    "Цей запит на зміну email уже замінено новішим.",
   "errors.EMAIL_DELIVERY_UNAVAILABLE":
     "Підтвердження email обов’язкове, але поштовий сервер не налаштований. Зверніться до адміністратора.",
   "errors.EMAIL_TAKEN": "Ця email-адреса вже використовується.",
   "errors.EMAIL_UNCHANGED": "Нова email-адреса збігається з поточною.",
   "errors.EMAIL_VERIFICATION_REQUIRED": "Спочатку підтвердьте email-адресу.",
-  "errors.EMPTY_RECURRENCE": "За вибраними правилами серія не містить жодної події.",
+  "errors.EMPTY_RECURRENCE":
+    "За вибраними правилами серія не містить жодної події.",
   "errors.EVENT_FULL": "У кімнаті більше немає вільних місць.",
-  "errors.INTERNAL_ERROR": "На сервері сталася помилка. Спробуйте трохи пізніше.",
+  "errors.INTERNAL_ERROR":
+    "На сервері сталася помилка. Спробуйте трохи пізніше.",
   "errors.INVALID_BLOCK_RANGE": "Період недоступності вказано некоректно.",
   "errors.INVALID_CREDENTIALS": "Неправильна email-адреса або пароль.",
   "errors.INVALID_IMAGE": "Файл не є підтримуваним зображенням.",
-  "errors.INVALID_PARTICIPANT": "Один або кілька вибраних учасників недоступні.",
+  "errors.INVALID_PARTICIPANT":
+    "Один або кілька вибраних учасників недоступні.",
   "errors.INVALID_RANGE": "Вибраний часовий діапазон некоректний.",
-  "errors.INVALID_RECURRENCE_RANGE": "Дата завершення серії має бути в межах одного року.",
+  "errors.INVALID_RECURRENCE_RANGE":
+    "Дата завершення серії має бути в межах одного року.",
   "errors.INVALID_RESTRICTION_RANGE": "Період обмеження вказано некоректно.",
-  "errors.INVALID_RESTRICTION_SCOPE": "Для цієї функції вибрана неприпустима область дії.",
-  "errors.INVALID_ROOM_IMAGE": "Завантажте JPG, PNG або WebP зображення кімнати.",
+  "errors.INVALID_RESTRICTION_SCOPE":
+    "Для цієї функції вибрана неприпустима область дії.",
+  "errors.INVALID_ROOM_IMAGE":
+    "Завантажте JPG, PNG або WebP зображення кімнати.",
   "errors.INVALID_TIME": "Час початку або завершення вказано некоректно.",
   "errors.INVALID_TIMEZONE": "Оберіть коректний часовий пояс.",
-  "errors.INVALID_VERIFICATION_TOKEN": "Посилання підтвердження недійсне або застаріло.",
-  "errors.INVALID_WORKING_DAYS": "Оберіть принаймні один коректний робочий день.",
-  "errors.INVALID_WORK_HOURS": "Час відкриття та закриття кімнати вказано некоректно.",
-  "errors.INVITATION_NOT_FOUND": "Запрошення не знайдено або воно вже неактивне.",
-  "errors.LAST_ADMIN": "Не можна позбавити доступу останнього активного адміністратора.",
+  "errors.INVALID_VERIFICATION_TOKEN":
+    "Посилання підтвердження недійсне або застаріло.",
+  "errors.INVALID_WORKING_DAYS":
+    "Оберіть принаймні один коректний робочий день.",
+  "errors.INVALID_WORK_HOURS":
+    "Час відкриття та закриття кімнати вказано некоректно.",
+  "errors.INVITATION_NOT_FOUND":
+    "Запрошення не знайдено або воно вже неактивне.",
+  "errors.LAST_ADMIN":
+    "Не можна позбавити доступу останнього активного адміністратора.",
   "errors.NAME_REQUIRED": "Укажіть ім’я.",
   "errors.NOT_BOOKING_OWNER": "Змінювати це бронювання може лише організатор.",
   "errors.OUTSIDE_WORKING_DAYS": "У вибраний день кімната не працює.",
@@ -692,18 +720,22 @@ export const uk = {
   "errors.PASSWORD_UNCHANGED": "Новий пароль має відрізнятися від поточного.",
   "errors.PAST": "Подія має починатися в майбутньому.",
   "errors.RECURRENCE_END_REQUIRED": "Укажіть дату завершення серії.",
-  "errors.RECURRENCE_WEEKDAYS_REQUIRED": "Оберіть принаймні один день щотижневого повторення.",
+  "errors.RECURRENCE_WEEKDAYS_REQUIRED":
+    "Оберіть принаймні один день щотижневого повторення.",
   "errors.RESTRICTION_NOT_FOUND": "Обмеження не знайдено або вже відкликано.",
   "errors.ROOM_BLOCK_NOT_FOUND": "Період недоступності не знайдено.",
   "errors.ROOM_BLOCK_SERIES_NOT_FOUND": "Серію недоступності не знайдено.",
-  "errors.ROOM_CAPACITY_EXCEEDED": "Кількість учасників перевищує місткість кімнати.",
+  "errors.ROOM_CAPACITY_EXCEEDED":
+    "Кількість учасників перевищує місткість кімнати.",
   "errors.ROOM_IMAGE_REQUIRED": "Оберіть фото кімнати.",
   "errors.ROOM_NOT_FOUND": "Кімнату не знайдено або вона неактивна.",
   "errors.ROOM_UNAVAILABLE": "Кімната недоступна у вибраний час.",
   "errors.SESSION_EXPIRED": "Сесію завершено. Увійдіть знову.",
   "errors.SLOT_ALIGNMENT": "Час має відповідати 30-хвилинній сітці.",
   "errors.SLOT_TAKEN": "Цей час уже зайнято іншим бронюванням.",
-  "errors.TELEGRAM_NOT_CONFIGURED": "Telegram-бот для цієї компанії ще не налаштований.",
+  "errors.TELEGRAM_NOT_CONFIGURED":
+    "Telegram-бот для цієї компанії ще не налаштований.",
+  "errors.TELEGRAM_NOT_CONNECTED": "Спочатку підключіть Telegram у профілі.",
   "errors.TITLE_REQUIRED": "Укажіть назву події.",
   "errors.TOO_MANY_OCCURRENCES": "Серія не може містити більше 100 подій.",
   "errors.UNAUTHENTICATED": "Для продовження потрібно увійти.",

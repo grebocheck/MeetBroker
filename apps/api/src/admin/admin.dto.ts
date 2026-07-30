@@ -51,11 +51,6 @@ export class RevokeAccessDto {
   reason!: string;
 }
 
-export class UpdateRoleDto {
-  @IsIn(["USER", "ADMIN"])
-  role!: "USER" | "ADMIN";
-}
-
 export class CreateRoomDto {
   @IsString()
   @MinLength(1)

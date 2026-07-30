@@ -23,7 +23,6 @@ import {
   CreateRoomDto,
   RestrictUserDto,
   RevokeAccessDto,
-  UpdateRoleDto,
   UpdateRoomDto,
 } from "./admin.dto";
 import { AdminService } from "./admin.service";
@@ -89,14 +88,13 @@ export class AdminController {
     await this.admin.revokeAccess(request.user.id, id, dto.reason.trim());
   }
 
-  @Patch("users/:id/role")
+  @Post("users/:id/restore")
   @HttpCode(204)
-  async updateRole(
+  async restoreAccess(
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
-    @Body() dto: UpdateRoleDto,
   ): Promise<void> {
-    await this.admin.updateRole(request.user.id, id, dto.role);
+    await this.admin.restoreAccess(request.user.id, id);
   }
 
   @Post("users/:id/restrictions")
@@ -192,11 +190,6 @@ export class AdminController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
-    return this.admin.auditLogs(
-      category,
-      search,
-      Number(page),
-      Number(limit),
-    );
+    return this.admin.auditLogs(category, search, Number(page), Number(limit));
   }
 }

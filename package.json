@@ -16,7 +16,8 @@
     "db:migrate": "npm run db:migrate --workspace @meetbroker/api",
     "db:migrate:status": "npm run db:migrate:status --workspace @meetbroker/api",
     "db:migrate:create": "npm run db:migrate:create --workspace @meetbroker/api --",
-    "db:seed": "npm run db:seed --workspace @meetbroker/api"
+    "db:seed": "npm run db:seed --workspace @meetbroker/api",
+    "admin:cli": "npm run admin:cli --workspace @meetbroker/api --"
   },
   "engines": {
     "node": ">=22.0.0",

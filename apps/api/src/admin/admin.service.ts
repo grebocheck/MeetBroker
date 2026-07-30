@@ -46,20 +46,20 @@ export class AdminService {
     const filters = [normalizedStatus, search?.trim() ?? ""];
     const [result, totals] = await Promise.all([
       this.database.query<{
-      id: string;
-      name: string;
-      email: string;
-      role: string;
-      bio: string | null;
-      avatar_preset: string;
-      avatar_path: string | null;
-      email_verified_at: Date | null;
-      approved_at: Date | null;
-      access_revoked_at: Date | null;
-      created_at: Date;
-      restrictions: unknown;
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        bio: string | null;
+        avatar_preset: string;
+        avatar_path: string | null;
+        email_verified_at: Date | null;
+        approved_at: Date | null;
+        access_revoked_at: Date | null;
+        created_at: Date;
+        restrictions: unknown;
       }>(
-      `
+        `
         select
           u.id,
           u.name,
@@ -107,11 +107,7 @@ export class AdminService {
         limit $3
         offset $4
       `,
-      [
-        ...filters,
-        normalizedLimit,
-        (normalizedPage - 1) * normalizedLimit,
-      ],
+        [...filters, normalizedLimit, (normalizedPage - 1) * normalizedLimit],
       ),
       this.database.query<{ total: string }>(
         `
@@ -181,30 +177,30 @@ export class AdminService {
     ];
     const [result, totals] = await Promise.all([
       this.database.query<{
-      id: string;
-      title: string;
-      starts_at: Date;
-      ends_at: Date;
-      meeting_type: "ROOM" | "ONLINE";
-      meeting_url: string | null;
-      image_path: string | null;
-      participation_mode: "INVITE_ONLY" | "OPEN";
-      series_id: string | null;
-      override_reason: string | null;
-      cancelled_at: Date | null;
-      cancellation_reason: string | null;
-      cancelled_by_name: string | null;
-      room_id: string | null;
-      room_name: string | null;
-      room_floor: number | null;
-      organizer_id: string;
-      organizer_name: string;
-      organizer_email: string;
-      organizer_avatar_preset: string;
-      organizer_avatar_path: string | null;
-      participants: unknown;
+        id: string;
+        title: string;
+        starts_at: Date;
+        ends_at: Date;
+        meeting_type: "ROOM" | "ONLINE";
+        meeting_url: string | null;
+        image_path: string | null;
+        participation_mode: "INVITE_ONLY" | "OPEN";
+        series_id: string | null;
+        override_reason: string | null;
+        cancelled_at: Date | null;
+        cancellation_reason: string | null;
+        cancelled_by_name: string | null;
+        room_id: string | null;
+        room_name: string | null;
+        room_floor: number | null;
+        organizer_id: string;
+        organizer_name: string;
+        organizer_email: string;
+        organizer_avatar_preset: string;
+        organizer_avatar_path: string | null;
+        participants: unknown;
       }>(
-      `
+        `
         select
           b.id,
           b.title,
@@ -285,11 +281,7 @@ export class AdminService {
         limit $4
         offset $5
       `,
-      [
-        ...filters,
-        normalizedLimit,
-        (normalizedPage - 1) * normalizedLimit,
-      ],
+        [...filters, normalizedLimit, (normalizedPage - 1) * normalizedLimit],
       ),
       this.database.query<{ total: string }>(
         `
@@ -328,9 +320,7 @@ export class AdminService {
         endsAt: booking.ends_at,
         meetingType: booking.meeting_type,
         meetingUrl: booking.meeting_url,
-        imageUrl: booking.image_path
-          ? `/uploads/${booking.image_path}`
-          : null,
+        imageUrl: booking.image_path ? `/uploads/${booking.image_path}` : null,
         participationMode: booking.participation_mode,
         seriesId: booking.series_id,
         overrideReason: booking.override_reason,
@@ -368,9 +358,11 @@ export class AdminService {
     const result = await this.database.query(
       `
         update users
-        set approved_at = now(), approved_by = $2, access_revoked_at = null,
-          updated_at = now()
-        where id = $1 and email_verified_at is not null
+        set approved_at = now(), approved_by = $2, updated_at = now()
+        where id = $1
+          and email_verified_at is not null
+          and approved_at is null
+          and access_revoked_at is null
       `,
       [userId, actorId],
     );
@@ -409,19 +401,11 @@ export class AdminService {
         );
       }
       if (user.rows[0].role === "ADMIN") {
-        const admins = await client.query<{ count: string }>(
-          `
-            select count(*)::text as count from users
-            where role = 'ADMIN' and access_revoked_at is null
-          `,
+        throw apiError(
+          HttpStatus.FORBIDDEN,
+          "ADMIN_MANAGED_BY_CLI",
+          "Administrator access can only be changed through the server CLI",
         );
-        if (Number(admins.rows[0].count) <= 1) {
-          throw apiError(
-            HttpStatus.CONFLICT,
-            "LAST_ADMIN",
-            "The last administrator cannot be revoked",
-          );
-        }
       }
       await client.query(
         `
@@ -446,23 +430,43 @@ export class AdminService {
     });
   }
 
-  async updateRole(
-    actorId: string,
-    userId: string,
-    role: "USER" | "ADMIN",
-  ): Promise<void> {
-    if (actorId === userId && role !== "ADMIN") {
-      throw apiError(
-        HttpStatus.BAD_REQUEST,
-        "CANNOT_DEMOTE_SELF",
-        "You cannot remove your own administrator role",
+  async restoreAccess(actorId: string, userId: string): Promise<void> {
+    await this.database.transaction(async (client) => {
+      const user = await client.query<{
+        role: string;
+        access_revoked_at: Date | null;
+      }>("select role, access_revoked_at from users where id = $1 for update", [
+        userId,
+      ]);
+      const target = user.rows[0];
+      if (!target) {
+        throw apiError(
+          HttpStatus.NOT_FOUND,
+          "USER_NOT_FOUND",
+          "User was not found",
+        );
+      }
+      if (target.role === "ADMIN") {
+        throw apiError(
+          HttpStatus.FORBIDDEN,
+          "ADMIN_MANAGED_BY_CLI",
+          "Administrator access can only be changed through the server CLI",
+        );
+      }
+      if (!target.access_revoked_at) return;
+      await client.query(
+        "update users set access_revoked_at = null, updated_at = now() where id = $1",
+        [userId],
       );
-    }
-    await this.database.query(
-      "update users set role = $2, updated_at = now() where id = $1",
-      [userId, role],
-    );
-    await this.audit(actorId, "USER_ROLE_CHANGED", "USER", userId, { role });
+      await client.query(
+        `
+          insert into audit_logs
+            (id, actor_id, action, target_type, target_id, details)
+          values ($1, $2, 'USER_ACCESS_RESTORED', 'USER', $3, '{}'::jsonb)
+        `,
+        [randomUUID(), actorId, userId],
+      );
+    });
   }
 
   async restrict(actorId: string, userId: string, dto: RestrictUserDto) {
@@ -503,39 +507,12 @@ export class AdminService {
           "User was not found",
         );
       }
-      if (
-        dto.capability === "ACCOUNT_LOGIN" &&
-        user.rows[0].role === "ADMIN"
-      ) {
-        await client.query(
-          "select pg_advisory_xact_lock(hashtext('admin-login-policies'))",
+      if (user.rows[0].role === "ADMIN") {
+        throw apiError(
+          HttpStatus.FORBIDDEN,
+          "ADMIN_MANAGED_BY_CLI",
+          "Administrator access policies can only be changed through the server CLI",
         );
-        const admins = await client.query<{ count: string }>(
-          `
-            select count(*)::text as count
-            from users
-            where role = 'ADMIN'
-              and access_revoked_at is null
-              and id <> $1
-              and not exists (
-                select 1
-                from user_restrictions ur
-                where ur.user_id = users.id
-                  and ur.capability = 'ACCOUNT_LOGIN'
-                  and ur.revoked_at is null
-                  and ur.starts_at < coalesce($3::timestamptz, 'infinity')
-                  and coalesce(ur.expires_at, 'infinity') > $2
-              )
-          `,
-          [userId, startsAt, expiresAt],
-        );
-        if (Number(admins.rows[0].count) < 1) {
-          throw apiError(
-            HttpStatus.CONFLICT,
-            "LAST_ADMIN",
-            "The last available administrator cannot be restricted",
-          );
-        }
       }
       await client.query(
         `
@@ -584,30 +561,49 @@ export class AdminService {
     actorId: string,
     restrictionId: string,
   ): Promise<void> {
-    const result = await this.database.query<{
-      user_id: string;
-      capability: string;
-      room_id: string | null;
-      starts_at: Date;
-      expires_at: Date | null;
-      reason: string;
-    }>(
-      `
-        update user_restrictions
-        set revoked_at = now(), revoked_by = $2
-        where id = $1 and revoked_at is null
-        returning user_id, capability, room_id, starts_at, expires_at, reason
-      `,
-      [restrictionId, actorId],
-    );
-    const restriction = result.rows[0];
-    if (!restriction) {
-      throw apiError(
-        HttpStatus.NOT_FOUND,
-        "RESTRICTION_NOT_FOUND",
-        "Active restriction was not found",
+    const restriction = await this.database.transaction(async (client) => {
+      const target = await client.query<{ role: string }>(
+        `
+          select u.role
+          from user_restrictions ur
+          join users u on u.id = ur.user_id
+          where ur.id = $1 and ur.revoked_at is null
+          for update of ur
+        `,
+        [restrictionId],
       );
-    }
+      if (!target.rows[0]) {
+        throw apiError(
+          HttpStatus.NOT_FOUND,
+          "RESTRICTION_NOT_FOUND",
+          "Active restriction was not found",
+        );
+      }
+      if (target.rows[0].role === "ADMIN") {
+        throw apiError(
+          HttpStatus.FORBIDDEN,
+          "ADMIN_MANAGED_BY_CLI",
+          "Administrator access policies can only be changed through the server CLI",
+        );
+      }
+      const result = await client.query<{
+        user_id: string;
+        capability: string;
+        room_id: string | null;
+        starts_at: Date;
+        expires_at: Date | null;
+        reason: string;
+      }>(
+        `
+          update user_restrictions
+          set revoked_at = now(), revoked_by = $2
+          where id = $1 and revoked_at is null
+          returning user_id, capability, room_id, starts_at, expires_at, reason
+        `,
+        [restrictionId, actorId],
+      );
+      return result.rows[0]!;
+    });
     await this.audit(
       actorId,
       "USER_RESTRICTION_REVOKED",
@@ -1109,12 +1105,7 @@ export class AdminService {
     await this.audit(actorId, "ROOM_BLOCK_CANCELLED", "ROOM_BLOCK", id);
   }
 
-  async auditLogs(
-    category?: string,
-    search?: string,
-    page = 1,
-    limit = 25,
-  ) {
+  async auditLogs(category?: string, search?: string, page = 1, limit = 25) {
     const normalizedCategory = ["booking", "access", "room"].includes(
       category ?? "",
     )

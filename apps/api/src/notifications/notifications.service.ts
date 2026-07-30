@@ -9,16 +9,19 @@ import {
   notificationOutbox,
   notificationSubscriptions,
   telegramConnections,
-  telegramLinkTokens
+  telegramLinkTokens,
 } from "../database/schema";
 import { createOpaqueToken, hashToken } from "../common/crypto";
 import { apiError } from "../common/http-error";
 import type { UpdateNotificationPreferencesDto } from "./notifications.dto";
-import type { NotificationCategory } from "./notification-channel";
+import type {
+  ExternalNotificationChannelName,
+  NotificationCategory,
+} from "./notification-channel";
 import { TelegramNotificationChannel } from "./telegram-notification.channel";
 import {
   normalizeTelegramBotUsername,
-  telegramConnectLinks
+  telegramConnectLinks,
 } from "./telegram-links";
 
 export interface NotificationEvent {
@@ -30,6 +33,7 @@ export interface NotificationEvent {
   body: string;
   bookingId?: string;
   activeBookingIds?: string[];
+  forcedChannels?: ExternalNotificationChannelName[];
 }
 
 @Injectable()
@@ -41,19 +45,16 @@ export class NotificationsService {
   constructor(
     private readonly database: DatabaseService,
     private readonly telegramChannel: TelegramNotificationChannel,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.botUsername = normalizeTelegramBotUsername(
-      config.get<string>("TELEGRAM_BOT_USERNAME")
+      config.get<string>("TELEGRAM_BOT_USERNAME"),
     );
     this.webhookSecret =
       config.get<string>("TELEGRAM_WEBHOOK_SECRET") ?? "change-me";
   }
 
-  async enqueue(
-    client: PoolClient,
-    event: NotificationEvent
-  ): Promise<void> {
+  async enqueue(client: PoolClient, event: NotificationEvent): Promise<void> {
     const orm = this.database.ormFor(client);
     const notificationId = randomUUID();
     const queued = await orm
@@ -67,8 +68,9 @@ export class NotificationsService {
           category: event.category,
           title: event.title,
           body: event.body,
-          activeBookingIds: event.activeBookingIds
-        }
+          activeBookingIds: event.activeBookingIds,
+          forcedChannels: event.forcedChannels,
+        },
       })
       .onConflictDoNothing({ target: notificationOutbox.eventKey })
       .returning({ id: notificationOutbox.id });
@@ -82,8 +84,8 @@ export class NotificationsService {
           eq(notificationSubscriptions.userId, event.userId),
           eq(notificationSubscriptions.category, event.category),
           eq(notificationSubscriptions.channel, "IN_APP"),
-          eq(notificationSubscriptions.enabled, true)
-        )
+          eq(notificationSubscriptions.enabled, true),
+        ),
       )
       .limit(1);
     if (!inAppSubscription.length) return;
@@ -94,7 +96,7 @@ export class NotificationsService {
       type: event.type,
       title: event.title,
       body: event.body,
-      bookingId: event.bookingId ?? null
+      bookingId: event.bookingId ?? null,
     });
   }
 
@@ -116,10 +118,10 @@ export class NotificationsService {
       this.database.orm
         .select({
           total: sql<number>`count(*)::int`,
-          unread: sql<number>`count(*) filter (where ${notifications.readAt} is null)::int`
+          unread: sql<number>`count(*) filter (where ${notifications.readAt} is null)::int`,
         })
         .from(notifications)
-        .where(eq(notifications.userId, userId))
+        .where(eq(notifications.userId, userId)),
     ]);
     const total = Number(totals[0]?.total ?? 0);
     return {
@@ -130,15 +132,15 @@ export class NotificationsService {
         body: row.body,
         bookingId: row.bookingId,
         read: Boolean(row.readAt),
-        createdAt: row.createdAt
+        createdAt: row.createdAt,
       })),
       unreadCount: Number(totals[0]?.unread ?? 0),
       pagination: {
         page: normalizedPage,
         limit: normalizedLimit,
         total,
-        totalPages: Math.max(Math.ceil(total / normalizedLimit), 1)
-      }
+        totalPages: Math.max(Math.ceil(total / normalizedLimit), 1),
+      },
     };
   }
 
@@ -149,8 +151,8 @@ export class NotificationsService {
       .where(
         and(
           eq(notifications.id, notificationId),
-          eq(notifications.userId, userId)
-        )
+          eq(notifications.userId, userId),
+        ),
       );
   }
 
@@ -167,30 +169,30 @@ export class NotificationsService {
         .select({
           category: notificationSubscriptions.category,
           channel: notificationSubscriptions.channel,
-          enabled: notificationSubscriptions.enabled
+          enabled: notificationSubscriptions.enabled,
         })
         .from(notificationSubscriptions)
         .where(eq(notificationSubscriptions.userId, userId))
         .orderBy(
           asc(notificationSubscriptions.category),
-          asc(notificationSubscriptions.channel)
+          asc(notificationSubscriptions.channel),
         ),
       this.database.orm
         .select({ userId: telegramConnections.userId })
         .from(telegramConnections)
         .where(eq(telegramConnections.userId, userId))
-        .limit(1)
+        .limit(1),
     ]);
     return {
       subscriptions,
       telegramConnected: telegram.length > 0,
-      telegramAvailable: Boolean(this.botUsername)
+      telegramAvailable: Boolean(this.botUsername),
     };
   }
 
   async updatePreferences(
     userId: string,
-    dto: UpdateNotificationPreferencesDto
+    dto: UpdateNotificationPreferencesDto,
   ) {
     await this.database.orm
       .insert(notificationSubscriptions)
@@ -198,15 +200,15 @@ export class NotificationsService {
         userId,
         category: dto.category,
         channel: dto.channel,
-        enabled: dto.enabled
+        enabled: dto.enabled,
       })
       .onConflictDoUpdate({
         target: [
           notificationSubscriptions.userId,
           notificationSubscriptions.category,
-          notificationSubscriptions.channel
+          notificationSubscriptions.channel,
         ],
-        set: { enabled: dto.enabled, updatedAt: sql`now()` }
+        set: { enabled: dto.enabled, updatedAt: sql`now()` },
       });
     return this.getPreferences(userId);
   }
@@ -216,7 +218,7 @@ export class NotificationsService {
       throw apiError(
         HttpStatus.SERVICE_UNAVAILABLE,
         "TELEGRAM_NOT_CONFIGURED",
-        "Telegram bot is not configured"
+        "Telegram bot is not configured",
       );
     }
     const token = createOpaqueToken();
@@ -224,13 +226,13 @@ export class NotificationsService {
       id: randomUUID(),
       userId,
       tokenHash: hashToken(token),
-      expiresAt: sql`now() + interval '10 minutes'`
+      expiresAt: sql`now() + interval '10 minutes'`,
     });
     const links = telegramConnectLinks(this.botUsername, token);
     return {
       ...links,
       botUsername: this.botUsername,
-      expiresInSeconds: 600
+      expiresInSeconds: 600,
     };
   }
 
@@ -245,30 +247,52 @@ export class NotificationsService {
         .where(
           and(
             eq(notificationSubscriptions.userId, userId),
-            eq(notificationSubscriptions.channel, "TELEGRAM")
-          )
+            eq(notificationSubscriptions.channel, "TELEGRAM"),
+          ),
         );
     });
+  }
+
+  async sendTelegramTest(userId: string): Promise<void> {
+    const connection = await this.database.orm
+      .select({ userId: telegramConnections.userId })
+      .from(telegramConnections)
+      .where(eq(telegramConnections.userId, userId))
+      .limit(1);
+    if (!connection.length) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "TELEGRAM_NOT_CONNECTED",
+        "Telegram is not connected",
+      );
+    }
+    await this.database.transaction((client) =>
+      this.enqueue(client, {
+        eventKey: `telegram-test:${userId}:${randomUUID()}`,
+        userId,
+        type: "TELEGRAM_TEST",
+        category: "REMINDERS",
+        title: "MeetBroker · Telegram",
+        body: "Тестове сповіщення успішно пройшло через робочий канал доставки.",
+        forcedChannels: ["TELEGRAM"],
+      }),
+    );
   }
 
   async handleTelegramStart(
     secret: string,
     text: string | undefined,
-    chatId: string | undefined
+    chatId: string | undefined,
   ): Promise<{ connected: boolean; chatId?: string }> {
     if (secret !== this.webhookSecret || !chatId) {
-      throw apiError(
-        HttpStatus.NOT_FOUND,
-        "NOT_FOUND",
-        "Webhook not found"
-      );
+      throw apiError(HttpStatus.NOT_FOUND, "NOT_FOUND", "Webhook not found");
     }
     return this.connectTelegramStart(text, chatId);
   }
 
   async connectTelegramStart(
     text: string | undefined,
-    chatId: string | undefined
+    chatId: string | undefined,
   ): Promise<{ connected: boolean; chatId?: string }> {
     if (!chatId) return { connected: false };
     const token = text?.match(/^\/start(?:@\w+)?\s+(\S+)$/)?.[1];
@@ -282,8 +306,8 @@ export class NotificationsService {
           and(
             eq(telegramLinkTokens.tokenHash, hashToken(token)),
             isNull(telegramLinkTokens.usedAt),
-            gt(telegramLinkTokens.expiresAt, sql`now()`)
-          )
+            gt(telegramLinkTokens.expiresAt, sql`now()`),
+          ),
         )
         .returning({ userId: telegramLinkTokens.userId });
       const connectedUserId = consumed[0]?.userId;
@@ -294,7 +318,7 @@ export class NotificationsService {
         .values({ userId: connectedUserId, chatId })
         .onConflictDoUpdate({
           target: telegramConnections.userId,
-          set: { chatId, connectedAt: sql`now()` }
+          set: { chatId, connectedAt: sql`now()` },
         });
       return connectedUserId;
     });
@@ -304,14 +328,14 @@ export class NotificationsService {
         { userId, email: "", telegramChatId: chatId },
         {
           title: "MeetBroker",
-          body: "Telegram успішно підключено. Тепер ви можете вибрати потрібні групи сповіщень у профілі."
-        }
+          body: "Telegram успішно підключено. Тепер ви можете вибрати потрібні групи сповіщень у профілі.",
+        },
       );
     } catch (error) {
       this.logger.warn(
         `Telegram connection acknowledgement failed: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
     }
     return { connected: true, chatId };

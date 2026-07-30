@@ -7,19 +7,15 @@ import type { User } from "../types";
 import { Avatar } from "../components/Avatar";
 import {
   SearchSelect,
-  type SearchSelectOption
+  type SearchSelectOption,
 } from "../components/SearchSelect";
 import { Button } from "../components/ui/Button";
 import {
   TelegramConnectDialog,
-  type TelegramConnectInfo
+  type TelegramConnectInfo,
 } from "../components/TelegramConnectDialog";
 
-type NotificationCategory =
-  | "INVITATIONS"
-  | "CHANGES"
-  | "REMINDERS"
-  | "ACCESS";
+type NotificationCategory = "INVITATIONS" | "CHANGES" | "REMINDERS" | "ACCESS";
 type NotificationChannel = "IN_APP" | "EMAIL" | "TELEGRAM";
 
 const fallbackTimeZones = [
@@ -33,7 +29,7 @@ const fallbackTimeZones = [
   "Asia/Tokyo",
   "Asia/Singapore",
   "Australia/Sydney",
-  "UTC"
+  "UTC",
 ];
 
 const currentTimeZoneAliases: Readonly<Record<string, string>> = {
@@ -46,7 +42,7 @@ const currentTimeZoneAliases: Readonly<Record<string, string>> = {
   "Atlantic/Faeroe": "Atlantic/Faroe",
   "Europe/Kiev": "Europe/Kyiv",
   "Pacific/Ponape": "Pacific/Pohnpei",
-  "Pacific/Truk": "Pacific/Chuuk"
+  "Pacific/Truk": "Pacific/Chuuk",
 };
 
 function normalizeTimeZone(value: string): string {
@@ -62,8 +58,8 @@ function supportedTimeZones(): string[] {
   return Array.from(
     new Set([
       ...browserTimeZones.map(normalizeTimeZone),
-      ...fallbackTimeZones.map(normalizeTimeZone)
-    ])
+      ...fallbackTimeZones.map(normalizeTimeZone),
+    ]),
   ).sort((left, right) => left.localeCompare(right));
 }
 
@@ -88,20 +84,20 @@ export function ProfilePage({ user }: { user: User }) {
     useState<TelegramConnectInfo | null>(null);
   const [emailForm, setEmailForm] = useState({
     email: user.pendingEmail ?? user.email,
-    currentPassword: ""
+    currentPassword: "",
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
   const [profile, setProfile] = useState({
     name: user.name,
     bio: user.bio ?? "",
     avatarPreset: user.avatarPreset,
     timezone: normalizeTimeZone(
-      user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
-    )
+      user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+    ),
   });
   const timeZoneOptions = useMemo<SearchSelectOption[]>(() => {
     const zones = supportedTimeZones();
@@ -110,13 +106,13 @@ export function ProfilePage({ user }: { user: User }) {
     }
     return zones.map((zone) => ({
       value: zone,
-      label: zone.replaceAll("_", " ")
+      label: zone.replaceAll("_", " "),
     }));
   }, [profile.timezone]);
   const preferences = useQuery({
     queryKey: ["notification-preferences"],
     queryFn: () => api<Preferences>("/api/notifications/preferences"),
-    refetchInterval: telegramConnect ? 1_500 : false
+    refetchInterval: telegramConnect ? 1_500 : false,
   });
   const save = useMutation({
     mutationFn: () =>
@@ -124,8 +120,8 @@ export function ProfilePage({ user }: { user: User }) {
         method: "PATCH",
         body: JSON.stringify({
           ...profile,
-          avatarPreset: selectedPreset ?? undefined
-        })
+          avatarPreset: selectedPreset ?? undefined,
+        }),
       }),
     onSuccess: ({ user: updated }) => {
       setSelectedPreset(null);
@@ -137,7 +133,7 @@ export function ProfilePage({ user }: { user: User }) {
             : "light"
           : updated.theme.toLowerCase();
       document.documentElement.dataset.theme = resolved;
-    }
+    },
   });
   const upload = useMutation({
     mutationFn: (file: File) => {
@@ -145,10 +141,10 @@ export function ProfilePage({ user }: { user: User }) {
       form.set("avatar", file);
       return api<{ avatarUrl: string }>("/api/users/me/avatar", {
         method: "POST",
-        body: form
+        body: form,
       });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me"] })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me"] }),
   });
   const updatePreferences = useMutation({
     mutationFn: (next: {
@@ -158,23 +154,29 @@ export function ProfilePage({ user }: { user: User }) {
     }) =>
       api<Preferences>("/api/notifications/preferences", {
         method: "PATCH",
-        body: JSON.stringify(next)
+        body: JSON.stringify(next),
       }),
     onSuccess: (data) =>
-      queryClient.setQueryData(["notification-preferences"], data)
+      queryClient.setQueryData(["notification-preferences"], data),
   });
   const telegramLink = useMutation({
     mutationFn: () =>
       api<TelegramConnectInfo>("/api/notifications/telegram/link", {
-        method: "POST"
+        method: "POST",
       }),
-    onSuccess: setTelegramConnect
+    onSuccess: setTelegramConnect,
   });
   const disconnectTelegram = useMutation({
     mutationFn: () =>
       api<void>("/api/notifications/telegram", { method: "DELETE" }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["notification-preferences"] })
+      queryClient.invalidateQueries({ queryKey: ["notification-preferences"] }),
+  });
+  const testTelegram = useMutation({
+    mutationFn: () =>
+      api<{ queued: boolean }>("/api/notifications/telegram/test", {
+        method: "POST",
+      }),
   });
   useEffect(() => {
     if (telegramConnect && preferences.data?.telegramConnected) {
@@ -187,24 +189,19 @@ export function ProfilePage({ user }: { user: User }) {
         email: string;
         pendingEmail: string | null;
         verificationRequired: boolean;
-      }>(
-        "/api/users/me/email-change",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            email: emailForm.email,
-            currentPassword: emailForm.currentPassword
-          })
-        }
-      ),
+      }>("/api/users/me/email-change", {
+        method: "POST",
+        body: JSON.stringify({
+          email: emailForm.email,
+          currentPassword: emailForm.currentPassword,
+        }),
+      }),
     onSuccess: ({ email, pendingEmail }) => {
       setEmailForm({ email: pendingEmail ?? email, currentPassword: "" });
       queryClient.setQueryData<{ user: User }>(["me"], (current) =>
-        current
-          ? { user: { ...current.user, email, pendingEmail } }
-          : current
+        current ? { user: { ...current.user, email, pendingEmail } } : current,
       );
-    }
+    },
   });
   const changePassword = useMutation({
     mutationFn: () =>
@@ -212,15 +209,15 @@ export function ProfilePage({ user }: { user: User }) {
         method: "POST",
         body: JSON.stringify({
           currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword
-        })
+          newPassword: passwordForm.newPassword,
+        }),
       }),
     onSuccess: () =>
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
-        confirmPassword: ""
-      })
+        confirmPassword: "",
+      }),
   });
 
   const submit = (event: FormEvent) => {
@@ -229,10 +226,7 @@ export function ProfilePage({ user }: { user: User }) {
   };
 
   return (
-    <div
-      className="page editorial-page profile-page"
-      data-page-mark="IDENTITY"
-    >
+    <div className="page editorial-page profile-page" data-page-mark="IDENTITY">
       <header className="page-header">
         <div>
           <span className="eyebrow">{t("profile.eyebrow")}</span>
@@ -292,14 +286,12 @@ export function ProfilePage({ user }: { user: User }) {
                       className={
                         profile.avatarPreset === preset ? "is-selected" : ""
                       }
-                      onClick={() =>
-                        {
-                          setProfile({ ...profile, avatarPreset: preset });
-                          setSelectedPreset(preset);
-                        }
-                      }
+                      onClick={() => {
+                        setProfile({ ...profile, avatarPreset: preset });
+                        setSelectedPreset(preset);
+                      }}
                       aria-label={t("profile.avatarLabel", {
-                        number: index + 1
+                        number: index + 1,
                       })}
                     >
                       <Avatar name="" preset={preset} size="md" />
@@ -334,9 +326,7 @@ export function ProfilePage({ user }: { user: User }) {
                 options={timeZoneOptions}
                 searchPlaceholder={t("profile.timeZoneSearch")}
                 emptyText={t("profile.timeZoneEmpty")}
-                onChange={(timezone) =>
-                  setProfile({ ...profile, timezone })
-                }
+                onChange={(timezone) => setProfile({ ...profile, timezone })}
               />
             </div>
             {(save.error || upload.error) && (
@@ -347,11 +337,7 @@ export function ProfilePage({ user }: { user: User }) {
                   .join(". ")}
               </div>
             )}
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={save.isPending}
-            >
+            <Button type="submit" variant="primary" disabled={save.isPending}>
               {save.isPending ? t("profile.saving") : t("profile.save")}
             </Button>
           </form>
@@ -376,7 +362,7 @@ export function ProfilePage({ user }: { user: User }) {
                         email:
                           user.pendingEmail ??
                           changeEmail.data?.pendingEmail ??
-                          ""
+                          "",
                       })}
                     </small>
                   )}
@@ -396,7 +382,7 @@ export function ProfilePage({ user }: { user: User }) {
                   {errorMessage(
                     telegramLink.error,
                     t,
-                    "profile.telegramConnectError"
+                    "profile.telegramConnectError",
                   )}
                 </div>
               )}
@@ -418,7 +404,7 @@ export function ProfilePage({ user }: { user: User }) {
                         changeEmail.reset();
                         setEmailForm({
                           ...emailForm,
-                          email: event.target.value
+                          email: event.target.value,
                         });
                       }}
                       required
@@ -434,7 +420,7 @@ export function ProfilePage({ user }: { user: User }) {
                         changeEmail.reset();
                         setEmailForm({
                           ...emailForm,
-                          currentPassword: event.target.value
+                          currentPassword: event.target.value,
                         });
                       }}
                       required
@@ -442,11 +428,7 @@ export function ProfilePage({ user }: { user: User }) {
                   </label>
                   {changeEmail.error && (
                     <div className="form-error" role="alert">
-                      {errorMessage(
-                        changeEmail.error,
-                        t,
-                        "profile.emailError",
-                      )}
+                      {errorMessage(changeEmail.error, t, "profile.emailError")}
                     </div>
                   )}
                   {changeEmail.isSuccess && (
@@ -485,13 +467,27 @@ export function ProfilePage({ user }: { user: User }) {
                   </span>
                 </div>
                 {preferences.data.telegramConnected ? (
-                  <Button
-                    variant="ghost"
-                    size="small"
-                    onClick={() => disconnectTelegram.mutate()}
-                  >
-                    {t("profile.disconnect")}
-                  </Button>
+                  <div className="button-row button-row--tight">
+                    <Button
+                      size="small"
+                      disabled={testTelegram.isPending}
+                      onClick={() => {
+                        testTelegram.reset();
+                        testTelegram.mutate();
+                      }}
+                    >
+                      {testTelegram.isPending
+                        ? t("profile.telegramTesting")
+                        : t("profile.telegramTest")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="small"
+                      onClick={() => disconnectTelegram.mutate()}
+                    >
+                      {t("profile.disconnect")}
+                    </Button>
+                  </div>
                 ) : (
                   <Button
                     size="small"
@@ -505,6 +501,20 @@ export function ProfilePage({ user }: { user: User }) {
                   </Button>
                 )}
               </div>
+              {testTelegram.isSuccess && (
+                <div className="form-success" role="status">
+                  {t("profile.telegramTestQueued")}
+                </div>
+              )}
+              {testTelegram.error && (
+                <div className="form-error" role="alert">
+                  {errorMessage(
+                    testTelegram.error,
+                    t,
+                    "profile.telegramTestError",
+                  )}
+                </div>
+              )}
               <hr />
               <div className="notification-matrix">
                 <div className="notification-matrix__header">
@@ -518,62 +528,60 @@ export function ProfilePage({ user }: { user: User }) {
                     ["INVITATIONS", t("profile.invitations")],
                     ["CHANGES", t("profile.changes")],
                     ["REMINDERS", t("profile.reminders")],
-                    ["ACCESS", t("profile.access")]
+                    ["ACCESS", t("profile.access")],
                   ] as const
                 ).map(([category, label]) => (
                   <div className="notification-matrix__row" key={category}>
                     <strong>{label}</strong>
-                    {(
-                      ["IN_APP", "EMAIL", "TELEGRAM"] as const
-                    ).map((channel) => {
-                      const checked =
-                        preferences.data.subscriptions.find(
-                          (item) =>
-                            item.category === category &&
-                            item.channel === channel
-                        )?.enabled ?? false;
-                      const disabled =
-                        channel === "TELEGRAM" &&
-                        (!preferences.data.telegramAvailable ||
-                          !preferences.data.telegramConnected);
-                      return (
-                        <label
-                          key={channel}
-                          title={
-                            disabled
-                              ? t("profile.connectTelegramFirst")
-                              : `${label}: ${channel}`
-                          }
-                        >
-                          <span className="notification-channel-label">
-                            {channel === "IN_APP"
-                              ? t("profile.app")
-                              : channel === "EMAIL"
-                                ? "Email"
-                                : "Telegram"}
-                          </span>
-                          <input
-                            className="switch"
-                            type="checkbox"
-                            checked={checked}
-                            disabled={disabled}
-                            onChange={(event) =>
-                              updatePreferences.mutate({
-                                category,
-                                channel,
-                                enabled: event.target.checked
-                              })
+                    {(["IN_APP", "EMAIL", "TELEGRAM"] as const).map(
+                      (channel) => {
+                        const checked =
+                          preferences.data.subscriptions.find(
+                            (item) =>
+                              item.category === category &&
+                              item.channel === channel,
+                          )?.enabled ?? false;
+                        const disabled =
+                          channel === "TELEGRAM" &&
+                          (!preferences.data.telegramAvailable ||
+                            !preferences.data.telegramConnected);
+                        return (
+                          <label
+                            key={channel}
+                            title={
+                              disabled
+                                ? t("profile.connectTelegramFirst")
+                                : `${label}: ${channel}`
                             }
-                          />
-                        </label>
-                      );
-                    })}
+                          >
+                            <span className="notification-channel-label">
+                              {channel === "IN_APP"
+                                ? t("profile.app")
+                                : channel === "EMAIL"
+                                  ? "Email"
+                                  : "Telegram"}
+                            </span>
+                            <input
+                              className="switch"
+                              type="checkbox"
+                              checked={checked}
+                              disabled={disabled}
+                              onChange={(event) =>
+                                updatePreferences.mutate({
+                                  category,
+                                  channel,
+                                  enabled: event.target.checked,
+                                })
+                              }
+                            />
+                          </label>
+                        );
+                      },
+                    )}
                   </div>
                 ))}
               </div>
-              <small>
-                {t("profile.channelsHint")}
-              </small>
+              <small>{t("profile.channelsHint")}</small>
               <hr />
               <div className="security-section">
                 <div>
@@ -597,7 +605,7 @@ export function ProfilePage({ user }: { user: User }) {
                         changePassword.reset();
                         setPasswordForm({
                           ...passwordForm,
-                          currentPassword: event.target.value
+                          currentPassword: event.target.value,
                         });
                       }}
                       required
@@ -615,7 +623,7 @@ export function ProfilePage({ user }: { user: User }) {
                         changePassword.reset();
                         setPasswordForm({
                           ...passwordForm,
-                          newPassword: event.target.value
+                          newPassword: event.target.value,
                         });
                       }}
                       required
@@ -633,7 +641,7 @@ export function ProfilePage({ user }: { user: User }) {
                         changePassword.reset();
                         setPasswordForm({
                           ...passwordForm,
-                          confirmPassword: event.target.value
+                          confirmPassword: event.target.value,
                         });
                       }}
                       required
@@ -666,8 +674,7 @@ export function ProfilePage({ user }: { user: User }) {
                     disabled={
                       changePassword.isPending ||
                       passwordForm.newPassword.length < 8 ||
-                      passwordForm.newPassword !==
-                        passwordForm.confirmPassword
+                      passwordForm.newPassword !== passwordForm.confirmPassword
                     }
                   >
                     {changePassword.isPending

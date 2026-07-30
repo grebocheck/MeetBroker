@@ -17,11 +17,11 @@ npm run smoke
 
 Демонстраційні облікові записи:
 
-| Рівень | Email | Пароль |
-| --- | --- | --- |
-| Адміністратор | `admin@meetbroker.local` | `Admin123!` |
-| Користувач | `user@meetbroker.local` | `User12345!` |
-| Користувач | `anna@meetbroker.local` | `User12345!` |
+| Рівень        | Email                    | Пароль       |
+| ------------- | ------------------------ | ------------ |
+| Адміністратор | `admin@meetbroker.local` | `Admin123!`  |
+| Користувач    | `user@meetbroker.local`  | `User12345!` |
+| Користувач    | `anna@meetbroker.local`  | `User12345!` |
 
 Міграції застосовуються API-контейнером через `node-pg-migrate` перед
 запуском NestJS. Worker очікує healthy API, тому не починає обробку до
@@ -110,6 +110,29 @@ docker compose run --rm api \
 типізований Drizzle runtime-шар. Решта стабільних модулів поки працює через
 параметризований `pg` і переноситься лише окремими інкрементами. Нова
 runtime-логіка має використовувати Drizzle.
+
+### Керування адміністраторами
+
+Роль і доступ адміністратора не змінюються через вебінтерфейс або HTTP API.
+Це окрема операторська дія з доступом до серверного середовища та
+`DATABASE_URL`. У запущеному Compose-стеку використовуйте CLI всередині
+API-контейнера:
+
+```bash
+docker compose exec api node apps/api/dist/database/admin-cli.js \
+  promote user@example.com
+docker compose exec api node apps/api/dist/database/admin-cli.js \
+  demote admin@example.com
+docker compose exec api node apps/api/dist/database/admin-cli.js \
+  revoke admin@example.com "Зміна відповідального адміністратора"
+docker compose exec api node apps/api/dist/database/admin-cli.js \
+  restore admin@example.com
+```
+
+CLI не дозволить позбавити систему останнього активного адміністратора,
+запише дію до журналу аудиту з джерелом `CLI` та під час відкликання доступу
+завершить активні сесії. Для звичайних користувачів відкликання і відновлення
+доступу доступні адміністратору в розділі «Користувачі».
 
 ## Що входить до MVP
 

@@ -113,10 +113,7 @@ export function AdminPage() {
   const activeSection = sections.find(([value]) => value === section);
 
   return (
-    <div
-      className="page editorial-page admin-page"
-      data-page-mark="CONTROL"
-    >
+    <div className="page editorial-page admin-page" data-page-mark="CONTROL">
       <header className="page-header admin-hero">
         <div>
           <span className="eyebrow">{t("admin.eyebrow")}</span>
@@ -268,9 +265,7 @@ function BookingsAdmin() {
             {errorMessage(bookings.error, t, "admin.bookingsLoadError")}
           </div>
         ) : bookings.data?.bookings.length === 0 ? (
-          <div className="empty-inline">
-            {t("admin.bookingsEmpty")}
-          </div>
+          <div className="empty-inline">{t("admin.bookingsEmpty")}</div>
         ) : (
           <>
             <div className="admin-booking-list">
@@ -280,64 +275,64 @@ function BookingsAdmin() {
                 const isPast = endsAt <= new Date();
                 return (
                   <article className="admin-booking-row" key={booking.id}>
-                  <time dateTime={booking.startsAt}>
-                    <strong>
-                      {new Intl.DateTimeFormat(dateLocale, {
-                        day: "2-digit",
-                        month: "short",
-                      }).format(startsAt)}
-                    </strong>
-                    <span>
-                      {new Intl.DateTimeFormat(dateLocale, {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }).format(startsAt)}
-                      {" — "}
-                      {new Intl.DateTimeFormat(dateLocale, {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }).format(endsAt)}
-                    </span>
-                  </time>
-                  <div className="admin-booking-row__main">
-                    <div className="admin-booking-row__title">
-                      <strong>{booking.title}</strong>
-                      <span
-                        className={`status-badge ${
-                          booking.cancelledAt ? "status-badge--warning" : ""
-                        }`}
-                      >
-                        {booking.cancelledAt
-                          ? t("admin.statusCancelled")
-                          : isPast
-                            ? t("admin.statusFinished")
-                            : booking.seriesId
-                              ? t("admin.statusSeries")
-                            : booking.participationMode === "OPEN"
-                              ? t("admin.statusOpen")
-                              : t("admin.statusInvitation")}
+                    <time dateTime={booking.startsAt}>
+                      <strong>
+                        {new Intl.DateTimeFormat(dateLocale, {
+                          day: "2-digit",
+                          month: "short",
+                        }).format(startsAt)}
+                      </strong>
+                      <span>
+                        {new Intl.DateTimeFormat(dateLocale, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }).format(startsAt)}
+                        {" — "}
+                        {new Intl.DateTimeFormat(dateLocale, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }).format(endsAt)}
+                      </span>
+                    </time>
+                    <div className="admin-booking-row__main">
+                      <div className="admin-booking-row__title">
+                        <strong>{booking.title}</strong>
+                        <span
+                          className={`status-badge ${
+                            booking.cancelledAt ? "status-badge--warning" : ""
+                          }`}
+                        >
+                          {booking.cancelledAt
+                            ? t("admin.statusCancelled")
+                            : isPast
+                              ? t("admin.statusFinished")
+                              : booking.seriesId
+                                ? t("admin.statusSeries")
+                                : booking.participationMode === "OPEN"
+                                  ? t("admin.statusOpen")
+                                  : t("admin.statusInvitation")}
+                        </span>
+                      </div>
+                      <span>
+                        {t("admin.bookingMeta", {
+                          room:
+                            booking.room?.name ?? t("booking.onlineMeeting"),
+                          floor: booking.room?.floor ?? "—",
+                          organizer: booking.organizer.name,
+                          count: booking.participants.length,
+                        })}
                       </span>
                     </div>
-                    <span>
-                      {t("admin.bookingMeta", {
-                        room:
-                          booking.room?.name ?? t("booking.onlineMeeting"),
-                        floor: booking.room?.floor ?? "—",
-                        organizer: booking.organizer.name,
-                        count: booking.participants.length,
-                      })}
-                    </span>
-                  </div>
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      cancelBooking.reset();
-                      setReason("");
-                      setSelected(booking);
-                    }}
-                  >
-                    {t("admin.details")}
-                  </Button>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        cancelBooking.reset();
+                        setReason("");
+                        setSelected(booking);
+                      }}
+                    >
+                      {t("admin.details")}
+                    </Button>
                   </article>
                 );
               })}
@@ -589,9 +584,7 @@ function AdminBookingDialog({
               placeholder={t("admin.cancellationPlaceholder")}
               required
             />
-            <small>
-              {t("admin.cancellationHint")}
-            </small>
+            <small>{t("admin.cancellationHint")}</small>
           </label>
         )}
 
@@ -602,17 +595,11 @@ function AdminBookingDialog({
         )}
 
         <div className="modal__actions">
-          <Button
-            onClick={onClose}
-            disabled={pending}
-          >
+          <Button onClick={onClose} disabled={pending}>
             {t("close")}
           </Button>
           {canCancel && (
-            <Button
-              onClick={onEdit}
-              disabled={pending}
-            >
+            <Button onClick={onEdit} disabled={pending}>
               {t("admin.editEvent")}
             </Button>
           )}
@@ -786,12 +773,32 @@ function UsersAdmin() {
                       {t("admin.approve")}
                     </Button>
                   )}
-                {user.approved && !user.accessRevoked && (
+                {user.approved &&
+                  !user.accessRevoked &&
+                  (user.role === "ADMIN" ? (
+                    <span className="status-badge">
+                      {t("admin.cliManaged")}
+                    </span>
+                  ) : (
+                    <Button
+                      size="small"
+                      onClick={() => setManagingUserId(user.id)}
+                    >
+                      {t("admin.manageAccess")}
+                    </Button>
+                  ))}
+                {user.accessRevoked && user.role !== "ADMIN" && (
                   <Button
                     size="small"
-                    onClick={() => setManagingUserId(user.id)}
+                    variant="secondary"
+                    disabled={action.isPending}
+                    onClick={() =>
+                      action.mutate({
+                        path: `/api/admin/users/${user.id}/restore`,
+                      })
+                    }
                   >
-                    {t("admin.manageAccess")}
+                    {t("admin.restoreAccess")}
                   </Button>
                 )}
               </div>
@@ -1097,7 +1104,10 @@ function RoomsAdmin() {
                     step={1800}
                     value={roomForm.workStart}
                     onChange={(event) =>
-                      setRoomForm({ ...roomForm, workStart: event.target.value })
+                      setRoomForm({
+                        ...roomForm,
+                        workStart: event.target.value,
+                      })
                     }
                     required
                   />
@@ -1140,9 +1150,7 @@ function RoomsAdmin() {
                   createRoom.isPending || roomForm.workingDays.length === 0
                 }
               >
-                {createRoom.isPending
-                  ? t("admin.adding")
-                  : t("admin.addRoom")}
+                {createRoom.isPending ? t("admin.adding") : t("admin.addRoom")}
               </Button>
             </form>
           ) : selectedRoom ? (
@@ -1217,7 +1225,9 @@ function RoomsAdmin() {
               <div className="room-workspace__blocks">
                 <div className="room-workspace__section-heading">
                   <div>
-                    <span className="eyebrow">{t("admin.scheduleExceptions")}</span>
+                    <span className="eyebrow">
+                      {t("admin.scheduleExceptions")}
+                    </span>
                     <h3>{t("admin.unavailability")}</h3>
                   </div>
                   <Button
@@ -1378,10 +1388,7 @@ function RoomsAdmin() {
                           onClick={() =>
                             setBlockForm({
                               ...blockForm,
-                              recurrence: value as
-                                | "NONE"
-                                | "DAILY"
-                                | "WEEKLY",
+                              recurrence: value as "NONE" | "DAILY" | "WEEKLY",
                               weekdays:
                                 value === "WEEKLY" ? blockForm.weekdays : [],
                             })
@@ -1583,9 +1590,7 @@ function RoomHoursEditor({ room }: { room: Room }) {
         {update.isPending ? "…" : t("save")}
       </Button>
       {changed && !validHours && (
-        <small className="field-error">
-          {t("admin.invalidAvailability")}
-        </small>
+        <small className="field-error">{t("admin.invalidAvailability")}</small>
       )}
       {update.error && (
         <small className="field-error">
@@ -1677,9 +1682,7 @@ function formatRoomBlockRule(
     t("weekday.sat"),
   ];
   const weekdays = block.weekdays?.length
-    ? ` · ${block.weekdays
-        .map((day) => dayLabels[day])
-        .join(", ")}`
+    ? ` · ${block.weekdays.map((day) => dayLabels[day]).join(", ")}`
     : "";
   return `${frequency}${weekdays} · ${t("admin.futureOccurrences", {
     count: block.occurrenceCount,
@@ -1791,9 +1794,7 @@ function AuditAdmin() {
                 </div>
                 <span
                   className={`status-badge ${
-                    log.action.includes("ADMIN")
-                      ? "status-badge--warning"
-                      : ""
+                    log.action.includes("ADMIN") ? "status-badge--warning" : ""
                   }`}
                 >
                   {log.action.includes("ADMIN")
@@ -1807,9 +1808,7 @@ function AuditAdmin() {
                       {Object.entries(log.details).map(([key, value]) => (
                         <div key={key}>
                           <dt>{humanizeDetailKey(key, t)}</dt>
-                          <dd>
-                            {formatActivityValue(value, dateLocale, t)}
-                          </dd>
+                          <dd>{formatActivityValue(value, dateLocale, t)}</dd>
                         </div>
                       ))}
                     </dl>
@@ -1840,6 +1839,7 @@ function humanizeAction(
   const actions: Record<string, MessageKey> = {
     USER_APPROVED: "audit.USER_APPROVED",
     USER_ACCESS_REVOKED: "audit.USER_ACCESS_REVOKED",
+    USER_ACCESS_RESTORED: "audit.USER_ACCESS_RESTORED",
     USER_RESTRICTED: "audit.USER_RESTRICTED",
     USER_RESTRICTION_REVOKED: "audit.USER_RESTRICTION_REVOKED",
     USER_ROLE_CHANGED: "audit.USER_ROLE_CHANGED",

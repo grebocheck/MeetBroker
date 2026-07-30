@@ -64,7 +64,8 @@ export const en = {
     "We sent a link to your corporate address. Check your inbox and spam folder.",
   "approval.refresh": "Refresh status",
   "admin.eyebrow": "Workspace management",
-  "admin.subtitle": "Access, rooms, and important actions without hidden changes.",
+  "admin.subtitle":
+    "Access, rooms, and important actions without hidden changes.",
   "admin.users": "Users",
   "admin.bookings": "Bookings",
   "admin.rooms": "Rooms",
@@ -130,6 +131,8 @@ export const en = {
   "admin.awaitingApproval": "Awaiting approval",
   "admin.approve": "Approve",
   "admin.manageAccess": "Manage access",
+  "admin.cliManaged": "Protected · CLI",
+  "admin.restoreAccess": "Restore access",
   "admin.maintenance": "Technical maintenance",
   "admin.companySpaces": "Company spaces",
   "admin.meetingRooms": "Meeting rooms",
@@ -234,6 +237,7 @@ export const en = {
   "admin.pendingEmail": "New email address",
   "audit.USER_APPROVED": "User approved",
   "audit.USER_ACCESS_REVOKED": "Access revoked",
+  "audit.USER_ACCESS_RESTORED": "Access restored",
   "audit.USER_RESTRICTED": "Restriction added",
   "audit.USER_RESTRICTION_REVOKED": "Restriction revoked",
   "audit.USER_ROLE_CHANGED": "Role changed",
@@ -512,11 +516,9 @@ export const en = {
   "booking.imageChoose": "Choose image",
   "booking.imageChange": "Replace",
   "booking.imageRemove": "Remove",
-  "booking.imageInvalid":
-    "Choose a valid JPG, PNG or WebP image up to 12 MB.",
+  "booking.imageInvalid": "Choose a valid JPG, PNG or WebP image up to 12 MB.",
   "meetings.eyebrow": "Your working rhythm",
-  "meetings.subtitle":
-    "Every meeting you organize or have been invited to.",
+  "meetings.subtitle": "Every meeting you organize or have been invited to.",
   "meetings.newOnline": "+ Online meeting",
   "meetings.previousDays": "Previous days",
   "meetings.nextDays": "Next days",
@@ -600,6 +602,11 @@ export const en = {
   "profile.telegramAvailable": "Receive invitations in one tap",
   "profile.telegramUnavailable": "The bot is not configured for this company",
   "profile.telegramConnectError": "Could not prepare the Telegram connection.",
+  "profile.telegramTest": "Send test",
+  "profile.telegramTesting": "Sending…",
+  "profile.telegramTestQueued":
+    "The test notification was queued for Telegram.",
+  "profile.telegramTestError": "Could not send the Telegram test notification.",
   "profile.disconnect": "Disconnect",
   "profile.connect": "Connect",
   "telegramConnect.eyebrow": "Notification channel",
@@ -638,71 +645,99 @@ export const en = {
   "profile.changing": "Changing…",
   "profile.changePassword": "Change password",
   "errors.generic": "The action could not be completed. Please try again.",
-  "errors.network": "The server cannot be reached. Check your connection and try again.",
+  "errors.network":
+    "The server cannot be reached. Check your connection and try again.",
   "errors.ACCESS_REVOKED": "Corporate access to this account has been revoked.",
-  "errors.ADMIN_EDIT_REASON_REQUIRED": "The administrator must provide a reason for this change.",
-  "errors.ADMIN_REQUIRED": "Administrator permissions are required for this action.",
-  "errors.APPROVAL_REQUIRED": "This account is still awaiting administrator approval.",
-  "errors.ATTENDEE_BUSY":
-    "The user already has another meeting at this time.",
+  "errors.ADMIN_MANAGED_BY_CLI":
+    "Administrator access and role can only be changed through the server CLI.",
+  "errors.ADMIN_EDIT_REASON_REQUIRED":
+    "The administrator must provide a reason for this change.",
+  "errors.ADMIN_REQUIRED":
+    "Administrator permissions are required for this action.",
+  "errors.APPROVAL_REQUIRED":
+    "This account is still awaiting administrator approval.",
+  "errors.ATTENDEE_BUSY": "The user already has another meeting at this time.",
   "errors.AVATAR_REQUIRED": "Select an avatar image.",
-  "errors.BLOCK_DURATION_TOO_LONG": "The unavailable period exceeds the allowed duration.",
-  "errors.BOOKING_NOT_FOUND": "The booking was not found or is no longer available.",
+  "errors.BLOCK_DURATION_TOO_LONG":
+    "The unavailable period exceeds the allowed duration.",
+  "errors.BOOKING_NOT_FOUND":
+    "The booking was not found or is no longer available.",
   "errors.CANCELLATION_REASON_REQUIRED": "Provide a cancellation reason.",
-  "errors.CANNOT_DEMOTE_SELF": "You cannot remove administrator rights from your own account.",
-  "errors.CANNOT_RESTRICT_SELF": "You cannot restrict your own administrator access.",
-  "errors.CANNOT_REVOKE_SELF": "You cannot revoke your own administrator access.",
-  "errors.CAPABILITY_RESTRICTED": "This action has been restricted by an administrator.",
+  "errors.CANNOT_DEMOTE_SELF":
+    "You cannot remove administrator rights from your own account.",
+  "errors.CANNOT_RESTRICT_SELF":
+    "You cannot restrict your own administrator access.",
+  "errors.CANNOT_REVOKE_SELF":
+    "You cannot revoke your own administrator access.",
+  "errors.CAPABILITY_RESTRICTED":
+    "This action has been restricted by an administrator.",
   "errors.CAPABILITY_RESTRICTED_REASON": "This action is restricted: {reason}",
   "errors.CURRENT_PASSWORD_INCORRECT": "The current password is incorrect.",
   "errors.DURATION": "A meeting must last between 30 minutes and 4 hours.",
-  "errors.EMAIL_CHANGE_SUPERSEDED": "This email change request has been replaced by a newer one.",
+  "errors.EMAIL_CHANGE_SUPERSEDED":
+    "This email change request has been replaced by a newer one.",
   "errors.EMAIL_DELIVERY_UNAVAILABLE":
     "Email verification is required, but mail delivery is not configured. Contact an administrator.",
   "errors.EMAIL_TAKEN": "This email address is already in use.",
   "errors.EMAIL_UNCHANGED": "The new email address matches the current one.",
   "errors.EMAIL_VERIFICATION_REQUIRED": "Verify your email address first.",
-  "errors.EMPTY_RECURRENCE": "The selected recurrence does not produce any events.",
+  "errors.EMPTY_RECURRENCE":
+    "The selected recurrence does not produce any events.",
   "errors.EVENT_FULL": "The room has no remaining capacity.",
   "errors.INTERNAL_ERROR": "A server error occurred. Please try again later.",
   "errors.INVALID_BLOCK_RANGE": "The unavailable period is invalid.",
   "errors.INVALID_CREDENTIALS": "The email address or password is incorrect.",
   "errors.INVALID_IMAGE": "The file is not a supported image.",
-  "errors.INVALID_PARTICIPANT": "One or more selected participants are unavailable.",
+  "errors.INVALID_PARTICIPANT":
+    "One or more selected participants are unavailable.",
   "errors.INVALID_RANGE": "The selected time range is invalid.",
   "errors.INVALID_RECURRENCE_RANGE": "The recurrence must end within one year.",
   "errors.INVALID_RESTRICTION_RANGE": "The restriction period is invalid.",
-  "errors.INVALID_RESTRICTION_SCOPE": "The selected scope is not valid for this capability.",
+  "errors.INVALID_RESTRICTION_SCOPE":
+    "The selected scope is not valid for this capability.",
   "errors.INVALID_ROOM_IMAGE": "Upload a JPG, PNG, or WebP room image.",
   "errors.INVALID_TIME": "The start or end time is invalid.",
   "errors.INVALID_TIMEZONE": "Select a valid time zone.",
-  "errors.INVALID_VERIFICATION_TOKEN": "The verification link is invalid or has expired.",
+  "errors.INVALID_VERIFICATION_TOKEN":
+    "The verification link is invalid or has expired.",
   "errors.INVALID_WORKING_DAYS": "Select at least one valid working day.",
-  "errors.INVALID_WORK_HOURS": "The room opening and closing times are invalid.",
-  "errors.INVITATION_NOT_FOUND": "The invitation was not found or is no longer active.",
-  "errors.LAST_ADMIN": "Access cannot be removed from the last active administrator.",
+  "errors.INVALID_WORK_HOURS":
+    "The room opening and closing times are invalid.",
+  "errors.INVITATION_NOT_FOUND":
+    "The invitation was not found or is no longer active.",
+  "errors.LAST_ADMIN":
+    "Access cannot be removed from the last active administrator.",
   "errors.NAME_REQUIRED": "Enter a name.",
   "errors.NOT_BOOKING_OWNER": "Only the organizer can change this booking.",
   "errors.OUTSIDE_WORKING_DAYS": "The room is closed on the selected day.",
-  "errors.OUTSIDE_WORKING_HOURS": "Choose a time within the room's working hours.",
-  "errors.PASSWORD_LENGTH": "The password must contain between 8 and 72 characters.",
-  "errors.PASSWORD_UNCHANGED": "The new password must differ from the current password.",
+  "errors.OUTSIDE_WORKING_HOURS":
+    "Choose a time within the room's working hours.",
+  "errors.PASSWORD_LENGTH":
+    "The password must contain between 8 and 72 characters.",
+  "errors.PASSWORD_UNCHANGED":
+    "The new password must differ from the current password.",
   "errors.PAST": "The event must start in the future.",
   "errors.RECURRENCE_END_REQUIRED": "Select an end date for the series.",
-  "errors.RECURRENCE_WEEKDAYS_REQUIRED": "Select at least one weekday for the recurrence.",
-  "errors.RESTRICTION_NOT_FOUND": "The restriction was not found or has already been revoked.",
+  "errors.RECURRENCE_WEEKDAYS_REQUIRED":
+    "Select at least one weekday for the recurrence.",
+  "errors.RESTRICTION_NOT_FOUND":
+    "The restriction was not found or has already been revoked.",
   "errors.ROOM_BLOCK_NOT_FOUND": "The unavailable period was not found.",
   "errors.ROOM_BLOCK_SERIES_NOT_FOUND": "The unavailable series was not found.",
-  "errors.ROOM_CAPACITY_EXCEEDED": "The number of participants exceeds the room capacity.",
+  "errors.ROOM_CAPACITY_EXCEEDED":
+    "The number of participants exceeds the room capacity.",
   "errors.ROOM_IMAGE_REQUIRED": "Select a room image.",
   "errors.ROOM_NOT_FOUND": "The room was not found or is inactive.",
   "errors.ROOM_UNAVAILABLE": "The room is unavailable at the selected time.",
   "errors.SESSION_EXPIRED": "Your session has ended. Sign in again.",
   "errors.SLOT_ALIGNMENT": "The time must align to a 30-minute slot.",
   "errors.SLOT_TAKEN": "This time is already occupied by another booking.",
-  "errors.TELEGRAM_NOT_CONFIGURED": "The Telegram bot is not configured for this company.",
+  "errors.TELEGRAM_NOT_CONFIGURED":
+    "The Telegram bot is not configured for this company.",
+  "errors.TELEGRAM_NOT_CONNECTED": "Connect Telegram in your profile first.",
   "errors.TITLE_REQUIRED": "Enter an event title.",
-  "errors.TOO_MANY_OCCURRENCES": "A series cannot contain more than 100 events.",
+  "errors.TOO_MANY_OCCURRENCES":
+    "A series cannot contain more than 100 events.",
   "errors.UNAUTHENTICATED": "Sign in to continue.",
   "errors.USER_NOT_FOUND": "The user was not found.",
   "errors.VALIDATION_ERROR": "Check the highlighted fields.",

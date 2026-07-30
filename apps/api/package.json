@@ -15,7 +15,9 @@
     "db:migrate:status:prod": "node dist/database/migration-status.js",
     "db:migrate:create": "node-pg-migrate create --migration-file-language sql --migration-filename-format index --migrations-dir src/database/migrations",
     "db:seed": "tsx src/database/seed.ts",
-    "db:seed:prod": "node dist/database/seed.js"
+    "db:seed:prod": "node dist/database/seed.js",
+    "admin:cli": "tsx src/database/admin-cli.ts",
+    "admin:cli:prod": "node dist/database/admin-cli.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.28",
