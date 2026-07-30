@@ -1447,17 +1447,17 @@ hr {
 .calendar-toolbar__word {
   position: absolute;
   z-index: -1;
-  top: 14px;
+  top: 16px;
   right: 0;
   overflow: hidden;
   max-width: 64%;
   color: color-mix(in srgb, var(--primary) 8%, transparent);
   font-family: "Unbounded Variable", sans-serif;
-  font-size: clamp(4.6rem, 9vw, 9.6rem);
+  font-size: clamp(4.8rem, 10vw, 11.5rem);
   font-style: italic;
   font-weight: 850;
   letter-spacing: -0.09em;
-  line-height: 0.86;
+  line-height: 0.82;
   pointer-events: none;
   text-transform: uppercase;
   white-space: nowrap;
@@ -6043,10 +6043,10 @@ hr {
   }
 
   .calendar-toolbar__word {
-    top: -4px;
-    right: -10px;
-    max-width: 72%;
-    font-size: clamp(3.2rem, 17vw, 5.5rem);
+    top: -26px;
+    right: 0;
+    max-width: 64%;
+    font-size: clamp(4.8rem, 10vw, 11.5rem);
   }
 
   .calendar-toolbar .room-identity {
