@@ -30,9 +30,9 @@ function focusableElements(): HTMLElement[] {
   });
 }
 
-function moveFocus(direction: Direction): void {
+function moveFocus(direction: Direction): boolean {
   const candidates = focusableElements();
-  if (!candidates.length) return;
+  if (!candidates.length) return false;
   const current =
     document.activeElement instanceof HTMLElement
       ? document.activeElement
@@ -40,7 +40,7 @@ function moveFocus(direction: Direction): void {
   if (!current || !candidates.includes(current)) {
     candidates[0]?.focus();
     candidates[0]?.scrollIntoView({ block: "nearest", inline: "nearest" });
-    return;
+    return true;
   }
 
   const origin = current.getBoundingClientRect();
@@ -70,7 +70,7 @@ function moveFocus(direction: Direction): void {
     if (!best || score < best.score) best = { element, score };
   }
 
-  if (!best) return;
+  if (!best) return false;
   best.element.focus({ preventScroll: true });
   best.element.scrollIntoView({
     block: "nearest",
@@ -79,6 +79,61 @@ function moveFocus(direction: Direction): void {
       ? "auto"
       : "smooth",
   });
+  return true;
+}
+
+function keyboardDirection(event: KeyboardEvent): Direction | null {
+  if (event.altKey || event.ctrlKey || event.metaKey) return null;
+  if (event.key === "ArrowUp") return "up";
+  if (event.key === "ArrowDown") return "down";
+  if (event.key === "ArrowLeft") return "left";
+  if (event.key === "ArrowRight") return "right";
+  return null;
+}
+
+function canNavigateFromControl(
+  target: HTMLElement,
+  direction: Direction,
+): boolean {
+  if (
+    target.matches(
+      "[role='combobox'], [aria-autocomplete], [aria-haspopup='listbox']",
+    ) ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLTextAreaElement ||
+    target.isContentEditable
+  ) {
+    return false;
+  }
+  if (!(target instanceof HTMLInputElement)) return true;
+
+  const nativeArrowTypes = new Set([
+    "date",
+    "datetime-local",
+    "month",
+    "number",
+    "radio",
+    "range",
+    "time",
+    "week",
+  ]);
+  if (nativeArrowTypes.has(target.type)) return false;
+
+  const textTypes = new Set([
+    "email",
+    "password",
+    "search",
+    "tel",
+    "text",
+    "url",
+  ]);
+  if (!textTypes.has(target.type)) return true;
+  if (direction === "up" || direction === "down") return true;
+
+  const start = target.selectionStart;
+  const end = target.selectionEnd;
+  if (start === null || end === null || start !== end) return false;
+  return direction === "left" ? start === 0 : end === target.value.length;
 }
 
 function gamepadDirection(gamepad: Gamepad): Direction | null {
@@ -108,7 +163,17 @@ export function InputNavigation() {
     const setInputMode = (mode: "keyboard" | "pointer" | "gamepad") => {
       document.documentElement.dataset.inputMode = mode;
     };
-    const onKeyDown = () => setInputMode("keyboard");
+    const onKeyDown = (event: KeyboardEvent) => {
+      setInputMode("keyboard");
+      const direction = keyboardDirection(event);
+      if (!direction) return;
+      const target =
+        event.target instanceof HTMLElement ? event.target : undefined;
+      if (!target || !canNavigateFromControl(target, direction)) return;
+      if (!moveFocus(direction)) return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
     const onPointerDown = () => setInputMode("pointer");
     window.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("pointerdown", onPointerDown, true);
