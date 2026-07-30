@@ -3170,6 +3170,8 @@ hr {
     ),
     var(--surface-raised);
   gap: 16px;
+  container-name: room-settings;
+  container-type: inline-size;
 }
 
 .room-workspace__settings > div:first-child {
@@ -3341,7 +3343,7 @@ hr {
 
 .working-day-picker > div {
   display: grid;
-  grid-template-columns: repeat(7, minmax(34px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 5px;
 }
 
@@ -3367,6 +3369,17 @@ hr {
   background: var(--primary);
   color: var(--primary-contrast);
   box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+@container room-settings (max-width: 620px) {
+  .room-hours-editor {
+    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .room-hours-editor > .button {
+    justify-self: start;
+  }
 }
 
 .room-block-list {
@@ -3914,7 +3927,7 @@ hr {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
   .room-management__workspace {
     grid-template-columns: 1fr;
   }
