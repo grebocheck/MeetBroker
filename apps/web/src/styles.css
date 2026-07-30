@@ -228,9 +228,38 @@ hr {
 }
 
 .app-layout {
+  position: relative;
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
   min-height: 100vh;
+  isolation: isolate;
+}
+
+.app-layout::after {
+  position: fixed;
+  right: -7rem;
+  bottom: -6rem;
+  z-index: -1;
+  width: min(34vw, 560px);
+  height: min(58vh, 640px);
+  background:
+    linear-gradient(
+      132deg,
+      transparent 0 24%,
+      color-mix(in srgb, var(--cyan) 9%, transparent) 24.3% 48%,
+      transparent 48.3% 62%,
+      color-mix(in srgb, var(--primary) 7%, transparent) 62.3% 78%,
+      transparent 78.3%
+    ),
+    repeating-linear-gradient(
+      132deg,
+      transparent 0 52px,
+      color-mix(in srgb, var(--primary) 8%, transparent) 53px 55px,
+      transparent 56px 88px
+    );
+  clip-path: polygon(38% 0, 100% 14%, 100% 100%, 0 100%, 12% 48%);
+  content: "";
+  pointer-events: none;
 }
 
 .sidebar {
@@ -1659,7 +1688,7 @@ hr {
 .calendar-card {
   overflow: hidden;
   border: 1px solid rgba(127, 207, 255, 0.58);
-  border-radius: 3px 18px 3px 18px;
+  border-radius: 0;
   background: var(--surface-raised);
   box-shadow: 0 22px 54px rgba(0, 13, 42, 0.34);
 }
@@ -4923,6 +4952,7 @@ hr {
   padding: 0;
   overflow: hidden;
   border-color: rgba(116, 203, 255, 0.5);
+  border-radius: 0;
   box-shadow: 0 18px 46px rgba(0, 11, 36, 0.26);
 }
 
@@ -5313,6 +5343,7 @@ hr {
 }
 
 @media (max-width: 1200px) {
+  .app-layout::after,
   .app-main::after {
     display: none;
   }
