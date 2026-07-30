@@ -104,48 +104,57 @@ export function AdminPage() {
   const [section, setSection] = useState<
     "users" | "bookings" | "rooms" | "audit"
   >("users");
+  const sections = [
+    ["users", "01", t("admin.users")],
+    ["bookings", "02", t("admin.bookings")],
+    ["rooms", "03", t("admin.rooms")],
+    ["audit", "04", t("admin.audit")],
+  ] as const;
+  const activeSection = sections.find(([value]) => value === section);
+
   return (
     <div
       className="page editorial-page admin-page"
       data-page-mark="CONTROL / ADMIN"
     >
-      <header className="page-header">
+      <header className="page-header admin-hero">
         <div>
           <span className="eyebrow">{t("admin.eyebrow")}</span>
           <h1>{t("administration")}</h1>
           <p>{t("admin.subtitle")}</p>
         </div>
+        <div className="admin-hero__status" aria-hidden="true">
+          <span>MeetBroker / Control</span>
+          <strong>Admin · 04</strong>
+        </div>
       </header>
-      <div className="tabs">
-        <button
-          className={section === "users" ? "is-active" : ""}
-          onClick={() => setSection("users")}
-        >
-          {t("admin.users")}
-        </button>
-        <button
-          className={section === "bookings" ? "is-active" : ""}
-          onClick={() => setSection("bookings")}
-        >
-          {t("admin.bookings")}
-        </button>
-        <button
-          className={section === "rooms" ? "is-active" : ""}
-          onClick={() => setSection("rooms")}
-        >
-          {t("admin.rooms")}
-        </button>
-        <button
-          className={section === "audit" ? "is-active" : ""}
-          onClick={() => setSection("audit")}
-        >
-          {t("admin.audit")}
-        </button>
+      <nav className="admin-section-tabs" aria-label={t("administration")}>
+        {sections.map(([value, index, label]) => (
+          <button
+            className={section === value ? "is-active" : ""}
+            onClick={() => setSection(value)}
+            aria-current={section === value ? "page" : undefined}
+            key={value}
+          >
+            <span>{index}</span>
+            <strong>{label}</strong>
+          </button>
+        ))}
+      </nav>
+      <div className="admin-workspace">
+        <div className="admin-workspace__caption" aria-hidden="true">
+          <span>MeetBroker / Admin</span>
+          <strong>
+            {activeSection?.[1]} · {activeSection?.[2]}
+          </strong>
+        </div>
+        <div className="admin-workspace__content">
+          {section === "users" && <UsersAdmin />}
+          {section === "bookings" && <BookingsAdmin />}
+          {section === "rooms" && <RoomsAdmin />}
+          {section === "audit" && <AuditAdmin />}
+        </div>
       </div>
-      {section === "users" && <UsersAdmin />}
-      {section === "bookings" && <BookingsAdmin />}
-      {section === "rooms" && <RoomsAdmin />}
-      {section === "audit" && <AuditAdmin />}
     </div>
   );
 }
