@@ -441,8 +441,9 @@ export function CalendarPage({ user }: { user: User }) {
                     );
                     return (
                       <span
+                        className={index === 0 ? "is-first" : undefined}
                         key={minutes}
-                        style={{ top: index * SLOT_HEIGHT - 7 }}
+                        style={{ top: index * SLOT_HEIGHT }}
                       >
                         {new Intl.DateTimeFormat(
                           dateLocale,

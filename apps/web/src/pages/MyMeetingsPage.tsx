@@ -74,6 +74,18 @@ export function MyMeetingsPage({ user }: { user: User }) {
       ),
     ]),
   );
+  const visibleMeetings = meetings.data?.meetings ?? [];
+  const nextMeeting = visibleMeetings.find(
+    (meeting) => new Date(meeting.endsAt) > new Date(),
+  );
+  const todayCount = visibleMeetings.filter((meeting) =>
+    sameDay(new Date(meeting.startsAt), new Date()),
+  ).length;
+  const invitationCount = visibleMeetings.filter(
+    (meeting) =>
+      meeting.myRole === "PARTICIPANT" &&
+      meeting.participantStatus === "INVITED",
+  ).length;
   const formatTime = (value: string) =>
     new Intl.DateTimeFormat(dateLocale, {
       hour: "2-digit",
@@ -105,7 +117,66 @@ export function MyMeetingsPage({ user }: { user: User }) {
         </Button>
       </header>
 
-      <section className="meetings-calendar card">
+      <section className="meetings-overview" aria-label={t("meetings.overview")}>
+        <article className="meetings-next card">
+          <span className="eyebrow">{t("meetings.nextMeeting")}</span>
+          {meetings.isLoading ? (
+            <div className="meetings-next__empty">
+              <strong>{t("meetings.loading")}</strong>
+            </div>
+          ) : nextMeeting ? (
+            <>
+              <div className="meetings-next__time">
+                <strong>{formatTime(nextMeeting.startsAt)}</strong>
+                <span>
+                  {new Intl.DateTimeFormat(dateLocale, {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    timeZone,
+                  }).format(new Date(nextMeeting.startsAt))}
+                </span>
+              </div>
+              <h2>{nextMeeting.title}</h2>
+              <p>
+                {nextMeeting.meetingType === "ONLINE"
+                  ? t("booking.onlineMeeting")
+                  : nextMeeting.room?.name}
+                <span aria-hidden="true"> · </span>
+                {nextMeeting.myRole === "ORGANIZER"
+                  ? t("meetings.organizer")
+                  : t("meetings.invited")}
+              </p>
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={() => setSelected(nextMeeting)}
+              >
+                {t("meetings.details")}
+              </Button>
+            </>
+          ) : (
+            <div className="meetings-next__empty">
+              <strong>{t("meetings.noUpcoming")}</strong>
+              <span>{t("meetings.noUpcomingBody")}</span>
+            </div>
+          )}
+        </article>
+        <div className="meetings-stats">
+          <article className="meeting-stat card">
+            <span>{t("meetings.todayCount")}</span>
+            <strong>{meetings.isLoading ? "—" : todayCount}</strong>
+            <small>{t("meetings.todayCountHint")}</small>
+          </article>
+          <article className="meeting-stat meeting-stat--accent card">
+            <span>{t("meetings.invitationCount")}</span>
+            <strong>{meetings.isLoading ? "—" : invitationCount}</strong>
+            <small>{t("meetings.invitationCountHint")}</small>
+          </article>
+        </div>
+      </section>
+
+      <section className="personal-agenda card">
         <div className="meetings-calendar__toolbar">
           <div className="calendar-navigation">
             <Button
@@ -129,19 +200,22 @@ export function MyMeetingsPage({ user }: { user: User }) {
               ›
             </Button>
           </div>
-          <strong>
-            {new Intl.DateTimeFormat(dateLocale, {
-              day: "numeric",
-              month: "long",
-              timeZone,
-            }).format(days[0])}
-            {" — "}
-            {new Intl.DateTimeFormat(dateLocale, {
-              day: "numeric",
-              month: "long",
-              timeZone,
-            }).format(days[days.length - 1])}
-          </strong>
+          <div className="meetings-range">
+            <span>{t("meetings.sixDayAgenda")}</span>
+            <strong>
+              {new Intl.DateTimeFormat(dateLocale, {
+                day: "numeric",
+                month: "long",
+                timeZone,
+              }).format(days[0])}
+              {" — "}
+              {new Intl.DateTimeFormat(dateLocale, {
+                day: "numeric",
+                month: "long",
+                timeZone,
+              }).format(days[days.length - 1])}
+            </strong>
+          </div>
         </div>
 
         {meetings.isLoading ? (
@@ -152,17 +226,17 @@ export function MyMeetingsPage({ user }: { user: User }) {
             <span>{errorMessage(meetings.error, t, "meetings.loadError")}</span>
           </div>
         ) : (
-          <div className="meetings-calendar__days">
+          <div className="agenda-days">
             {days.map((day) => {
               const dayMeetings =
                 grouped.get(day.toISOString().slice(0, 10)) ?? [];
               const today = sameDay(day, new Date());
               return (
                 <section
-                  className={`meetings-day${today ? " meetings-day--today" : ""}`}
+                  className={`agenda-day${today ? " agenda-day--today" : ""}`}
                   key={day.toISOString()}
                 >
-                  <header>
+                  <header className="agenda-day__date">
                     <span>
                       {new Intl.DateTimeFormat(dateLocale, {
                         weekday: "short",
@@ -172,32 +246,47 @@ export function MyMeetingsPage({ user }: { user: User }) {
                     <strong>{day.getDate()}</strong>
                     {today && <small>{t("today")}</small>}
                   </header>
-                  <div className="meetings-day__items">
+                  <div className="agenda-day__meetings">
                     {dayMeetings.length === 0 ? (
-                      <span className="meetings-day__empty">
-                        {t("meetings.freeDay")}
-                      </span>
+                      <div className="agenda-day__empty">
+                        <span>{t("meetings.freeDay")}</span>
+                      </div>
                     ) : (
                       dayMeetings.map((meeting) => (
                         <button
-                          className={`meeting-tile meeting-tile--${meeting.meetingType.toLowerCase()}`}
+                          className={`agenda-meeting agenda-meeting--${meeting.meetingType.toLowerCase()}`}
                           onClick={() => setSelected(meeting)}
                           key={meeting.id}
                         >
-                          <span>
-                            {formatTime(meeting.startsAt)}–{formatTime(meeting.endsAt)}
+                          <span className="agenda-meeting__time">
+                            <strong>{formatTime(meeting.startsAt)}</strong>
+                            <small>{formatTime(meeting.endsAt)}</small>
                           </span>
-                          <strong>{meeting.title}</strong>
-                          <small>
-                            {meeting.meetingType === "ONLINE"
-                              ? t("booking.onlineMeeting")
-                              : meeting.room?.name}
-                          </small>
-                          <em>
-                            {meeting.myRole === "ORGANIZER"
-                              ? t("meetings.organizer")
-                              : t("meetings.invited")}
-                          </em>
+                          <span className="agenda-meeting__copy">
+                            <strong>{meeting.title}</strong>
+                            <small>
+                              {meeting.meetingType === "ONLINE"
+                                ? t("booking.onlineMeeting")
+                                : meeting.room?.name}
+                              <span aria-hidden="true"> · </span>
+                              {meeting.organizer.name}
+                            </small>
+                          </span>
+                          <span className="agenda-meeting__badges">
+                            <em>
+                              {meeting.myRole === "ORGANIZER"
+                                ? t("meetings.organizer")
+                                : t("meetings.invited")}
+                            </em>
+                            {meeting.participantStatus === "INVITED" && (
+                              <em className="is-pending">
+                                {t("meetings.awaitingResponse")}
+                              </em>
+                            )}
+                          </span>
+                          <span className="agenda-meeting__arrow" aria-hidden="true">
+                            ›
+                          </span>
                         </button>
                       ))
                     )}
