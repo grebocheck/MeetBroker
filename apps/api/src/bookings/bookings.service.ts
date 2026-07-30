@@ -613,7 +613,17 @@ export class BookingsService {
         workEnd: booking.work_end,
         workingDays: booking.working_days,
       });
-      if (ruleError) throw this.ruleException(ruleError);
+      if (
+        ruleError &&
+        !(
+          user.role === "ADMIN" &&
+          adminReason &&
+          (ruleError === "OUTSIDE_WORKING_HOURS" ||
+            ruleError === "OUTSIDE_WORKING_DAYS")
+        )
+      ) {
+        throw this.ruleException(ruleError);
+      }
 
       const block = await client.query(
         `
@@ -627,7 +637,7 @@ export class BookingsService {
         `,
         [booking.room_id, startsAt, endsAt],
       );
-      if (block.rowCount) {
+      if (block.rowCount && !(user.role === "ADMIN" && adminReason)) {
         throw apiError(
           HttpStatus.CONFLICT,
           "ROOM_UNAVAILABLE",

@@ -1409,8 +1409,10 @@ function RoomHoursEditor({ room }: { room: Room }) {
         <label className="room-hours-editor__field">
           <span>Відкриття</span>
           <input
-            type="time"
-            step={1800}
+            type="text"
+            inputMode="numeric"
+            maxLength={5}
+            placeholder="09:00"
             aria-label={`Початок роботи ${room.name}, формат ГГ:ХХ`}
             value={workStart}
             onChange={(event) => {
@@ -1423,8 +1425,10 @@ function RoomHoursEditor({ room }: { room: Room }) {
         <label className="room-hours-editor__field">
           <span>Закриття</span>
           <input
-            type="time"
-            step={1800}
+            type="text"
+            inputMode="numeric"
+            maxLength={5}
+            placeholder="19:00"
             aria-label={`Завершення роботи ${room.name}, формат ГГ:ХХ`}
             value={workEnd}
             onChange={(event) => {
