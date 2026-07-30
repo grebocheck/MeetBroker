@@ -36,17 +36,14 @@
   --radius-lg: 18px;
   --shape-action: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
   --shape-nav: polygon(
-    0 0,
-    calc(100% - 12px) 0,
-    100% 50%,
-    calc(100% - 12px) 100%,
-    0 100%,
-    8px 50%
+    8px 0,
+    100% 0,
+    calc(100% - 8px) 100%,
+    0 100%
   );
   --shape-nav-origin: polygon(
     0 0,
-    calc(100% - 12px) 0,
-    100% 50%,
+    100% 0,
     calc(100% - 12px) 100%,
     0 100%
   );
@@ -374,8 +371,11 @@ hr {
   background-color: transparent;
   color: rgba(232, 246, 255, 0.76);
   clip-path: var(--shape-nav);
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-family: "Unbounded Variable", sans-serif;
+  font-size: 0.69rem;
+  font-weight: 620;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
   isolation: isolate;
   transition:
     background-color 180ms ease,
@@ -414,7 +414,8 @@ hr {
 .nav-item:hover,
 .nav-item--active {
   background-color: #f6fbff;
-  color: #0759bd;
+  color: #07101f;
+  font-weight: 720;
   transform: translateX(4px);
 }
 
