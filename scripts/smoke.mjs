@@ -558,6 +558,181 @@ async function verifyCriticalBookingGuards(
   throw new Error("Could not find an available slot for booking guard smoke");
 }
 
+async function verifyCapabilityPolicies({
+  adminCookie,
+  userCookie,
+  userId,
+  room,
+}) {
+  const restrictions = [];
+  const createRestriction = async (capability, reason, roomId) => {
+    const created = await request(
+      `/api/admin/users/${userId}/restrictions`,
+      {
+        method: "POST",
+        headers: { cookie: adminCookie },
+        body: JSON.stringify({
+          capability,
+          roomId,
+          expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+          reason,
+        }),
+      },
+    );
+    check(created.body?.id, `${capability} restriction was not created`);
+    restrictions.push(created.body.id);
+    return created.body.id;
+  };
+  const removeRestriction = async (id) => {
+    await request(`/api/admin/restrictions/${id}`, {
+      method: "DELETE",
+      headers: { cookie: adminCookie },
+    });
+    restrictions.splice(restrictions.indexOf(id), 1);
+  };
+  const expectRestricted = async (path, options, capability) => {
+    const response = await fetch(`${baseUrl}${path}`, options);
+    const body = await response.json();
+    check(
+      response.status === 403 &&
+        body?.error?.code === "CAPABILITY_RESTRICTED" &&
+        body?.error?.details?.capability === capability,
+      `${capability} policy was not enforced: ${response.status} ${JSON.stringify(body)}`,
+    );
+  };
+
+  try {
+    let restrictionId = await createRestriction(
+      "SCHEDULE_VIEW",
+      "Scoped schedule smoke policy",
+      room.id,
+    );
+    const from = new Date();
+    const to = new Date(from.getTime() + 24 * 60 * 60_000);
+    await expectRestricted(
+      `/api/bookings/schedule?roomId=${room.id}` +
+        `&from=${encodeURIComponent(from.toISOString())}` +
+        `&to=${encodeURIComponent(to.toISOString())}`,
+      { headers: { cookie: userCookie } },
+      "SCHEDULE_VIEW",
+    );
+    const meWithPolicy = await request("/api/auth/me", {
+      headers: { cookie: userCookie },
+    });
+    check(
+      meWithPolicy.body?.user?.activeRestrictions?.some(
+        (item) =>
+          item.id === restrictionId &&
+          item.reason === "Scoped schedule smoke policy",
+      ),
+      "Active policy reason and period are missing from the user session",
+    );
+    await removeRestriction(restrictionId);
+
+    restrictionId = await createRestriction(
+      "BOOKING_CREATE",
+      "Booking creation smoke policy",
+    );
+    const startsAt = bookingCandidates(
+      process.env.OFFICE_TIME_ZONE ?? "Europe/Kyiv",
+    )[0];
+    await expectRestricted(
+      "/api/bookings",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: userCookie,
+        },
+        body: JSON.stringify({
+          roomId: room.id,
+          title: "Restricted creation smoke",
+          startsAt: startsAt.toISOString(),
+          endsAt: new Date(startsAt.getTime() + 30 * 60_000).toISOString(),
+        }),
+      },
+      "BOOKING_CREATE",
+    );
+    await removeRestriction(restrictionId);
+
+    let ownedBooking;
+    for (const candidate of bookingCandidates(
+      process.env.OFFICE_TIME_ZONE ?? "Europe/Kyiv",
+    )) {
+      const response = await fetch(`${baseUrl}/api/bookings`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: userCookie,
+        },
+        body: JSON.stringify({
+          roomId: room.id,
+          title: `Restricted cancellation smoke ${Date.now()}`,
+          startsAt: candidate.toISOString(),
+          endsAt: new Date(candidate.getTime() + 30 * 60_000).toISOString(),
+        }),
+      });
+      const body = await response.json();
+      if (response.status === 409) continue;
+      check(response.status === 201, `Policy fixture booking failed: ${JSON.stringify(body)}`);
+      ownedBooking = body;
+      break;
+    }
+    check(ownedBooking?.id, "Could not create policy fixture booking");
+    restrictionId = await createRestriction(
+      "BOOKING_CANCEL_OWN",
+      "Own cancellation smoke policy",
+      room.id,
+    );
+    await expectRestricted(
+      `/api/bookings/${ownedBooking.id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+          cookie: userCookie,
+        },
+        body: JSON.stringify({ reason: "Restricted cancellation attempt" }),
+      },
+      "BOOKING_CANCEL_OWN",
+    );
+    await removeRestriction(restrictionId);
+    await request(`/api/bookings/${ownedBooking.id}`, {
+      method: "DELETE",
+      headers: { cookie: adminCookie },
+      body: JSON.stringify({ reason: "Capability policy smoke cleanup" }),
+    });
+
+    restrictionId = await createRestriction(
+      "ACCOUNT_LOGIN",
+      "Account login smoke policy",
+    );
+    await expectRestricted(
+      "/api/auth/me",
+      { headers: { cookie: userCookie } },
+      "ACCOUNT_LOGIN",
+    );
+    await expectRestricted(
+      "/api/auth/login",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(userCredentials),
+      },
+      "ACCOUNT_LOGIN",
+    );
+    await removeRestriction(restrictionId);
+    check(await login(userCredentials), "Login did not recover after policy revoke");
+  } finally {
+    for (const restrictionId of [...restrictions]) {
+      await fetch(`${baseUrl}/api/admin/restrictions/${restrictionId}`, {
+        method: "DELETE",
+        headers: { cookie: adminCookie },
+      });
+    }
+  }
+}
+
 async function main() {
   console.log(`Smoke checking ${baseUrl}`);
   await waitForReady();
@@ -656,6 +831,16 @@ async function main() {
     users.body?.users?.length >= 3,
     "Expected seeded users in admin response",
   );
+  const managedUser = users.body.users.find(
+    (user) => user.email === userCredentials.email,
+  );
+  check(managedUser, "Smoke user is missing from admin management");
+  await verifyCapabilityPolicies({
+    adminCookie,
+    userCookie,
+    userId: managedUser.id,
+    room: roomsResult.body.rooms.at(-1),
+  });
 
   const managedBookings = await request(
     "/api/admin/bookings?status=cancelled&search=Admin%20adjusted%20MVP%20smoke",
@@ -768,7 +953,7 @@ async function main() {
   console.log(
     `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/update/cancel, ` +
       "critical booking guards and concurrency, colleagues, events, preferences, " +
-      "booking management, room image lifecycle, working hours, recurring " +
+      "capability policies, booking management, room image lifecycle, working hours, recurring " +
       "unavailability, account credentials and administration",
   );
 }

@@ -6,6 +6,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
 import * as argon2 from "argon2";
+import { AccessPoliciesService } from "../access-policies/access-policies.service";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
 import { createOpaqueToken, hashToken } from "../common/crypto";
@@ -42,6 +43,7 @@ export class AuthService {
 
   constructor(
     private readonly database: DatabaseService,
+    private readonly accessPolicies: AccessPoliciesService,
     config: ConfigService
   ) {
     this.sessionTtlDays = Number(config.get("SESSION_TTL_DAYS") ?? 30);
@@ -248,6 +250,12 @@ export class AuthService {
         "Corporate access has been revoked"
       );
     }
+    await this.accessPolicies.assertAllowed(
+      this.database,
+      row.id,
+      "ACCOUNT_LOGIN",
+    );
+    const activeRestrictions = await this.accessPolicies.listActive(row.id);
 
     const token = createOpaqueToken();
     const expiresAt = new Date(
@@ -261,7 +269,11 @@ export class AuthService {
       [randomUUID(), row.id, hashToken(token), expiresAt]
     );
 
-    return { token, expiresAt, user: this.toCurrentUser(row) };
+    return {
+      token,
+      expiresAt,
+      user: { ...this.toCurrentUser(row), activeRestrictions },
+    };
   }
 
   async logout(sessionId: string): Promise<void> {

@@ -12,6 +12,7 @@ import { NotificationsPage } from "../pages/NotificationsPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { Avatar } from "./Avatar";
 import { BrandMark } from "./BrandMark";
+import { capabilityLabel } from "./UserAccessDialog";
 import {
   BellIcon,
   CalendarIcon,
@@ -193,7 +194,28 @@ export function AppShell({ user, path }: { user: User; path: string }) {
           </button>
         </div>
       </aside>
-      <main className="app-main">{content}</main>
+      <main className="app-main">
+        {Boolean(user.activeRestrictions?.length) && (
+          <aside className="access-notice" aria-label="Обмеження доступу">
+            <strong>Діє обмеження доступу</strong>
+            <div>
+              {user.activeRestrictions?.map((restriction) => (
+                <span key={restriction.id}>
+                  {capabilityLabel(restriction.capability)} ·{" "}
+                  {restriction.reason}
+                  {restriction.expiresAt
+                    ? ` · до ${new Intl.DateTimeFormat("uk-UA", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(restriction.expiresAt))}`
+                    : " · безстроково"}
+                </span>
+              ))}
+            </div>
+          </aside>
+        )}
+        {content}
+      </main>
     </div>
   );
 }

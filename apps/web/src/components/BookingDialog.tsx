@@ -65,6 +65,15 @@ function bookingError(error: unknown): {
       target: "form",
       message: "Створення бронювань для вашого профілю тимчасово обмежене."
     },
+    CAPABILITY_RESTRICTED: {
+      target: "form",
+      message:
+        typeof error.details === "object" &&
+        error.details !== null &&
+        "reason" in error.details
+          ? `Дію обмежено. Причина: ${String(error.details.reason)}`
+          : "Ця дія тимчасово обмежена адміністратором."
+    },
     ADMIN_EDIT_REASON_REQUIRED: {
       target: "adminReason",
       message: "Вкажіть змістовну причину адміністративної зміни."

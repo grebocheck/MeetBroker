@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
+import { AccessPoliciesService } from "../access-policies/access-policies.service";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
 import type { CurrentUser } from "../common/types";
@@ -40,13 +41,19 @@ export class BookingsService {
   constructor(
     private readonly database: DatabaseService,
     private readonly notifications: NotificationsService,
+    private readonly accessPolicies: AccessPoliciesService,
     config: ConfigService,
   ) {
     this.officeTimeZone =
       config.get<string>("OFFICE_TIMEZONE") ?? "Europe/Kyiv";
   }
 
-  async schedule(roomId: string, fromRaw: string, toRaw: string) {
+  async schedule(
+    userId: string,
+    roomId: string,
+    fromRaw: string,
+    toRaw: string,
+  ) {
     const from = new Date(fromRaw);
     const to = new Date(toRaw);
     if (
@@ -61,6 +68,12 @@ export class BookingsService {
         "Schedule range is invalid",
       );
     }
+    await this.accessPolicies.assertAllowed(
+      this.database,
+      userId,
+      "SCHEDULE_VIEW",
+      roomId,
+    );
 
     const room = await this.database.query<RoomRow>(
       `
@@ -944,9 +957,11 @@ export class BookingsService {
         id: string;
         title: string;
         organizer_id: string;
+        room_id: string;
         cancelled_at: Date | null;
       }>(
-        "select id, title, organizer_id, cancelled_at from bookings where id = $1 for update",
+        `select id, title, organizer_id, room_id, cancelled_at
+         from bookings where id = $1 for update`,
         [bookingId],
       );
       const booking = bookingResult.rows[0];
@@ -962,6 +977,14 @@ export class BookingsService {
           HttpStatus.FORBIDDEN,
           "NOT_BOOKING_OWNER",
           "Only the organizer can cancel this booking",
+        );
+      }
+      if (booking.organizer_id === user.id) {
+        await this.accessPolicies.assertAllowed(
+          client,
+          user.id,
+          "BOOKING_CANCEL_OWN",
+          booking.room_id,
         );
       }
       const isAdministrativeCancellation =
@@ -1035,27 +1058,12 @@ export class BookingsService {
     userId: string,
     roomId: string,
   ): Promise<void> {
-    const restriction = await client.query(
-      `
-        select id
-        from user_restrictions
-        where user_id = $1
-          and capability = 'BOOKING_CREATE'
-          and revoked_at is null
-          and starts_at <= now()
-          and (expires_at is null or expires_at > now())
-          and (room_id is null or room_id = $2)
-        limit 1
-      `,
-      [userId, roomId],
+    await this.accessPolicies.assertAllowed(
+      client,
+      userId,
+      "BOOKING_CREATE",
+      roomId,
     );
-    if (restriction.rowCount) {
-      throw apiError(
-        HttpStatus.FORBIDDEN,
-        "BOOKING_CREATE_RESTRICTED",
-        "Creating bookings is temporarily restricted",
-      );
-    }
   }
 
   private async loadParticipants(

@@ -552,6 +552,42 @@ hr {
   isolation: isolate;
 }
 
+.access-notice {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  margin: 18px clamp(18px, 3vw, 48px) 0;
+  padding: 13px 16px;
+  border: 1px solid color-mix(in srgb, var(--warning) 42%, var(--border));
+  border-left: 5px solid var(--warning);
+  border-radius: 3px 16px 3px 16px;
+  gap: 16px;
+  background: color-mix(in srgb, var(--surface-raised) 94%, var(--warning));
+  box-shadow: var(--shadow-sm);
+}
+
+.access-notice > strong {
+  flex: 0 0 auto;
+  color: var(--warning);
+  font-family: "Unbounded Variable", sans-serif;
+  font-size: 0.68rem;
+}
+
+.access-notice > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.access-notice + .page {
+  padding-top: 22px;
+}
+
 .app-main::before {
   position: fixed;
   top: -7rem;
@@ -1562,6 +1598,92 @@ hr {
   justify-content: flex-end;
   gap: 8px;
   padding-top: 8px;
+}
+
+.access-dialog {
+  width: min(780px, 100%);
+}
+
+.access-dialog__section {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 3px 18px 3px 18px;
+  background: var(--surface-muted);
+}
+
+.access-dialog__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 16px;
+}
+
+.access-dialog__heading > div,
+.access-dialog__danger > div,
+.access-policy > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.access-dialog__heading span,
+.access-dialog__danger span,
+.access-policy span,
+.field-hint {
+  color: var(--text-muted);
+  font-size: 0.67rem;
+  line-height: 1.45;
+}
+
+.access-policy-list {
+  display: flex;
+  max-height: 260px;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.access-policy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 3px 14px 3px 14px;
+  gap: 16px;
+  background: var(--surface-raised);
+}
+
+.access-policy p {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.access-dialog label .field-hint {
+  display: block;
+  margin-top: 5px;
+  font-weight: 500;
+}
+
+.access-dialog__danger {
+  display: grid;
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--danger-fill) 45%, var(--border));
+  border-left: 5px solid var(--danger-fill);
+  border-radius: 3px 18px 3px 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.85fr) auto;
+  align-items: center;
+  gap: 14px;
+  background: color-mix(in srgb, var(--surface-raised) 92%, var(--danger-soft));
+}
+
+.access-dialog__danger textarea {
+  min-height: 72px;
 }
 
 .eyebrow--danger {
@@ -3803,6 +3925,12 @@ hr {
     grid-template-columns: 1fr;
   }
 
+  .access-notice {
+    margin: 68px 14px 0;
+    flex-direction: column;
+    gap: 7px;
+  }
+
   .modal-backdrop {
     align-items: end;
     padding: 0;
@@ -3811,6 +3939,15 @@ hr {
   .modal {
     max-height: 92vh;
     border-radius: 20px 20px 0 0;
+  }
+
+  .access-dialog__danger {
+    grid-template-columns: 1fr;
+  }
+
+  .access-policy {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .booking-row {

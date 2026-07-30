@@ -8,7 +8,12 @@ import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool, PoolClient, QueryResult, QueryResultRow } from "pg";
 import * as schema from "./schema";
 
-export type SqlExecutor = Pick<PoolClient, "query">;
+export interface SqlExecutor {
+  query<T extends QueryResultRow = QueryResultRow>(
+    text: string,
+    values?: unknown[],
+  ): Promise<QueryResult<T>>;
+}
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnApplicationShutdown {

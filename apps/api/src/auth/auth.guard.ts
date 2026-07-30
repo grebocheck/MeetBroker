@@ -7,6 +7,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
+import { AccessPoliciesService } from "../access-policies/access-policies.service";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
 import type {
@@ -48,6 +49,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly database: DatabaseService,
+    private readonly accessPolicies: AccessPoliciesService,
     config: ConfigService
   ) {
     this.cookieName =
@@ -123,6 +125,7 @@ export class AuthGuard implements CanActivate {
       approved: Boolean(row.approved_at),
       accessRevoked: Boolean(row.access_revoked_at)
     };
+    user.activeRestrictions = await this.accessPolicies.listActive(user.id);
 
     if (user.accessRevoked) {
       throw apiError(
@@ -131,6 +134,10 @@ export class AuthGuard implements CanActivate {
         "Corporate access has been revoked"
       );
     }
+    this.accessPolicies.assertRestrictionsAllowed(
+      user.activeRestrictions,
+      "ACCOUNT_LOGIN",
+    );
 
     const requireApproved = this.reflector.getAllAndOverride<boolean>(
       REQUIRE_APPROVED,

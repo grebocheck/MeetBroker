@@ -1,5 +1,19 @@
 export type Locale = "uk" | "en";
 export type Theme = "SYSTEM" | "LIGHT" | "DARK";
+export type Capability =
+  | "BOOKING_CREATE"
+  | "BOOKING_CANCEL_OWN"
+  | "SCHEDULE_VIEW"
+  | "ACCOUNT_LOGIN";
+
+export interface ActiveRestriction {
+  id: string;
+  capability: Capability;
+  roomId: string | null;
+  startsAt: string;
+  expiresAt: string | null;
+  reason: string;
+}
 
 export interface User {
   id: string;
@@ -16,6 +30,7 @@ export interface User {
   emailVerified: boolean;
   approved: boolean;
   accessRevoked: boolean;
+  activeRestrictions?: ActiveRestriction[];
 }
 
 export interface Room {

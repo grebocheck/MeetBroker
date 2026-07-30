@@ -1,10 +1,14 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
-import type { Booking, Room } from "../types";
+import type { ActiveRestriction, Booking, Room } from "../types";
 import { Avatar } from "../components/Avatar";
 import { BookingDialog } from "../components/BookingDialog";
 import { RoomVisual } from "../components/RoomVisual";
+import {
+  capabilityLabel,
+  UserAccessDialog,
+} from "../components/UserAccessDialog";
 import { Button } from "../components/ui/Button";
 import { ModalLayer } from "../components/ui/ModalLayer";
 import { Pagination } from "../components/ui/Pagination";
@@ -20,12 +24,7 @@ interface AdminUser {
   emailVerified: boolean;
   approved: boolean;
   accessRevoked: boolean;
-  restrictions: {
-    id: string;
-    capability: string;
-    expiresAt: string | null;
-    reason: string;
-  }[];
+  restrictions: ActiveRestriction[];
   createdAt: string;
 }
 
@@ -568,6 +567,7 @@ function AdminBookingDialog({
 
 function UsersAdmin() {
   const [filter, setFilter] = useState("pending");
+  const [managingUserId, setManagingUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const users = useQuery({
     queryKey: ["admin-users", filter],
@@ -592,22 +592,9 @@ function UsersAdmin() {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
-  const restrict = (user: AdminUser) => {
-    const days = window.prompt(
-      `На скільки днів заборонити ${user.name} створювати бронювання?`,
-      "7",
-    );
-    if (!days) return;
-    const reason = window.prompt("Причина обмеження:");
-    if (!reason) return;
-    const expiresAt = new Date(
-      Date.now() + Math.max(1, Number(days)) * 86_400_000,
-    ).toISOString();
-    action.mutate({
-      path: `/api/admin/users/${user.id}/restrictions`,
-      body: { capability: "BOOKING_CREATE", expiresAt, reason },
-    });
-  };
+  const managingUser = users.data?.users.find(
+    (user) => user.id === managingUserId,
+  );
 
   return (
     <section className="admin-card">
@@ -673,7 +660,7 @@ function UsersAdmin() {
                     className="status-badge status-badge--warning"
                     key={restriction.id}
                   >
-                    Без бронювань
+                    {capabilityLabel(restriction.capability)}
                   </span>
                 ))}
               </div>
@@ -694,37 +681,24 @@ function UsersAdmin() {
                     </Button>
                   )}
                 {user.approved && !user.accessRevoked && (
-                  <>
-                    <Button
-                      size="small"
-                      onClick={() => restrict(user)}
-                    >
-                      Обмежити
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="small"
-                      onClick={() => {
-                        const reason = window.prompt(
-                          "Причина відкликання доступу:",
-                        );
-                        if (reason) {
-                          action.mutate({
-                            path: `/api/admin/users/${user.id}/revoke`,
-                            body: { reason },
-                          });
-                        }
-                      }}
-                    >
-                      Відкликати
-                    </Button>
-                  </>
+                  <Button
+                    size="small"
+                    onClick={() => setManagingUserId(user.id)}
+                  >
+                    Керувати доступом
+                  </Button>
                 )}
               </div>
             </article>
           ))
         )}
       </div>
+      {managingUser && (
+        <UserAccessDialog
+          user={managingUser}
+          onClose={() => setManagingUserId(null)}
+        />
+      )}
     </section>
   );
 }

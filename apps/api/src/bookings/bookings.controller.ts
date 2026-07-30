@@ -27,11 +27,12 @@ export class BookingsController {
 
   @Get("schedule")
   schedule(
+    @Req() request: AuthenticatedRequest,
     @Query("roomId") roomId: string,
     @Query("from") from: string,
     @Query("to") to: string
   ) {
-    return this.bookings.schedule(roomId, from, to);
+    return this.bookings.schedule(request.user.id, roomId, from, to);
   }
 
   @Post()

@@ -72,7 +72,6 @@ export class AdminService {
             ) filter (
               where ur.id is not null
                 and ur.revoked_at is null
-                and ur.starts_at <= now()
                 and (ur.expires_at is null or ur.expires_at > now())
             ),
             '[]'::jsonb
@@ -357,31 +356,107 @@ export class AdminService {
         "Restriction end must be after its start",
       );
     }
+    if (dto.capability === "ACCOUNT_LOGIN" && dto.roomId) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "INVALID_RESTRICTION_SCOPE",
+        "Account login restrictions cannot be scoped to a room",
+      );
+    }
+    if (dto.capability === "ACCOUNT_LOGIN" && actorId === userId) {
+      throw apiError(
+        HttpStatus.BAD_REQUEST,
+        "CANNOT_RESTRICT_SELF",
+        "You cannot restrict your own account login",
+      );
+    }
+
     const id = randomUUID();
-    await this.database.query(
-      `
-        insert into user_restrictions (
-          id, user_id, capability, room_id, starts_at, expires_at,
-          reason, created_by
-        )
-        values ($1, $2, $3, $4, $5, $6, $7, $8)
-      `,
-      [
-        id,
-        userId,
-        dto.capability,
-        dto.roomId ?? null,
-        startsAt,
-        expiresAt,
-        dto.reason.trim(),
-        actorId,
-      ],
-    );
-    await this.audit(actorId, "USER_RESTRICTED", "USER", userId, {
-      restrictionId: id,
-      capability: dto.capability,
-      expiresAt,
-      reason: dto.reason.trim(),
+    await this.database.transaction(async (client) => {
+      const user = await client.query<{ role: string }>(
+        "select role from users where id = $1 for update",
+        [userId],
+      );
+      if (!user.rows[0]) {
+        throw apiError(
+          HttpStatus.NOT_FOUND,
+          "USER_NOT_FOUND",
+          "User was not found",
+        );
+      }
+      if (
+        dto.capability === "ACCOUNT_LOGIN" &&
+        user.rows[0].role === "ADMIN"
+      ) {
+        await client.query(
+          "select pg_advisory_xact_lock(hashtext('admin-login-policies'))",
+        );
+        const admins = await client.query<{ count: string }>(
+          `
+            select count(*)::text as count
+            from users
+            where role = 'ADMIN'
+              and access_revoked_at is null
+              and id <> $1
+              and not exists (
+                select 1
+                from user_restrictions ur
+                where ur.user_id = users.id
+                  and ur.capability = 'ACCOUNT_LOGIN'
+                  and ur.revoked_at is null
+                  and ur.starts_at < coalesce($3::timestamptz, 'infinity')
+                  and coalesce(ur.expires_at, 'infinity') > $2
+              )
+          `,
+          [userId, startsAt, expiresAt],
+        );
+        if (Number(admins.rows[0].count) < 1) {
+          throw apiError(
+            HttpStatus.CONFLICT,
+            "LAST_ADMIN",
+            "The last available administrator cannot be restricted",
+          );
+        }
+      }
+      await client.query(
+        `
+          insert into user_restrictions (
+            id, user_id, capability, room_id, starts_at, expires_at,
+            reason, created_by
+          )
+          values ($1, $2, $3, $4, $5, $6, $7, $8)
+        `,
+        [
+          id,
+          userId,
+          dto.capability,
+          dto.roomId ?? null,
+          startsAt,
+          expiresAt,
+          dto.reason.trim(),
+          actorId,
+        ],
+      );
+      await client.query(
+        `
+          insert into audit_logs
+            (id, actor_id, action, target_type, target_id, details)
+          values ($1, $2, 'USER_RESTRICTED', 'USER', $3, $4)
+        `,
+        [
+          randomUUID(),
+          actorId,
+          userId,
+          JSON.stringify({
+            restrictionId: id,
+            capability: dto.capability,
+            roomId: dto.roomId ?? null,
+            startsAt,
+            expiresAt,
+            reason: dto.reason.trim(),
+          }),
+        ],
+      );
     });
     return { id };
   }
@@ -390,24 +465,44 @@ export class AdminService {
     actorId: string,
     restrictionId: string,
   ): Promise<void> {
-    const result = await this.database.query<{ user_id: string }>(
+    const result = await this.database.query<{
+      user_id: string;
+      capability: string;
+      room_id: string | null;
+      starts_at: Date;
+      expires_at: Date | null;
+      reason: string;
+    }>(
       `
         update user_restrictions
         set revoked_at = now(), revoked_by = $2
         where id = $1 and revoked_at is null
-        returning user_id
+        returning user_id, capability, room_id, starts_at, expires_at, reason
       `,
       [restrictionId, actorId],
     );
-    if (result.rows[0]) {
-      await this.audit(
-        actorId,
-        "USER_RESTRICTION_REVOKED",
-        "USER",
-        result.rows[0].user_id,
-        { restrictionId },
+    const restriction = result.rows[0];
+    if (!restriction) {
+      throw apiError(
+        HttpStatus.NOT_FOUND,
+        "RESTRICTION_NOT_FOUND",
+        "Active restriction was not found",
       );
     }
+    await this.audit(
+      actorId,
+      "USER_RESTRICTION_REVOKED",
+      "USER",
+      restriction.user_id,
+      {
+        restrictionId,
+        capability: restriction.capability,
+        roomId: restriction.room_id,
+        startsAt: restriction.starts_at,
+        expiresAt: restriction.expires_at,
+        reason: restriction.reason,
+      },
+    );
   }
 
   async createRoom(actorId: string, dto: CreateRoomDto) {
