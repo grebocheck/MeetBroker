@@ -200,6 +200,9 @@ export function CalendarPage({ user }: { user: User }) {
   return (
     <div className="page calendar-page">
       <header className="page-header calendar-toolbar">
+        <span className="calendar-toolbar__word" aria-hidden="true">
+          Schedule
+        </span>
         <div className="room-identity">
           <RoomVisual
             room={{
@@ -300,7 +303,12 @@ export function CalendarPage({ user }: { user: User }) {
         </div>
       </header>
 
-      <section className="calendar-card" ref={calendarCardRef}>
+      <div className="schedule-stage">
+        <div className="schedule-stage__caption" aria-hidden="true">
+          <span>MeetBroker / Schedule</span>
+          <strong>Live room plan</strong>
+        </div>
+        <section className="calendar-card" ref={calendarCardRef}>
         <div className="calendar-card__toolbar">
           <div className="week-nav">
             <button
@@ -518,7 +526,8 @@ export function CalendarPage({ user }: { user: User }) {
             </div>
           </>
         )}
-      </section>
+        </section>
+      </div>
 
       {draft && room && (
         <BookingDialog
