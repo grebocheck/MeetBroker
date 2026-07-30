@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 import type { User } from "../types";
 
 interface OpenEvent {
@@ -14,6 +15,7 @@ interface OpenEvent {
 }
 
 export function EventsPage({ user }: { user: User }) {
+  const { dateLocale, t } = useI18n();
   const queryClient = useQueryClient();
   const events = useQuery({
     queryKey: ["open-events"],
@@ -38,29 +40,27 @@ export function EventsPage({ user }: { user: User }) {
     <div className="page narrow-page">
       <header className="page-header">
         <div>
-          <span className="eyebrow">Долучайтеся вільно</span>
-          <h1>Відкриті події</h1>
-          <p>
-            Зустрічі, презентації та обговорення, відкриті для всієї команди.
-          </p>
+          <span className="eyebrow">{t("events.eyebrow")}</span>
+          <h1>{t("openEvents")}</h1>
+          <p>{t("events.subtitle")}</p>
         </div>
       </header>
       {events.isLoading ? (
         <ListSkeleton />
       ) : events.isError ? (
         <div className="state-panel state-panel--error">
-          <strong>Не вдалося завантажити події</strong>
+          <strong>{t("events.loadError")}</strong>
           <span>
             {events.error instanceof ApiError
               ? events.error.message
-              : "Спробуйте пізніше"}
+              : t("retry")}
           </span>
         </div>
       ) : events.data?.events.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state__icon">◇</span>
-          <h2>Нових відкритих подій поки немає</h2>
-          <p>Коли колеги створять відкриту зустріч, вона з’явиться тут.</p>
+          <h2>{t("events.emptyTitle")}</h2>
+          <p>{t("events.emptyBody")}</p>
         </div>
       ) : (
         <div className="event-grid">
@@ -73,12 +73,12 @@ export function EventsPage({ user }: { user: User }) {
                 <div className="event-card__accent" />
                 <div className="event-card__date">
                   <span>
-                    {new Intl.DateTimeFormat("uk-UA", {
+                    {new Intl.DateTimeFormat(dateLocale, {
                       weekday: "long"
                     }).format(new Date(event.startsAt))}
                   </span>
                   <strong>
-                    {new Intl.DateTimeFormat("uk-UA", {
+                    {new Intl.DateTimeFormat(dateLocale, {
                       day: "numeric",
                       month: "long"
                     }).format(new Date(event.startsAt))}
@@ -86,7 +86,7 @@ export function EventsPage({ user }: { user: User }) {
                 </div>
                 <h2>{event.title}</h2>
                 <p>
-                  {new Intl.DateTimeFormat("uk-UA", {
+                  {new Intl.DateTimeFormat(dateLocale, {
                     hour: "2-digit",
                     minute: "2-digit"
                   }).format(new Date(event.startsAt))}
@@ -94,14 +94,19 @@ export function EventsPage({ user }: { user: User }) {
                   {event.room.name}
                 </p>
                 <div className="event-card__meta">
-                  <span>Організатор: {event.organizer.name}</span>
                   <span>
-                    {event.participantCount}/{event.room.capacity} учасників
+                    {t("events.organizer", { name: event.organizer.name })}
+                  </span>
+                  <span>
+                    {t("events.participants", {
+                      current: event.participantCount,
+                      capacity: event.room.capacity
+                    })}
                   </span>
                 </div>
                 {own ? (
                   <span className="status-badge status-badge--own">
-                    Ваша подія
+                    {t("events.own")}
                   </span>
                 ) : (
                   <button
@@ -114,10 +119,10 @@ export function EventsPage({ user }: { user: User }) {
                     }
                   >
                     {joined
-                      ? "Не братиму участі"
+                      ? t("events.leave")
                       : full
-                        ? "Усі місця зайняті"
-                        : "Приєднатися"}
+                        ? t("events.full")
+                        : t("events.join")}
                   </button>
                 )}
               </article>

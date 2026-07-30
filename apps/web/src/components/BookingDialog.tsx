@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { toDateTimeLocal } from "../lib/date";
+import { useI18n, type Translator } from "../lib/i18n";
 import type { Booking, Person, Room } from "../types";
 import { ParticipantPicker } from "./ParticipantPicker";
 import { Button } from "./ui/Button";
@@ -20,7 +21,11 @@ type BookingErrorTarget =
   | "adminReason"
   | "form";
 
-function bookingError(error: unknown): {
+function bookingError(
+  error: unknown,
+  t: Translator,
+  dateLocale: string,
+): {
   target: BookingErrorTarget;
   message: string;
 } | null {
@@ -28,23 +33,23 @@ function bookingError(error: unknown): {
   const errors: Record<string, { target: BookingErrorTarget; message: string }> = {
     INVALID_TIME: {
       target: "time",
-      message: "Перевірте час початку та завершення."
+      message: t("booking.invalidTime")
     },
     SLOT_ALIGNMENT: {
       target: "time",
-      message: "Час має відповідати 30-хвилинній сітці."
+      message: t("booking.slotAlignment")
     },
     DURATION: {
       target: "time",
-      message: "Тривалість зустрічі має бути від 30 хвилин до 4 годин."
+      message: t("booking.duration")
     },
     PAST: {
       target: "time",
-      message: "Бронювання має починатися в майбутньому."
+      message: t("booking.past")
     },
     OUTSIDE_WORKING_HOURS: {
       target: "time",
-      message: "Оберіть час у межах робочих годин кімнати."
+      message: t("booking.outsideHours")
     },
     SLOT_TAKEN: {
       target: "time",
@@ -52,11 +57,13 @@ function bookingError(error: unknown): {
         typeof error.details === "object" &&
         error.details !== null &&
         "startsAt" in error.details
-          ? `У серії вже зайнятий час ${new Intl.DateTimeFormat("uk-UA", {
-              dateStyle: "medium",
-              timeStyle: "short"
-            }).format(new Date(String(error.details.startsAt)))}.`
-          : "Цей час уже зайнятий. Оберіть інший інтервал."
+          ? t("booking.seriesSlotTaken", {
+              date: new Intl.DateTimeFormat(dateLocale, {
+                dateStyle: "medium",
+                timeStyle: "short"
+              }).format(new Date(String(error.details.startsAt)))
+            })
+          : t("booking.slotTaken")
     },
     ROOM_UNAVAILABLE: {
       target: "time",
@@ -64,23 +71,25 @@ function bookingError(error: unknown): {
         typeof error.details === "object" &&
         error.details !== null &&
         "startsAt" in error.details
-          ? `Кімната недоступна для одного з повторень: ${new Intl.DateTimeFormat(
-              "uk-UA",
-              { dateStyle: "medium", timeStyle: "short" }
-            ).format(new Date(String(error.details.startsAt)))}.`
-          : "Кімната недоступна протягом вибраного часу."
+          ? t("booking.seriesRoomUnavailable", {
+              date: new Intl.DateTimeFormat(dateLocale, {
+                dateStyle: "medium",
+                timeStyle: "short"
+              }).format(new Date(String(error.details.startsAt)))
+            })
+          : t("booking.roomUnavailable")
     },
     ROOM_CAPACITY_EXCEEDED: {
       target: "participants",
-      message: "Кількість учасників перевищує місткість кімнати."
+      message: t("booking.capacityExceeded")
     },
     INVALID_PARTICIPANT: {
       target: "participants",
-      message: "Один або кілька учасників більше недоступні для запрошення."
+      message: t("booking.invalidParticipant")
     },
     BOOKING_CREATE_RESTRICTED: {
       target: "form",
-      message: "Створення бронювань для вашого профілю тимчасово обмежене."
+      message: t("booking.createRestricted")
     },
     CAPABILITY_RESTRICTED: {
       target: "form",
@@ -88,32 +97,34 @@ function bookingError(error: unknown): {
         typeof error.details === "object" &&
         error.details !== null &&
         "reason" in error.details
-          ? `Дію обмежено. Причина: ${String(error.details.reason)}`
-          : "Ця дія тимчасово обмежена адміністратором."
+          ? t("booking.actionRestrictedReason", {
+              reason: String(error.details.reason)
+            })
+          : t("booking.actionRestricted")
     },
     RECURRENCE_END_REQUIRED: {
       target: "recurrence",
-      message: "Вкажіть дату завершення серії."
+      message: t("booking.recurrenceEndRequired")
     },
     RECURRENCE_WEEKDAYS_REQUIRED: {
       target: "recurrence",
-      message: "Оберіть хоча б один день тижня."
+      message: t("booking.recurrenceWeekdaysRequired")
     },
     INVALID_RECURRENCE_RANGE: {
       target: "recurrence",
-      message: "Серія може тривати від одного дня до одного року."
+      message: t("booking.recurrenceRange")
     },
     EMPTY_RECURRENCE: {
       target: "recurrence",
-      message: "Ці налаштування не створюють жодної події."
+      message: t("booking.recurrenceEmpty")
     },
     TOO_MANY_OCCURRENCES: {
       target: "recurrence",
-      message: "Одна серія може містити не більше 100 подій."
+      message: t("booking.recurrenceTooMany")
     },
     ADMIN_EDIT_REASON_REQUIRED: {
       target: "adminReason",
-      message: "Вкажіть змістовну причину адміністративної зміни."
+      message: t("booking.adminReasonRequired")
     }
   };
   return (
@@ -139,6 +150,7 @@ export function BookingDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { dateLocale, t } = useI18n();
   const initialStartsAt = booking
     ? new Date(booking.startsAt)
     : (draft?.startsAt ?? new Date());
@@ -216,7 +228,7 @@ export function BookingDialog({
     if (!title.trim()) {
       setLocalError({
         target: "title",
-        message: "Введіть назву зустрічі."
+        message: t("booking.titleRequired")
       });
       return;
     }
@@ -229,14 +241,14 @@ export function BookingDialog({
     ) {
       setLocalError({
         target: "time",
-        message: "Завершення має бути пізніше за початок."
+        message: t("booking.endAfterStart")
       });
       return;
     }
     if (administrative && adminReason.trim().length < 3) {
       setLocalError({
         target: "adminReason",
-        message: "Вкажіть причину адміністративної зміни."
+        message: t("booking.adminReasonRequired")
       });
       return;
     }
@@ -244,14 +256,14 @@ export function BookingDialog({
       if (!recurrenceUntil) {
         setLocalError({
           target: "recurrence",
-          message: "Вкажіть дату завершення серії."
+          message: t("booking.recurrenceEndRequired")
         });
         return;
       }
       if (recurrence === "WEEKLY" && weekdays.length === 0) {
         setLocalError({
           target: "recurrence",
-          message: "Оберіть хоча б один день тижня."
+          message: t("booking.recurrenceWeekdaysRequired")
         });
         return;
       }
@@ -259,7 +271,7 @@ export function BookingDialog({
     setLocalError(null);
     save.mutate();
   };
-  const serverError = bookingError(save.error);
+  const serverError = bookingError(save.error, t, dateLocale);
 
   return (
     <ModalLayer role="presentation" onMouseDown={onClose}>
@@ -275,20 +287,24 @@ export function BookingDialog({
             <span className="eyebrow">{room.name}</span>
             <h2 id="booking-dialog-title">
               {administrative
-                ? "Адміністративна зміна"
+                ? t("booking.adminTitle")
                 : editing
-                  ? "Редагувати бронювання"
-                  : "Нове бронювання"}
+                  ? t("booking.editTitle")
+                  : t("booking.newTitle")}
             </h2>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Закрити">
+          <button
+            className="icon-button"
+            onClick={onClose}
+            aria-label={t("close")}
+          >
             ×
           </button>
         </div>
         <form className="form-stack" onSubmit={submit} noValidate>
           {administrative && (
             <label className="field">
-              <span>Причина адміністративної зміни</span>
+              <span>{t("booking.adminReason")}</span>
               <textarea
                 value={adminReason}
                 onChange={(event) => {
@@ -298,13 +314,12 @@ export function BookingDialog({
                 }}
                 minLength={3}
                 maxLength={300}
-                placeholder="Що сталося і чому потрібно змінити чуже бронювання"
+                placeholder={t("booking.adminReasonPlaceholder")}
                 autoFocus
                 required
               />
               <small>
-                Організатор і учасники побачать, що зміни зробив
-                адміністратор, та отримають цю причину.
+                {t("booking.adminReasonHint")}
               </small>
               {(localError?.target === "adminReason" ||
                 serverError?.target === "adminReason") && (
@@ -317,7 +332,7 @@ export function BookingDialog({
             </label>
           )}
           <label className="field">
-            <span>Назва зустрічі</span>
+            <span>{t("booking.titleLabel")}</span>
             <input
               value={title}
               onChange={(event) => {
@@ -327,7 +342,7 @@ export function BookingDialog({
               }}
               minLength={1}
               maxLength={100}
-              placeholder="Наприклад, планування спринту"
+              placeholder={t("booking.titlePlaceholder")}
               autoFocus={!administrative}
               required
             />
@@ -343,7 +358,7 @@ export function BookingDialog({
           <div className="time-fields">
             <div className="form-grid">
               <label className="field">
-                <span>Початок</span>
+                <span>{t("booking.start")}</span>
                 <input
                   type="datetime-local"
                   step={1800}
@@ -357,7 +372,7 @@ export function BookingDialog({
                 />
               </label>
               <label className="field">
-                <span>Завершення</span>
+                <span>{t("booking.end")}</span>
                 <input
                   type="datetime-local"
                   step={1800}
@@ -382,12 +397,12 @@ export function BookingDialog({
           </div>
           {!editing && (
             <fieldset className="segmented-field recurrence-field">
-              <legend>Повторення</legend>
+              <legend>{t("booking.recurrence")}</legend>
               <div className="segmented">
                 {[
-                  ["NONE", "Не повторюється"],
-                  ["DAILY", "Кожні N днів"],
-                  ["WEEKLY", "За днями тижня"]
+                  ["NONE", t("booking.noRecurrence")],
+                  ["DAILY", t("booking.daily")],
+                  ["WEEKLY", t("booking.weekly")]
                 ].map(([value, label]) => (
                   <button
                     type="button"
@@ -408,8 +423,8 @@ export function BookingDialog({
                   <label className="field">
                     <span>
                       {recurrence === "DAILY"
-                        ? "Інтервал у днях"
-                        : "Інтервал у тижнях"}
+                        ? t("booking.dayInterval")
+                        : t("booking.weekInterval")}
                     </span>
                     <input
                       type="number"
@@ -424,7 +439,7 @@ export function BookingDialog({
                     />
                   </label>
                   <label className="field">
-                    <span>Повторювати до</span>
+                    <span>{t("booking.repeatUntil")}</span>
                     <input
                       type="date"
                       value={recurrenceUntil}
@@ -435,13 +450,13 @@ export function BookingDialog({
                   {recurrence === "WEEKLY" && (
                     <div className="weekday-picker recurrence-weekdays">
                       {[
-                        [1, "Пн"],
-                        [2, "Вт"],
-                        [3, "Ср"],
-                        [4, "Чт"],
-                        [5, "Пт"],
-                        [6, "Сб"],
-                        [0, "Нд"]
+                        [1, t("weekday.1")],
+                        [2, t("weekday.2")],
+                        [3, t("weekday.3")],
+                        [4, t("weekday.4")],
+                        [5, t("weekday.5")],
+                        [6, t("weekday.6")],
+                        [0, t("weekday.0")]
                       ].map(([day, label]) => (
                         <button
                           type="button"
@@ -463,8 +478,7 @@ export function BookingDialog({
                     </div>
                   )}
                   <small>
-                    Уся серія створюється атомарно: якщо хоча б один час
-                    зайнятий, жодна подія не буде додана.
+                    {t("booking.atomicSeries")}
                   </small>
                 </div>
               )}
@@ -480,42 +494,42 @@ export function BookingDialog({
           )}
           {editing && booking?.seriesId && (
             <div className="subtle-box">
-              Це подія із серії. Зміни застосуються лише до неї; інші події
-              збережуть свій розклад.
+              {t("booking.seriesEditHint")}
             </div>
           )}
           <fieldset className="segmented-field">
-            <legend>Хто може долучитися</legend>
+            <legend>{t("booking.audience")}</legend>
             <div className="segmented">
               <button
                 type="button"
                 className={mode === "INVITE_ONLY" ? "is-active" : ""}
                 onClick={() => setMode("INVITE_ONLY")}
               >
-                За запрошенням
+                {t("booking.inviteOnly")}
               </button>
               <button
                 type="button"
                 className={mode === "OPEN" ? "is-active" : ""}
                 onClick={() => setMode("OPEN")}
               >
-                Відкрита подія
+                {t("booking.open")}
               </button>
             </div>
           </fieldset>
           <div className="invite-field">
             <div className="field-heading">
-              <span>Запросити колег</span>
+              <span>{t("booking.inviteColleagues")}</span>
               <small>
                 {selected.length}/{availableSeats}
               </small>
             </div>
             {colleagues.isLoading ? (
-              <div className="subtle-box">Завантажуємо колег…</div>
+              <div className="subtle-box">
+                {t("booking.loadingColleagues")}
+              </div>
             ) : colleagues.isError ? (
               <div className="form-error" role="alert">
-                Не вдалося завантажити список колег. Бронювання можна створити
-                без запрошень.
+                {t("booking.colleaguesError")}
               </div>
             ) : (
               <ParticipantPicker
@@ -538,13 +552,13 @@ export function BookingDialog({
             <div className="form-error" role="alert">
               {serverError?.message ??
                 (editing
-                  ? "Не вдалося оновити бронювання"
-                  : "Не вдалося створити бронювання")}
+                  ? t("booking.updateError")
+                  : t("booking.createError"))}
             </div>
           )}
           <div className="modal__actions">
             <Button variant="ghost" onClick={onClose}>
-              Назад
+              {t("booking.back")}
             </Button>
             <Button
               type="submit"
@@ -553,13 +567,13 @@ export function BookingDialog({
             >
               {save.isPending
                 ? editing
-                  ? "Зберігаємо…"
-                  : "Бронюємо…"
+                  ? t("booking.saving")
+                  : t("booking.booking")
                 : editing
-                  ? "Зберегти зміни"
+                  ? t("booking.saveChanges")
                   : recurrence === "NONE"
-                    ? "Забронювати"
-                    : "Створити серію"}
+                    ? t("book")
+                    : t("booking.createSeries")}
             </Button>
           </div>
         </form>

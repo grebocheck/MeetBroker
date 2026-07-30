@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useI18n } from "../lib/i18n";
 import type { Person } from "../types";
 import { Avatar } from "./Avatar";
 
@@ -13,12 +14,13 @@ export function ParticipantPicker({
   maxSelected: number;
   onChange: (ids: string[]) => void;
 }) {
+  const { locale, t } = useI18n();
   const [query, setQuery] = useState("");
-  const normalizedQuery = query.trim().toLocaleLowerCase("uk-UA");
+  const normalizedQuery = query.trim().toLocaleLowerCase(locale);
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectedPeople = people.filter((person) => selectedSet.has(person.id));
   const filteredPeople = people.filter((person) =>
-    person.name.toLocaleLowerCase("uk-UA").includes(normalizedQuery)
+    person.name.toLocaleLowerCase(locale).includes(normalizedQuery)
   );
   const limitReached = selectedIds.length >= maxSelected;
 
@@ -33,7 +35,10 @@ export function ParticipantPicker({
   return (
     <div className="participant-picker">
       {selectedPeople.length > 0 && (
-        <div className="participant-picker__selected" aria-label="Вибрані учасники">
+        <div
+          className="participant-picker__selected"
+          aria-label={t("participants.selected")}
+        >
           {selectedPeople.map((person) => (
             <span className="participant-chip" key={person.id}>
               <Avatar
@@ -46,7 +51,7 @@ export function ParticipantPicker({
               <button
                 type="button"
                 onClick={() => toggle(person.id)}
-                aria-label={`Видалити ${person.name}`}
+                aria-label={t("participants.remove", { name: person.name })}
               >
                 ×
               </button>
@@ -57,19 +62,19 @@ export function ParticipantPicker({
 
       <label className="participant-search">
         <span className="participant-search__icon" aria-hidden="true" />
-        <span className="sr-only">Пошук колег</span>
+        <span className="sr-only">{t("participants.search")}</span>
         <input
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Знайти колегу за ім’ям"
+          placeholder={t("participants.searchPlaceholder")}
           autoComplete="off"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
-            aria-label="Очистити пошук"
+            aria-label={t("participants.clearSearch")}
           >
             ×
           </button>
@@ -79,7 +84,7 @@ export function ParticipantPicker({
       <div className="people-picker" role="listbox" aria-multiselectable="true">
         {filteredPeople.length === 0 ? (
           <div className="people-picker__empty">
-            За запитом «{query.trim()}» нікого не знайдено
+            {t("participants.notFound", { query: query.trim() })}
           </div>
         ) : (
           filteredPeople.map((person) => {
@@ -112,8 +117,10 @@ export function ParticipantPicker({
       </div>
       <small className="participant-picker__hint">
         {limitReached
-          ? "Досягнуто місткості кімнати"
-          : `Доступно місць: ${Math.max(0, maxSelected - selectedIds.length)}`}
+          ? t("participants.capacityReached")
+          : t("participants.seatsAvailable", {
+              count: Math.max(0, maxSelected - selectedIds.length)
+            })}
       </small>
     </div>
   );

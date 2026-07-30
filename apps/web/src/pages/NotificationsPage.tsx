@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "../components/ui/Button";
 import { Pagination } from "../components/ui/Pagination";
 import { api } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 import { navigate } from "../lib/router";
 
 interface NotificationItem {
@@ -27,6 +28,7 @@ interface NotificationsResponse {
 }
 
 export function NotificationsPage() {
+  const { dateLocale, t } = useI18n();
   const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
   const notifications = useQuery({
@@ -56,9 +58,9 @@ export function NotificationsPage() {
     <div className="page narrow-page">
       <header className="page-header">
         <div>
-          <span className="eyebrow">Будьте в курсі</span>
-          <h1>Сповіщення</h1>
-          <p>Запрошення, зміни й важливі нагадування в одному місці.</p>
+          <span className="eyebrow">{t("notifications.eyebrow")}</span>
+          <h1>{t("notifications")}</h1>
+          <p>{t("notifications.subtitle")}</p>
         </div>
         <div className="page-header__actions">
           <Button
@@ -69,14 +71,16 @@ export function NotificationsPage() {
             }
             onClick={() => readAll.mutate()}
           >
-            {readAll.isPending ? "Позначаємо…" : "Прочитати всі"}
+            {readAll.isPending
+              ? t("notifications.marking")
+              : t("notifications.readAll")}
           </Button>
           <Button
             variant="secondary"
             size="small"
             onClick={() => navigate("/profile?section=notifications")}
           >
-            Налаштувати канали
+            {t("notifications.configure")}
           </Button>
         </div>
       </header>
@@ -88,8 +92,8 @@ export function NotificationsPage() {
       ) : notifications.data?.notifications.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state__icon">✓</span>
-          <h2>Усе переглянуто</h2>
-          <p>Нові запрошення й зміни з’являться тут.</p>
+          <h2>{t("notifications.emptyTitle")}</h2>
+          <p>{t("notifications.emptyBody")}</p>
         </div>
       ) : (
         <>
@@ -104,8 +108,8 @@ export function NotificationsPage() {
                   className="notification-row__read"
                   aria-label={
                     item.read
-                      ? `${item.title}. Прочитане сповіщення`
-                      : `${item.title}. Позначити як прочитане`
+                      ? t("notifications.readLabel", { title: item.title })
+                      : t("notifications.markReadLabel", { title: item.title })
                   }
                   onClick={() => markRead(item)}
                 >
@@ -114,7 +118,7 @@ export function NotificationsPage() {
                     <strong>{item.title}</strong>
                     <span>{item.body}</span>
                     <small>
-                      {new Intl.DateTimeFormat("uk-UA", {
+                      {new Intl.DateTimeFormat(dateLocale, {
                         dateStyle: "medium",
                         timeStyle: "short"
                       }).format(new Date(item.createdAt))}
@@ -131,7 +135,7 @@ export function NotificationsPage() {
                       navigate("/bookings");
                     }}
                   >
-                    До бронювання
+                    {t("notifications.goToBooking")}
                   </Button>
                 )}
               </article>
@@ -142,7 +146,7 @@ export function NotificationsPage() {
               page={notifications.data.pagination.page}
               totalPages={notifications.data.pagination.totalPages}
               total={notifications.data.pagination.total}
-              itemLabel="сповіщень"
+              itemLabel={t("notifications.itemLabel")}
               onPageChange={setPage}
             />
           )}

@@ -5,6 +5,7 @@ import {
   useQueryClient
 } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 import { navigate } from "../lib/router";
 import type { User } from "../types";
 import { CancelBookingDialog } from "../components/CancelBookingDialog";
@@ -29,6 +30,7 @@ interface BookingPage {
 }
 
 export function BookingListPage({ user }: { user: User }) {
+  const { dateLocale, t } = useI18n();
   const timeZone =
     user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [section, setSection] = useState<"future" | "past">("future");
@@ -83,9 +85,9 @@ export function BookingListPage({ user }: { user: User }) {
     <div className="page narrow-page">
       <header className="page-header">
         <div>
-          <span className="eyebrow">Ваш робочий час</span>
-          <h1>Мої бронювання</h1>
-          <p>Організовані вами зустрічі та запрошення від колег.</p>
+          <span className="eyebrow">{t("bookings.eyebrow")}</span>
+          <h1>{t("myBookings")}</h1>
+          <p>{t("bookings.subtitle")}</p>
         </div>
       </header>
       <div className="tabs">
@@ -93,13 +95,13 @@ export function BookingListPage({ user }: { user: User }) {
           className={section === "future" ? "is-active" : ""}
           onClick={() => setSection("future")}
         >
-          Майбутні
+          {t("bookings.future")}
         </button>
         <button
           className={section === "past" ? "is-active" : ""}
           onClick={() => setSection("past")}
         >
-          Минулі
+          {t("bookings.past")}
         </button>
       </div>
 
@@ -107,14 +109,14 @@ export function BookingListPage({ user }: { user: User }) {
         <ListSkeleton />
       ) : bookings.isError && visibleBookings.length === 0 ? (
         <div className="state-panel state-panel--error">
-          <strong>Не вдалося завантажити бронювання</strong>
+          <strong>{t("bookings.loadError")}</strong>
           <span>
             {bookings.error instanceof ApiError
               ? bookings.error.message
-              : "Спробуйте пізніше"}
+              : t("retry")}
           </span>
           <button className="button button--secondary" onClick={() => bookings.refetch()}>
-            Повторити
+            {t("retry")}
           </button>
         </div>
       ) : visibleBookings.length === 0 ? (
@@ -122,20 +124,20 @@ export function BookingListPage({ user }: { user: User }) {
           <span className="empty-state__icon">○</span>
           <h2>
             {section === "future"
-              ? "Попереду поки вільно"
-              : "Історія бронювань порожня"}
+              ? t("bookings.emptyFuture")
+              : t("bookings.emptyPast")}
           </h2>
           <p>
             {section === "future"
-              ? "Оберіть кімнату й зручний слот у календарі."
-              : "Минулі зустрічі з’являться тут автоматично."}
+              ? t("bookings.emptyFutureBody")
+              : t("bookings.emptyPastBody")}
           </p>
           {section === "future" && (
             <button
               className="button button--primary"
               onClick={() => navigate("/calendar")}
             >
-              Відкрити розклад
+              {t("bookings.openSchedule")}
             </button>
           )}
         </div>
@@ -147,13 +149,13 @@ export function BookingListPage({ user }: { user: User }) {
               <article className="booking-row" key={booking.id}>
                 <div className="date-tile">
                   <strong>
-                    {new Intl.DateTimeFormat("uk-UA", {
+                    {new Intl.DateTimeFormat(dateLocale, {
                       day: "2-digit",
                       timeZone
                     }).format(new Date(booking.startsAt))}
                   </strong>
                   <span>
-                    {new Intl.DateTimeFormat("uk-UA", {
+                    {new Intl.DateTimeFormat(dateLocale, {
                       month: "short",
                       timeZone
                     }).format(new Date(booking.startsAt))}
@@ -168,13 +170,13 @@ export function BookingListPage({ user }: { user: User }) {
                   }
                 >
                   <span className="booking-row__time">
-                    {new Intl.DateTimeFormat("uk-UA", {
+                    {new Intl.DateTimeFormat(dateLocale, {
                       hour: "2-digit",
                       minute: "2-digit",
                       timeZone
                     }).format(new Date(booking.startsAt))}
                     {" — "}
-                    {new Intl.DateTimeFormat("uk-UA", {
+                    {new Intl.DateTimeFormat(dateLocale, {
                       hour: "2-digit",
                       minute: "2-digit",
                       timeZone
@@ -190,16 +192,16 @@ export function BookingListPage({ user }: { user: User }) {
                     }`}
                   >
                     {organizer
-                      ? "Організатор"
+                      ? t("bookings.organizer")
                       : booking.participantStatus === "INVITED"
-                        ? "Очікує відповіді"
+                        ? t("bookings.awaiting")
                         : booking.participantStatus === "ACCEPTED"
-                          ? "Прийнято"
-                          : "Відмовлено"}
+                          ? t("bookings.accepted")
+                          : t("bookings.declined")}
                   </span>
                   {booking.seriesId && (
                     <span className="status-badge status-badge--series">
-                      Серія
+                      {t("bookings.series")}
                     </span>
                   )}
                   {section === "future" &&
@@ -209,7 +211,7 @@ export function BookingListPage({ user }: { user: User }) {
                         disabled={cancel.isPending}
                         onClick={() => setCancellingBooking(booking)}
                       >
-                        Скасувати
+                        {t("cancel")}
                       </button>
                     ) : booking.participantStatus === "INVITED" ? (
                       <div className="button-row button-row--tight">
@@ -223,7 +225,7 @@ export function BookingListPage({ user }: { user: User }) {
                             })
                           }
                         >
-                          Прийняти
+                          {t("bookings.accept")}
                         </Button>
                         <Button
                           variant="ghost"
@@ -235,7 +237,7 @@ export function BookingListPage({ user }: { user: User }) {
                             })
                           }
                         >
-                          Відмовитися
+                          {t("bookings.decline")}
                         </Button>
                       </div>
                     ) : null)}
@@ -251,19 +253,19 @@ export function BookingListPage({ user }: { user: User }) {
                 disabled={bookings.isFetchingNextPage}
               >
                 {bookings.isFetchingNextPage
-                  ? "Завантажуємо…"
-                  : "Показати більше"}
+                  ? t("bookings.loadingMore")
+                  : t("bookings.showMore")}
               </button>
             </div>
           )}
           {bookings.isFetchNextPageError && (
             <div className="form-error load-more-error" role="alert">
-              Не вдалося завантажити наступні бронювання.
+              {t("bookings.moreError")}
               <button
                 type="button"
                 onClick={() => bookings.fetchNextPage()}
               >
-                Спробувати ще раз
+                {t("retry")}
               </button>
             </div>
           )}

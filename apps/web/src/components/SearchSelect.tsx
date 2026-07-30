@@ -6,6 +6,7 @@ import {
   useRef,
   useState
 } from "react";
+import { useI18n } from "../lib/i18n";
 
 export interface SearchSelectOption {
   value: string;
@@ -16,9 +17,9 @@ export function SearchSelect({
   value,
   options,
   onChange,
-  placeholder = "Оберіть значення",
-  searchPlaceholder = "Почніть вводити…",
-  emptyText = "Нічого не знайдено"
+  placeholder,
+  searchPlaceholder,
+  emptyText
 }: {
   value: string;
   options: SearchSelectOption[];
@@ -27,6 +28,11 @@ export function SearchSelect({
   searchPlaceholder?: string;
   emptyText?: string;
 }) {
+  const { t } = useI18n();
+  const resolvedPlaceholder = placeholder ?? t("select.placeholder");
+  const resolvedSearchPlaceholder =
+    searchPlaceholder ?? t("select.searchPlaceholder");
+  const resolvedEmptyText = emptyText ?? t("select.empty");
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -97,7 +103,7 @@ export function SearchSelect({
               : undefined
           }
           value={open ? query : selected?.label ?? value}
-          placeholder={open ? searchPlaceholder : placeholder}
+          placeholder={open ? resolvedSearchPlaceholder : resolvedPlaceholder}
           onFocus={() => {
             setOpen(true);
             setQuery("");
@@ -111,7 +117,7 @@ export function SearchSelect({
         <button
           type="button"
           tabIndex={-1}
-          aria-label={open ? "Закрити список" : "Відкрити список"}
+          aria-label={open ? t("select.close") : t("select.open")}
           onClick={() => {
             setOpen((current) => !current);
             setQuery("");
@@ -138,11 +144,11 @@ export function SearchSelect({
                 onClick={() => choose(option)}
               >
                 <span>{option.label}</span>
-                {option.value === value && <strong>Обрано</strong>}
+                {option.value === value && <strong>{t("select.selected")}</strong>}
               </button>
             ))
           ) : (
-            <span className="search-select__empty">{emptyText}</span>
+            <span className="search-select__empty">{resolvedEmptyText}</span>
           )}
         </div>
       )}

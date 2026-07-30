@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ApiError } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 import { Button } from "./ui/Button";
 import { ModalLayer } from "./ui/ModalLayer";
 
@@ -27,14 +28,15 @@ export function CancelBookingDialog({
   onClose: () => void;
   onConfirm: (scope: "OCCURRENCE" | "FUTURE") => void;
 }) {
+  const { dateLocale, t } = useI18n();
   const [scope, setScope] = useState<"OCCURRENCE" | "FUTURE">("OCCURRENCE");
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
-  const date = new Intl.DateTimeFormat("uk-UA", {
+  const date = new Intl.DateTimeFormat(dateLocale, {
     dateStyle: "full",
     timeZone
   }).format(startsAt);
-  const time = new Intl.DateTimeFormat("uk-UA", {
+  const time = new Intl.DateTimeFormat(dateLocale, {
     hour: "2-digit",
     minute: "2-digit",
     timeZone
@@ -58,13 +60,15 @@ export function CancelBookingDialog({
       >
         <div className="modal__header">
           <div>
-            <span className="eyebrow eyebrow--danger">Незворотна дія</span>
-            <h2 id="cancel-booking-title">Скасувати бронювання?</h2>
+            <span className="eyebrow eyebrow--danger">
+              {t("cancel.irreversible")}
+            </span>
+            <h2 id="cancel-booking-title">{t("cancel.title")}</h2>
           </div>
           <button
             className="icon-button"
             onClick={onClose}
-            aria-label="Закрити"
+            aria-label={t("close")}
             disabled={pending}
           >
             ×
@@ -72,23 +76,22 @@ export function CancelBookingDialog({
         </div>
 
         <p id="cancel-booking-description">
-          Час знову стане доступним для інших. Запрошені учасники отримають
-          сповіщення про скасування.
+          {t("cancel.description")}
         </p>
 
         <div className="cancel-summary">
           <strong>{booking.title}</strong>
           <dl>
             <div>
-              <dt>Кімната</dt>
+              <dt>{t("room")}</dt>
               <dd>{booking.roomName}</dd>
             </div>
             <div>
-              <dt>Дата</dt>
+              <dt>{t("cancel.date")}</dt>
               <dd>{date}</dd>
             </div>
             <div>
-              <dt>Час</dt>
+              <dt>{t("cancel.time")}</dt>
               <dd>
                 {time.format(startsAt)} — {time.format(endsAt)}
               </dd>
@@ -96,7 +99,7 @@ export function CancelBookingDialog({
             {typeof booking.participantCount === "number" &&
               booking.participantCount > 0 && (
                 <div>
-                  <dt>Учасники</dt>
+                  <dt>{t("calendar.participants")}</dt>
                   <dd>{booking.participantCount}</dd>
                 </div>
               )}
@@ -105,25 +108,25 @@ export function CancelBookingDialog({
 
         {booking.seriesId && (
           <fieldset className="segmented-field cancel-scope">
-            <legend>Що саме скасувати</legend>
+            <legend>{t("cancel.scope")}</legend>
             <div className="segmented">
               <button
                 type="button"
                 className={scope === "OCCURRENCE" ? "is-active" : ""}
                 onClick={() => setScope("OCCURRENCE")}
               >
-                Лише цю подію
+                {t("cancel.occurrence")}
               </button>
               <button
                 type="button"
                 className={scope === "FUTURE" ? "is-active" : ""}
                 onClick={() => setScope("FUTURE")}
               >
-                Цю й наступні
+                {t("cancel.future")}
               </button>
             </div>
             <small>
-              Попередні події серії та їхня історія не зміняться.
+              {t("cancel.scopeHint")}
             </small>
           </fieldset>
         )}
@@ -132,7 +135,7 @@ export function CancelBookingDialog({
           <div className="form-error" role="alert">
             {error instanceof ApiError
               ? error.message
-              : "Не вдалося скасувати бронювання"}
+              : t("cancel.error")}
           </div>
         )}
 
@@ -142,14 +145,14 @@ export function CancelBookingDialog({
             disabled={pending}
             autoFocus
           >
-            Залишити бронювання
+            {t("cancel.keep")}
           </Button>
           <Button
             variant="danger"
             onClick={() => onConfirm(scope)}
             disabled={pending}
           >
-            {pending ? "Скасовуємо…" : "Так, скасувати"}
+            {pending ? t("calendar.cancelling") : t("cancel.confirm")}
           </Button>
         </div>
       </section>

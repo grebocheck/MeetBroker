@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 import type { User } from "../types";
 import { Avatar } from "../components/Avatar";
 import {
@@ -50,6 +51,7 @@ interface Preferences {
 }
 
 export function ProfilePage({ user }: { user: User }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -204,9 +206,9 @@ export function ProfilePage({ user }: { user: User }) {
     <div className="page narrow-page profile-page">
       <header className="page-header">
         <div>
-          <span className="eyebrow">Особисті налаштування</span>
-          <h1>Профіль</h1>
-          <p>Так вас бачитимуть колеги у бронюваннях і відкритих подіях.</p>
+          <span className="eyebrow">{t("profile.eyebrow")}</span>
+          <h1>{t("profile")}</h1>
+          <p>{t("profile.subtitle")}</p>
         </div>
       </header>
 
@@ -214,8 +216,8 @@ export function ProfilePage({ user }: { user: User }) {
         <section className="settings-card">
           <div className="settings-card__heading">
             <div>
-              <h2>Основна інформація</h2>
-              <p>Коротко й доречно для внутрішнього каталогу.</p>
+              <h2>{t("profile.basic")}</h2>
+              <p>{t("profile.basicHint")}</p>
             </div>
             <Avatar
               name={profile.name}
@@ -226,7 +228,7 @@ export function ProfilePage({ user }: { user: User }) {
           </div>
           <form className="form-stack" onSubmit={submit}>
             <label className="field">
-              <span>Ім’я</span>
+              <span>{t("profile.name")}</span>
               <input
                 value={profile.name}
                 maxLength={120}
@@ -237,12 +239,12 @@ export function ProfilePage({ user }: { user: User }) {
               />
             </label>
             <label className="field">
-              <span>Короткий опис</span>
+              <span>{t("profile.bio")}</span>
               <textarea
                 value={profile.bio}
                 maxLength={300}
                 rows={4}
-                placeholder="Чим займаєтесь і з чим до вас можна звернутися"
+                placeholder={t("profile.bioPlaceholder")}
                 onChange={(event) =>
                   setProfile({ ...profile, bio: event.target.value })
                 }
@@ -250,7 +252,7 @@ export function ProfilePage({ user }: { user: User }) {
               <small>{profile.bio.length}/300</small>
             </label>
             <div className="field">
-              <span>Готовий аватар</span>
+              <span>{t("profile.presetAvatar")}</span>
               <div className="avatar-picker">
                 {Array.from({ length: 12 }, (_, index) => {
                   const preset = `avatar-${String(index + 1).padStart(2, "0")}`;
@@ -267,7 +269,9 @@ export function ProfilePage({ user }: { user: User }) {
                           setSelectedPreset(preset);
                         }
                       }
-                      aria-label={`Аватар ${index + 1}`}
+                      aria-label={t("profile.avatarLabel", {
+                        number: index + 1
+                      })}
                     >
                       <Avatar name="" preset={preset} size="md" />
                     </button>
@@ -277,8 +281,8 @@ export function ProfilePage({ user }: { user: User }) {
             </div>
             <label className="upload-box">
               <span>
-                <strong>Або власне фото</strong>
-                <small>JPG, PNG чи WebP — автоматично обріжемо й оптимізуємо</small>
+                <strong>{t("profile.ownPhoto")}</strong>
+                <small>{t("profile.photoHint")}</small>
               </span>
               <input
                 type="file"
@@ -288,15 +292,19 @@ export function ProfilePage({ user }: { user: User }) {
                   if (file) upload.mutate(file);
                 }}
               />
-              <em>{upload.isPending ? "Обробляємо…" : "Обрати файл"}</em>
+              <em>
+                {upload.isPending
+                  ? t("profile.processing")
+                  : t("profile.chooseFile")}
+              </em>
             </label>
             <div className="field">
-              <span>Часовий пояс</span>
+              <span>{t("profile.timeZone")}</span>
               <SearchSelect
                 value={profile.timezone}
                 options={timeZoneOptions}
-                searchPlaceholder="Пошук міста або часового поясу…"
-                emptyText="Часовий пояс не знайдено"
+                searchPlaceholder={t("profile.timeZoneSearch")}
+                emptyText={t("profile.timeZoneEmpty")}
                 onChange={(timezone) =>
                   setProfile({ ...profile, timezone })
                 }
@@ -307,7 +315,9 @@ export function ProfilePage({ user }: { user: User }) {
                 {[save.error, upload.error]
                   .filter(Boolean)
                   .map((error) =>
-                    error instanceof ApiError ? error.message : "Не вдалося зберегти"
+                    error instanceof ApiError
+                      ? error.message
+                      : t("profile.saveError")
                   )
                   .join(". ")}
               </div>
@@ -317,7 +327,7 @@ export function ProfilePage({ user }: { user: User }) {
               variant="primary"
               disabled={save.isPending}
             >
-              {save.isPending ? "Зберігаємо…" : "Зберегти профіль"}
+              {save.isPending ? t("profile.saving") : t("profile.save")}
             </Button>
           </form>
         </section>
@@ -325,8 +335,8 @@ export function ProfilePage({ user }: { user: User }) {
         <section className="settings-card">
           <div className="settings-card__heading">
             <div>
-              <h2>Сповіщення</h2>
-              <p>Оберіть, де й про що повідомляти.</p>
+              <h2>{t("notifications")}</h2>
+              <p>{t("profile.notificationsHint")}</p>
             </div>
           </div>
           {preferences.data && (
@@ -337,8 +347,12 @@ export function ProfilePage({ user }: { user: User }) {
                   <span>{user.email}</span>
                   {(user.pendingEmail || changeEmail.data?.pendingEmail) && (
                     <small>
-                      Очікує підтвердження:{" "}
-                      {user.pendingEmail ?? changeEmail.data?.pendingEmail}
+                      {t("profile.pendingEmail", {
+                        email:
+                          user.pendingEmail ??
+                          changeEmail.data?.pendingEmail ??
+                          ""
+                      })}
                     </small>
                   )}
                 </div>
@@ -350,7 +364,7 @@ export function ProfilePage({ user }: { user: User }) {
                     setShowEmailForm((visible) => !visible);
                   }}
                 >
-                  {showEmailForm ? "Закрити" : "Змінити"}
+                  {showEmailForm ? t("close") : t("profile.change")}
                 </Button>
               </div>
               {showEmailForm && (
@@ -362,7 +376,7 @@ export function ProfilePage({ user }: { user: User }) {
                   }}
                 >
                   <label className="field">
-                    <span>Нова email-адреса</span>
+                    <span>{t("profile.newEmail")}</span>
                     <input
                       type="email"
                       autoComplete="email"
@@ -378,7 +392,7 @@ export function ProfilePage({ user }: { user: User }) {
                     />
                   </label>
                   <label className="field">
-                    <span>Поточний пароль</span>
+                    <span>{t("profile.currentPassword")}</span>
                     <input
                       type="password"
                       autoComplete="current-password"
@@ -397,12 +411,12 @@ export function ProfilePage({ user }: { user: User }) {
                     <div className="form-error" role="alert">
                       {changeEmail.error instanceof ApiError
                         ? changeEmail.error.message
-                        : "Не вдалося змінити email"}
+                        : t("profile.emailError")}
                     </div>
                   )}
                   {changeEmail.isSuccess && (
                     <div className="form-success" role="status">
-                      Надіслано підтвердження на нову адресу.
+                      {t("profile.emailSent")}
                     </div>
                   )}
                   <Button
@@ -416,14 +430,13 @@ export function ProfilePage({ user }: { user: User }) {
                     }
                   >
                     {changeEmail.isPending
-                      ? "Надсилаємо…"
-                      : "Підтвердити зміну"}
+                      ? t("profile.sending")
+                      : t("profile.confirmChange")}
                   </Button>
                   {verificationToken && (
                     <div className="dev-verification">
                       <small>
-                        Demo-режим: підтвердження доступне одразу без поштового
-                        сервера.
+                        {t("profile.demoVerification")}
                       </small>
                       <Button
                         size="small"
@@ -431,8 +444,8 @@ export function ProfilePage({ user }: { user: User }) {
                         disabled={confirmEmail.isPending}
                       >
                         {confirmEmail.isPending
-                          ? "Підтверджуємо…"
-                          : "Підтвердити email"}
+                          ? t("profile.confirming")
+                          : t("profile.confirmEmail")}
                       </Button>
                     </div>
                   )}
@@ -444,10 +457,10 @@ export function ProfilePage({ user }: { user: User }) {
                   <strong>Telegram</strong>
                   <span>
                     {preferences.data.telegramConnected
-                      ? "Бот підключено"
+                      ? t("profile.telegramConnected")
                       : preferences.data.telegramAvailable
-                        ? "Отримуйте запрошення в один дотик"
-                        : "Бот не налаштований для цієї компанії"}
+                        ? t("profile.telegramAvailable")
+                        : t("profile.telegramUnavailable")}
                   </span>
                 </div>
                 {preferences.data.telegramConnected ? (
@@ -456,7 +469,7 @@ export function ProfilePage({ user }: { user: User }) {
                     size="small"
                     onClick={() => disconnectTelegram.mutate()}
                   >
-                    Від’єднати
+                    {t("profile.disconnect")}
                   </Button>
                 ) : (
                   <Button
@@ -467,24 +480,24 @@ export function ProfilePage({ user }: { user: User }) {
                     }
                     onClick={() => telegramLink.mutate()}
                   >
-                    Підключити
+                    {t("profile.connect")}
                   </Button>
                 )}
               </div>
               <hr />
               <div className="notification-matrix">
                 <div className="notification-matrix__header">
-                  <span>Група</span>
-                  <span>Застосунок</span>
+                  <span>{t("profile.group")}</span>
+                  <span>{t("profile.app")}</span>
                   <span>Email</span>
                   <span>Telegram</span>
                 </div>
                 {(
                   [
-                    ["INVITATIONS", "Нові запрошення"],
-                    ["CHANGES", "Зміни й скасування"],
-                    ["REMINDERS", "Нагадування"],
-                    ["ACCESS", "Доступ і безпека"]
+                    ["INVITATIONS", t("profile.invitations")],
+                    ["CHANGES", t("profile.changes")],
+                    ["REMINDERS", t("profile.reminders")],
+                    ["ACCESS", t("profile.access")]
                   ] as const
                 ).map(([category, label]) => (
                   <div className="notification-matrix__row" key={category}>
@@ -507,13 +520,13 @@ export function ProfilePage({ user }: { user: User }) {
                           key={channel}
                           title={
                             disabled
-                              ? "Спочатку підключіть Telegram"
+                              ? t("profile.connectTelegramFirst")
                               : `${label}: ${channel}`
                           }
                         >
                           <span className="notification-channel-label">
                             {channel === "IN_APP"
-                              ? "Застосунок"
+                              ? t("profile.app")
                               : channel === "EMAIL"
                                 ? "Email"
                                 : "Telegram"}
@@ -538,16 +551,13 @@ export function ProfilePage({ user }: { user: User }) {
                 ))}
               </div>
               <small>
-                Канали налаштовуються незалежно: наприклад, запрошення можна
-                отримувати в Telegram, а нагадування — лише в застосунку.
+                {t("profile.channelsHint")}
               </small>
               <hr />
               <div className="security-section">
                 <div>
-                  <h3>Зміна пароля</h3>
-                  <p>
-                    Після зміни інші активні сесії буде завершено автоматично.
-                  </p>
+                  <h3>{t("profile.passwordTitle")}</h3>
+                  <p>{t("profile.passwordHint")}</p>
                 </div>
                 <form
                   className="form-stack"
@@ -557,7 +567,7 @@ export function ProfilePage({ user }: { user: User }) {
                   }}
                 >
                   <label className="field">
-                    <span>Поточний пароль</span>
+                    <span>{t("profile.currentPassword")}</span>
                     <input
                       type="password"
                       autoComplete="current-password"
@@ -573,7 +583,7 @@ export function ProfilePage({ user }: { user: User }) {
                     />
                   </label>
                   <label className="field">
-                    <span>Новий пароль</span>
+                    <span>{t("profile.newPassword")}</span>
                     <input
                       type="password"
                       minLength={8}
@@ -591,7 +601,7 @@ export function ProfilePage({ user }: { user: User }) {
                     />
                   </label>
                   <label className="field">
-                    <span>Повторіть новий пароль</span>
+                    <span>{t("profile.repeatPassword")}</span>
                     <input
                       type="password"
                       minLength={8}
@@ -611,7 +621,7 @@ export function ProfilePage({ user }: { user: User }) {
                       passwordForm.newPassword !==
                         passwordForm.confirmPassword && (
                         <small className="field-error">
-                          Паролі не збігаються
+                          {t("profile.passwordMismatch")}
                         </small>
                       )}
                   </label>
@@ -619,12 +629,12 @@ export function ProfilePage({ user }: { user: User }) {
                     <div className="form-error" role="alert">
                       {changePassword.error instanceof ApiError
                         ? changePassword.error.message
-                        : "Не вдалося змінити пароль"}
+                        : t("profile.passwordError")}
                     </div>
                   )}
                   {changePassword.isSuccess && (
                     <div className="form-success" role="status">
-                      Пароль успішно змінено.
+                      {t("profile.passwordSuccess")}
                     </div>
                   )}
                   <Button
@@ -638,8 +648,8 @@ export function ProfilePage({ user }: { user: User }) {
                     }
                   >
                     {changePassword.isPending
-                      ? "Змінюємо…"
-                      : "Змінити пароль"}
+                      ? t("profile.changing")
+                      : t("profile.changePassword")}
                   </Button>
                 </form>
               </div>

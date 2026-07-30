@@ -5,6 +5,7 @@ import { uk, type MessageKey } from "../locales/uk";
 
 const translations = { uk, en };
 type Variables = Record<string, string | number>;
+export type Translator = (key: MessageKey, variables?: Variables) => string;
 
 export function translate(
   locale: Locale,
@@ -21,7 +22,7 @@ export function translate(
 const I18nContext = createContext<{
   locale: Locale;
   dateLocale: string;
-  t: (key: MessageKey, variables?: Variables) => string;
+  t: Translator;
 }>({
   locale: "uk",
   dateLocale: "uk-UA",
