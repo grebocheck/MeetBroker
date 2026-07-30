@@ -2,6 +2,7 @@ import type { MessageKey } from "./uk";
 
 export const en = {
   calendar: "Schedule",
+  myMeetings: "My meetings",
   myBookings: "My bookings",
   openEvents: "Open events",
   notifications: "Notifications",
@@ -458,6 +459,15 @@ export const en = {
   "booking.adminTitle": "Administrative change",
   "booking.editTitle": "Edit booking",
   "booking.newTitle": "New booking",
+  "booking.format": "Meeting format",
+  "booking.roomMeeting": "Meeting room",
+  "booking.onlineMeeting": "Online",
+  "booking.meetingUrl": "Meeting link",
+  "booking.meetingUrlHint":
+    "A secure HTTPS link is required to join the meeting.",
+  "booking.meetingUrlRequired":
+    "Enter a valid HTTPS link for the online meeting.",
+  "booking.roomRequired": "Choose a room for an in-person meeting.",
   "booking.adminReason": "Reason for the administrative change",
   "booking.adminReasonPlaceholder":
     "Explain why another user's booking needs to change",
@@ -492,6 +502,24 @@ export const en = {
   "booking.booking": "Booking…",
   "booking.saveChanges": "Save changes",
   "booking.createSeries": "Create series",
+  "meetings.eyebrow": "Your working rhythm",
+  "meetings.subtitle":
+    "Every meeting you organize or have been invited to.",
+  "meetings.newOnline": "+ Online meeting",
+  "meetings.previousDays": "Previous days",
+  "meetings.nextDays": "Next days",
+  "meetings.loading": "Loading your meetings…",
+  "meetings.loadError": "Could not load the meetings calendar.",
+  "meetings.freeDay": "Free",
+  "meetings.organizer": "Organizer",
+  "meetings.invited": "Invited",
+  "meetings.when": "When",
+  "meetings.organizedBy": "Organizer",
+  "meetings.participants": "Participants",
+  "meetings.noParticipants": "No other participants",
+  "meetings.edit": "Edit",
+  "meetings.join": "Join",
+  "meetings.loadingRoom": "Loading meeting room details…",
   "weekday.0": "Sun",
   "weekday.1": "Mon",
   "weekday.2": "Tue",

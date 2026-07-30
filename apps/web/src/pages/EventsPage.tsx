@@ -9,7 +9,9 @@ interface OpenEvent {
   title: string;
   startsAt: string;
   endsAt: string;
-  room: { id: string; name: string; capacity: number };
+  meetingType: "ROOM" | "ONLINE";
+  meetingUrl: string | null;
+  room: { id: string; name: string; capacity: number } | null;
   organizer: { id: string; name: string };
   participantCount: number;
   myStatus: string | null;
@@ -66,7 +68,8 @@ export function EventsPage({ user }: { user: User }) {
           {events.data?.events.map((event) => {
             const joined = event.myStatus === "ACCEPTED";
             const own = event.organizer.id === user.id;
-            const full = event.participantCount >= event.room.capacity;
+            const capacity = event.room?.capacity ?? 51;
+            const full = event.participantCount >= capacity;
             return (
               <article className="event-card" key={event.id}>
                 <div className="event-card__accent" />
@@ -90,7 +93,7 @@ export function EventsPage({ user }: { user: User }) {
                     minute: "2-digit"
                   }).format(new Date(event.startsAt))}
                   {" · "}
-                  {event.room.name}
+                  {event.room?.name ?? t("booking.onlineMeeting")}
                 </p>
                 <div className="event-card__meta">
                   <span>
@@ -99,7 +102,7 @@ export function EventsPage({ user }: { user: User }) {
                   <span>
                     {t("events.participants", {
                       current: event.participantCount,
-                      capacity: event.room.capacity
+                      capacity
                     })}
                   </span>
                 </div>
@@ -123,6 +126,16 @@ export function EventsPage({ user }: { user: User }) {
                         ? t("events.full")
                         : t("events.join")}
                   </button>
+                )}
+                {event.meetingUrl && (
+                  <a
+                    className="button button--secondary button--wide"
+                    href={event.meetingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {t("meetings.join")}
+                  </a>
                 )}
               </article>
             );

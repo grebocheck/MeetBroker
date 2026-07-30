@@ -17,7 +17,9 @@ interface MyBooking {
   title: string;
   startsAt: string;
   endsAt: string;
-  room: { id: string; name: string };
+  meetingType: "ROOM" | "ONLINE";
+  meetingUrl: string | null;
+  room: { id: string; name: string } | null;
   organizerId: string;
   participationMode: string;
   seriesId: string | null;
@@ -163,9 +165,11 @@ export function BookingListPage({ user }: { user: User }) {
                 <button
                   className="booking-row__main"
                   onClick={() =>
-                    navigate(
-                      `/calendar?roomId=${booking.room.id}&date=${booking.startsAt}`
-                    )
+                    booking.room
+                      ? navigate(
+                          `/calendar?roomId=${booking.room.id}&date=${booking.startsAt}`
+                        )
+                      : navigate("/my-calendar")
                   }
                 >
                   <span className="booking-row__time">
@@ -182,7 +186,9 @@ export function BookingListPage({ user }: { user: User }) {
                     }).format(new Date(booking.endsAt))}
                   </span>
                   <strong>{booking.title}</strong>
-                  <span>{booking.room.name}</span>
+                  <span>
+                    {booking.room?.name ?? t("booking.onlineMeeting")}
+                  </span>
                 </button>
                 <div className="booking-row__aside">
                   <span
@@ -274,7 +280,8 @@ export function BookingListPage({ user }: { user: User }) {
         <CancelBookingDialog
           booking={{
             title: cancellingBooking.title,
-            roomName: cancellingBooking.room.name,
+            roomName:
+              cancellingBooking.room?.name ?? t("booking.onlineMeeting"),
             startsAt: cancellingBooking.startsAt,
             endsAt: cancellingBooking.endsAt,
             seriesId: cancellingBooking.seriesId,

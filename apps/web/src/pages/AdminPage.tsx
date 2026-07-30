@@ -56,6 +56,8 @@ interface AdminBooking {
   title: string;
   startsAt: string;
   endsAt: string;
+  meetingType: "ROOM" | "ONLINE";
+  meetingUrl: string | null;
   participationMode: "INVITE_ONLY" | "OPEN";
   seriesId: string | null;
   overrideReason: string | null;
@@ -66,7 +68,7 @@ interface AdminBooking {
     id: string;
     name: string;
     floor: number;
-  };
+  } | null;
   organizer: AdminBookingPerson;
   participants: (AdminBookingPerson & {
     status: "INVITED" | "ACCEPTED" | "DECLINED";
@@ -305,8 +307,9 @@ function BookingsAdmin() {
                     </div>
                     <span>
                       {t("admin.bookingMeta", {
-                        room: booking.room.name,
-                        floor: booking.room.floor,
+                        room:
+                          booking.room?.name ?? t("booking.onlineMeeting"),
+                        floor: booking.room?.floor ?? "—",
                         organizer: booking.organizer.name,
                         count: booking.participants.length,
                       })}
@@ -366,15 +369,21 @@ function BookingsAdmin() {
         />
       )}
       {editing &&
-        rooms.data?.rooms.find((room) => room.id === editing.room.id) && (
+        (editing.meetingType === "ONLINE" ||
+          rooms.data?.rooms.find((room) => room.id === editing.room?.id)) && (
           <BookingDialog
-            room={rooms.data.rooms.find((room) => room.id === editing.room.id)!}
+            room={rooms.data?.rooms.find(
+              (room) => room.id === editing.room?.id,
+            )}
             booking={
               {
                 id: editing.id,
                 title: editing.title,
                 startsAt: editing.startsAt,
                 endsAt: editing.endsAt,
+                meetingType: editing.meetingType,
+                meetingUrl: editing.meetingUrl,
+                room: editing.room,
                 participationMode: editing.participationMode,
                 seriesId: editing.seriesId,
                 organizer: editing.organizer,
@@ -476,7 +485,7 @@ function AdminBookingDialog({
           <dl>
             <div>
               <dt>{t("room")}</dt>
-              <dd>{booking.room.name}</dd>
+              <dd>{booking.room?.name ?? t("booking.onlineMeeting")}</dd>
             </div>
             <div>
               <dt>{t("admin.format")}</dt>

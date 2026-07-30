@@ -14,11 +14,29 @@ export interface BookingDraft {
   endsAt: Date;
 }
 
+function isHttpsUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function nextHalfHour(): Date {
+  const result = new Date();
+  result.setSeconds(0, 0);
+  const minutes = result.getMinutes();
+  result.setMinutes(minutes < 30 ? 30 : 60);
+  return result;
+}
+
 type BookingErrorTarget =
   | "title"
   | "time"
   | "recurrence"
   | "participants"
+  | "meetingUrl"
   | "adminReason"
   | "form";
 
@@ -140,6 +158,14 @@ function bookingError(
       target: "participants",
       message: t("booking.capacityExceeded")
     },
+    ROOM_REQUIRED: {
+      target: "form",
+      message: t("booking.roomRequired")
+    },
+    MEETING_URL_REQUIRED: {
+      target: "meetingUrl",
+      message: t("booking.meetingUrlRequired")
+    },
     INVALID_PARTICIPANT: {
       target: "participants",
       message: t("booking.invalidParticipant")
@@ -200,7 +226,7 @@ export function BookingDialog({
   onClose,
   onSaved
 }: {
-  room: Room;
+  room?: Room;
   draft?: BookingDraft;
   booking?: Booking;
   administrative?: boolean;
@@ -208,13 +234,19 @@ export function BookingDialog({
   onSaved: () => void;
 }) {
   const { dateLocale, t } = useI18n();
+  const standaloneStart = nextHalfHour();
   const initialStartsAt = booking
     ? new Date(booking.startsAt)
-    : (draft?.startsAt ?? new Date());
+    : (draft?.startsAt ?? standaloneStart);
   const initialEndsAt = booking
     ? new Date(booking.endsAt)
-    : (draft?.endsAt ?? new Date(Date.now() + 3_600_000));
+    : (draft?.endsAt ??
+      new Date(standaloneStart.getTime() + 3_600_000));
   const editing = Boolean(booking);
+  const [meetingType, setMeetingType] = useState<"ROOM" | "ONLINE">(
+    booking?.meetingType ?? (room ? "ROOM" : "ONLINE")
+  );
+  const [meetingUrl, setMeetingUrl] = useState(booking?.meetingUrl ?? "");
   const [title, setTitle] = useState(booking?.title ?? "");
   const [startsAt, setStartsAt] = useState(toDateTimeLocal(initialStartsAt));
   const [endsAt, setEndsAt] = useState(toDateTimeLocal(initialEndsAt));
@@ -238,14 +270,17 @@ export function BookingDialog({
   ]);
   const [adminReason, setAdminReason] = useState("");
   const [localError, setLocalError] = useState<{
-    target: "title" | "time" | "recurrence" | "adminReason";
+    target: BookingErrorTarget;
     message: string;
   } | null>(null);
   const colleagues = useQuery({
     queryKey: ["colleagues"],
     queryFn: () => api<{ users: Person[] }>("/api/users/colleagues")
   });
-  const availableSeats = Math.max(0, room.capacity - 1);
+  const availableSeats =
+    meetingType === "ONLINE"
+      ? 50
+      : Math.max(0, (room?.capacity ?? 1) - 1);
   const colleagueUsers = Array.isArray(colleagues.data?.users)
     ? colleagues.data.users
     : [];
@@ -259,7 +294,15 @@ export function BookingDialog({
         {
           method: booking ? "PATCH" : "POST",
           body: JSON.stringify({
-            ...(booking ? {} : { roomId: room.id }),
+            ...(!booking
+              ? {
+                  meetingType,
+                  roomId: meetingType === "ROOM" ? room?.id : undefined
+                }
+              : {}),
+            ...(meetingType === "ONLINE"
+              ? { meetingUrl: meetingUrl.trim() }
+              : {}),
             title: title.trim(),
             startsAt: new Date(startsAt).toISOString(),
             endsAt: new Date(endsAt).toISOString(),
@@ -286,6 +329,16 @@ export function BookingDialog({
       setLocalError({
         target: "title",
         message: t("booking.titleRequired")
+      });
+      return;
+    }
+    if (
+      meetingType === "ONLINE" &&
+      !isHttpsUrl(meetingUrl.trim())
+    ) {
+      setLocalError({
+        target: "meetingUrl",
+        message: t("booking.meetingUrlRequired")
       });
       return;
     }
@@ -341,7 +394,11 @@ export function BookingDialog({
       >
         <div className="modal__header">
           <div>
-            <span className="eyebrow">{room.name}</span>
+            <span className="eyebrow">
+              {meetingType === "ONLINE"
+                ? t("booking.onlineMeeting")
+                : room?.name ?? t("booking.roomMeeting")}
+            </span>
             <h2 id="booking-dialog-title">
               {administrative
                 ? t("booking.adminTitle")
@@ -359,6 +416,53 @@ export function BookingDialog({
           </button>
         </div>
         <form className="form-stack" onSubmit={submit} noValidate>
+          {!editing && room && (
+            <fieldset className="segmented-field">
+              <legend>{t("booking.format")}</legend>
+              <div className="segmented">
+                <button
+                  type="button"
+                  className={meetingType === "ROOM" ? "is-active" : ""}
+                  onClick={() => setMeetingType("ROOM")}
+                >
+                  {t("booking.roomMeeting")}
+                </button>
+                <button
+                  type="button"
+                  className={meetingType === "ONLINE" ? "is-active" : ""}
+                  onClick={() => setMeetingType("ONLINE")}
+                >
+                  {t("booking.onlineMeeting")}
+                </button>
+              </div>
+            </fieldset>
+          )}
+          {meetingType === "ONLINE" && (
+            <label className="field">
+              <span>{t("booking.meetingUrl")}</span>
+              <input
+                type="url"
+                value={meetingUrl}
+                onChange={(event) => {
+                  setMeetingUrl(event.target.value);
+                  setLocalError(null);
+                  save.reset();
+                }}
+                placeholder="https://meet.example.com/..."
+                autoComplete="url"
+                required
+              />
+              <small>{t("booking.meetingUrlHint")}</small>
+              {(localError?.target === "meetingUrl" ||
+                serverError?.target === "meetingUrl") && (
+                <small className="field-error" role="alert">
+                  {localError?.target === "meetingUrl"
+                    ? localError.message
+                    : serverError?.message}
+                </small>
+              )}
+            </label>
+          )}
           {administrative && (
             <label className="field">
               <span>{t("booking.adminReason")}</span>

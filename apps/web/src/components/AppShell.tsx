@@ -10,6 +10,7 @@ import { BookingListPage } from "../pages/BookingListPage";
 import { CalendarPage } from "../pages/CalendarPage";
 import { EventsPage } from "../pages/EventsPage";
 import { NotificationsPage } from "../pages/NotificationsPage";
+import { MyMeetingsPage } from "../pages/MyMeetingsPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { Avatar } from "./Avatar";
 import { BrandMark } from "./BrandMark";
@@ -77,6 +78,7 @@ export function AppShell({ user, path }: { user: User; path: string }) {
   const route = currentRoute(path);
   const items: NavItem[] = [
     { href: "/calendar", label: t("calendar"), icon: CalendarIcon },
+    { href: "/my-calendar", label: t("myMeetings"), icon: CalendarIcon },
     { href: "/bookings", label: t("myBookings"), icon: ListIcon },
     { href: "/events", label: t("openEvents"), icon: UsersIcon },
     {
@@ -94,6 +96,7 @@ export function AppShell({ user, path }: { user: User; path: string }) {
   ];
 
   let content = <CalendarPage user={user} />;
+  if (route === "/my-calendar") content = <MyMeetingsPage user={user} />;
   if (route === "/bookings") content = <BookingListPage user={user} />;
   if (route === "/events") content = <EventsPage user={user} />;
   if (route === "/notifications") content = <NotificationsPage />;

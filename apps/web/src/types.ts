@@ -58,10 +58,26 @@ export interface Booking {
   title: string;
   startsAt: string;
   endsAt: string;
+  meetingType?: "ROOM" | "ONLINE";
+  meetingUrl?: string | null;
+  room?: Pick<Room, "id" | "name"> | null;
   participationMode: "INVITE_ONLY" | "OPEN";
   seriesId: string | null;
   organizer: Person;
   participants: Person[];
+}
+
+export interface MyMeeting extends Booking {
+  meetingType: "ROOM" | "ONLINE";
+  meetingUrl: string | null;
+  room: Pick<Room, "id" | "name"> | null;
+  myRole: "ORGANIZER" | "PARTICIPANT";
+  participantStatus: "INVITED" | "ACCEPTED" | null;
+}
+
+export interface MyMeetingsCalendar {
+  officeTimeZone: string;
+  meetings: MyMeeting[];
 }
 
 export interface RoomBlock {
