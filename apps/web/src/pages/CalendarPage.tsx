@@ -759,11 +759,25 @@ function BookingDrawer({
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="drawer__header">
-          <span
-            className={`event-dot${
-              booking.organizer.id === currentUserId ? " event-dot--own" : ""
-            }`}
-          />
+          <div>
+            <span className="eyebrow drawer__event-type">
+              <span
+                className={`event-dot${
+                  booking.organizer.id === currentUserId
+                    ? " event-dot--own"
+                    : ""
+                }`}
+                aria-hidden="true"
+              />
+              <span>
+                {booking.seriesId ? `${t("calendar.seriesEvent")} · ` : ""}
+                {booking.participationMode === "OPEN"
+                  ? t("calendar.openEvent")
+                  : t("calendar.invitationEvent")}
+              </span>
+            </span>
+            <h2>{booking.title}</h2>
+          </div>
           <button
             className="icon-button"
             onClick={onClose}
@@ -772,13 +786,6 @@ function BookingDrawer({
             ×
           </button>
         </div>
-        <span className="eyebrow">
-          {booking.seriesId ? `${t("calendar.seriesEvent")} · ` : ""}
-          {booking.participationMode === "OPEN"
-            ? t("calendar.openEvent")
-            : t("calendar.invitationEvent")}
-        </span>
-        <h2>{booking.title}</h2>
         <div className="drawer-time">
           {new Intl.DateTimeFormat(dateLocale, {
             dateStyle: "full",

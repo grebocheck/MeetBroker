@@ -2043,16 +2043,23 @@ hr {
 }
 
 .drawer h2 {
-  margin-top: 8px;
   font-size: 2rem;
+}
+
+.drawer__event-type {
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
 
 .event-dot {
   display: block;
-  width: 5px;
-  height: 38px;
-  border-radius: 10px;
+  width: 10px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 2px;
   background: var(--booking-other-border);
+  transform: skewX(-22deg);
 }
 
 .event-dot--own {
