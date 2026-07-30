@@ -10,11 +10,13 @@ import {
   officeLocalToInstant,
 } from "../lib/date";
 import { useI18n } from "../lib/i18n";
-import type { Booking, Room, Schedule, User } from "../types";
+import type { Booking, Room, RoomBlock, Schedule, User } from "../types";
 import { Avatar } from "../components/Avatar";
 import { RoomVisual } from "../components/RoomVisual";
 import { BookingDialog, type BookingDraft } from "../components/BookingDialog";
 import { CancelBookingDialog } from "../components/CancelBookingDialog";
+import { DrawerLayer } from "../components/ui/DrawerLayer";
+import { RoomBlockDrawer } from "../components/RoomBlockDrawer";
 
 const SLOT_HEIGHT = 32;
 const DEFAULT_TIME_ZONE = "Europe/Kyiv";
@@ -59,6 +61,7 @@ export function CalendarPage({ user }: { user: User }) {
   const [minCapacity, setMinCapacity] = useState(0);
   const [draft, setDraft] = useState<BookingDraft | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [selectedBlock, setSelectedBlock] = useState<RoomBlock | null>(null);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(
     null,
@@ -470,6 +473,7 @@ export function CalendarPage({ user }: { user: User }) {
                       currentUserId={user.id}
                       onCreate={setDraft}
                       onBooking={setSelectedBooking}
+                      onBlock={setSelectedBlock}
                     />
                   );
                 })}
@@ -558,6 +562,14 @@ export function CalendarPage({ user }: { user: User }) {
           cancelling={cancel.isPending}
         />
       )}
+      {selectedBlock && room && (
+        <RoomBlockDrawer
+          block={selectedBlock}
+          room={room}
+          timeZone={localTimeZone}
+          onClose={() => setSelectedBlock(null)}
+        />
+      )}
       {cancellingBooking && room && (
         <CancelBookingDialog
           booking={{
@@ -596,6 +608,7 @@ function DayColumn({
   currentUserId,
   onCreate,
   onBooking,
+  onBlock,
 }: {
   day: Date;
   slots: number[];
@@ -608,6 +621,7 @@ function DayColumn({
   currentUserId: string;
   onCreate: (draft: BookingDraft) => void;
   onBooking: (booking: Booking) => void;
+  onBlock: (block: RoomBlock) => void;
 }) {
   const { t } = useI18n();
   const key = dateKeyInZone(
@@ -676,7 +690,8 @@ function DayColumn({
             new Date(block.startsAt).getTime()) /
           60_000;
         return (
-          <div
+          <button
+            type="button"
             className={`booking-block booking-block--maintenance${
               block.seriesId ? " booking-block--recurring" : ""
             }`}
@@ -685,6 +700,8 @@ function DayColumn({
               height: Math.max(28, (duration / 30) * SLOT_HEIGHT - 4),
             }}
             key={block.id}
+            onClick={() => onBlock(block)}
+            aria-label={`${t("calendar.unavailableDetails")}: ${block.title}`}
           >
             <small>
               {block.seriesId
@@ -692,7 +709,7 @@ function DayColumn({
                 : t("calendar.legendUnavailable")}
             </small>
             <span>{block.title}</span>
-          </div>
+          </button>
         );
       })}
       {bookings.map((booking) => {
@@ -753,97 +770,96 @@ function BookingDrawer({
 }) {
   const { dateLocale, t } = useI18n();
   return (
-    <div className="drawer-backdrop" onMouseDown={onClose}>
-      <aside
-        className="drawer"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <div className="drawer__header">
-          <div>
-            <span className="eyebrow drawer__event-type">
-              <span
-                className={`event-dot${
-                  booking.organizer.id === currentUserId
-                    ? " event-dot--own"
-                    : ""
-                }`}
-                aria-hidden="true"
-              />
-              <span>
-                {booking.seriesId ? `${t("calendar.seriesEvent")} · ` : ""}
-                {booking.participationMode === "OPEN"
-                  ? t("calendar.openEvent")
-                  : t("calendar.invitationEvent")}
-              </span>
-            </span>
-            <h2>{booking.title}</h2>
-          </div>
-          <button
-            className="icon-button"
-            onClick={onClose}
-            aria-label={t("close")}
-          >
-            ×
-          </button>
-        </div>
-        <div className="drawer-time">
-          {new Intl.DateTimeFormat(dateLocale, {
-            dateStyle: "full",
-            timeStyle: "short",
-          }).format(new Date(booking.startsAt))}
-        </div>
-        <hr />
-        <span className="detail-label">{t("calendar.organizer")}</span>
-        <div className="person-detail">
-          <Avatar
-            name={booking.organizer.name}
-            preset={booking.organizer.avatarPreset}
-            url={booking.organizer.avatarUrl}
-            size="lg"
-          />
-          <div>
-            <strong>{booking.organizer.name}</strong>
-            <p>{booking.organizer.bio || t("calendar.colleagueFallback")}</p>
-          </div>
-        </div>
-        {booking.participants.length > 0 && (
-          <>
-            <span className="detail-label">{t("calendar.participants")}</span>
-            <div className="avatar-stack">
-              {booking.participants.slice(0, 8).map((person) => (
-                <Avatar
-                  key={person.id}
-                  name={person.name}
-                  preset={person.avatarPreset}
-                  url={person.avatarUrl}
-                  size="sm"
+    <DrawerLayer labelledBy="booking-details-title" onClose={onClose}>
+      {(close) => (
+        <>
+          <div className="drawer__header">
+            <div>
+              <span className="eyebrow drawer__event-type">
+                <span
+                  className={`event-dot${
+                    booking.organizer.id === currentUserId
+                      ? " event-dot--own"
+                      : ""
+                  }`}
+                  aria-hidden="true"
                 />
-              ))}
-              <span>{booking.participants.length}</span>
+                <span>
+                  {booking.seriesId ? `${t("calendar.seriesEvent")} · ` : ""}
+                  {booking.participationMode === "OPEN"
+                    ? t("calendar.openEvent")
+                    : t("calendar.invitationEvent")}
+                </span>
+              </span>
+              <h2 id="booking-details-title">{booking.title}</h2>
             </div>
-          </>
-        )}
-        {booking.organizer.id === currentUserId && (
-          <div className="drawer__actions">
             <button
-              className="button button--primary button--wide"
-              onClick={onEdit}
+              className="icon-button"
+              onClick={() => close()}
+              aria-label={t("close")}
             >
-              {t("calendar.edit")}
-            </button>
-            <button
-              className="button button--danger button--wide"
-              onClick={onCancel}
-              disabled={cancelling}
-            >
-              {cancelling
-                ? t("calendar.cancelling")
-                : t("calendar.cancelBooking")}
+              ×
             </button>
           </div>
-        )}
-      </aside>
-    </div>
+          <div className="drawer-time">
+            {new Intl.DateTimeFormat(dateLocale, {
+              dateStyle: "full",
+              timeStyle: "short",
+            }).format(new Date(booking.startsAt))}
+          </div>
+          <hr />
+          <span className="detail-label">{t("calendar.organizer")}</span>
+          <div className="person-detail">
+            <Avatar
+              name={booking.organizer.name}
+              preset={booking.organizer.avatarPreset}
+              url={booking.organizer.avatarUrl}
+              size="lg"
+            />
+            <div>
+              <strong>{booking.organizer.name}</strong>
+              <p>{booking.organizer.bio || t("calendar.colleagueFallback")}</p>
+            </div>
+          </div>
+          {booking.participants.length > 0 && (
+            <>
+              <span className="detail-label">{t("calendar.participants")}</span>
+              <div className="avatar-stack">
+                {booking.participants.slice(0, 8).map((person) => (
+                  <Avatar
+                    key={person.id}
+                    name={person.name}
+                    preset={person.avatarPreset}
+                    url={person.avatarUrl}
+                    size="sm"
+                  />
+                ))}
+                <span>{booking.participants.length}</span>
+              </div>
+            </>
+          )}
+          {booking.organizer.id === currentUserId && (
+            <div className="drawer__actions">
+              <button
+                className="button button--primary button--wide"
+                onClick={() => close(onEdit)}
+              >
+                {t("calendar.edit")}
+              </button>
+              <button
+                className="button button--danger button--wide"
+                onClick={() => close(onCancel)}
+                disabled={cancelling}
+              >
+                {cancelling
+                  ? t("calendar.cancelling")
+                  : t("calendar.cancelBooking")}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </DrawerLayer>
   );
 }
 

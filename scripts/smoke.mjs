@@ -197,10 +197,23 @@ async function verifyRoomAvailabilityRules(adminCookie, room) {
       `&to=${encodeURIComponent(rangeTo.toISOString())}`,
     { headers: { cookie: adminCookie } },
   );
+  const scheduleSeries = schedule.body?.blocks?.filter(
+    (block) => block.seriesId === created.body.id,
+  );
   check(
-    schedule.body?.blocks?.filter((block) => block.seriesId === created.body.id)
-      .length === 4,
+    scheduleSeries?.length === 4,
     "Recurring room unavailability is not fully visible in the schedule",
+  );
+  check(
+    scheduleSeries.every(
+      (block) =>
+        block.recurrence === "DAILY" &&
+        block.recurrenceInterval === 2 &&
+        block.recurrenceUntil ===
+          dateKey(recurrenceUntil, officeTimeZone) &&
+        !Object.hasOwn(block, "privateNote"),
+    ),
+    "Public schedule does not expose safe recurrence details",
   );
   await request(`/api/admin/room-blocks/${created.body.id}?scope=series`, {
     method: "DELETE",

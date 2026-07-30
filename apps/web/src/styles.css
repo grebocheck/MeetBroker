@@ -1468,7 +1468,12 @@ hr {
     var(--surface-muted) 6px,
     var(--surface-muted) 12px
   );
-  pointer-events: none;
+  cursor: pointer;
+}
+
+.booking-block--maintenance:hover {
+  border-color: var(--primary);
+  filter: brightness(1.04);
 }
 
 .booking-block--recurring {
@@ -2031,6 +2036,7 @@ hr {
 
 .drawer-backdrop {
   justify-items: end;
+  animation: drawer-backdrop-in 180ms ease-out both;
 }
 
 .drawer {
@@ -2040,6 +2046,46 @@ hr {
   padding: 30px;
   background: var(--surface-raised);
   box-shadow: var(--shadow-md);
+  animation: drawer-slide-in 240ms cubic-bezier(0.2, 0.78, 0.2, 1) both;
+}
+
+.drawer-backdrop.is-closing {
+  pointer-events: none;
+  animation: drawer-backdrop-out 180ms ease-in both;
+}
+
+.drawer-backdrop.is-closing .drawer {
+  animation: drawer-slide-out 180ms ease-in both;
+}
+
+@keyframes drawer-backdrop-in {
+  from {
+    background: rgba(20, 28, 23, 0);
+    -webkit-backdrop-filter: blur(0);
+    backdrop-filter: blur(0);
+  }
+}
+
+@keyframes drawer-backdrop-out {
+  to {
+    background: rgba(20, 28, 23, 0);
+    -webkit-backdrop-filter: blur(0);
+    backdrop-filter: blur(0);
+  }
+}
+
+@keyframes drawer-slide-in {
+  from {
+    opacity: 0.65;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes drawer-slide-out {
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
 }
 
 .drawer h2 {
@@ -2066,10 +2112,28 @@ hr {
   background: var(--booking-own-border);
 }
 
+.event-dot--maintenance {
+  background: var(--accent);
+}
+
 .drawer-time {
   margin-top: 18px;
   color: var(--text-muted);
   line-height: 1.5;
+}
+
+.drawer__description,
+.drawer__meta {
+  color: var(--text-muted);
+}
+
+.drawer__description {
+  margin-top: 18px;
+}
+
+.drawer__meta {
+  margin-top: 7px;
+  font-size: 0.78rem;
 }
 
 .detail-label {
@@ -2112,6 +2176,15 @@ hr {
   margin-top: 34px;
   flex-direction: column;
   gap: 9px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-backdrop,
+  .drawer-backdrop.is-closing,
+  .drawer,
+  .drawer-backdrop.is-closing .drawer {
+    animation-duration: 1ms;
+  }
 }
 
 .avatar {

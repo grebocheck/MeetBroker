@@ -165,6 +165,9 @@ export class BookingsService {
       ends_at: Date;
       series_id: string | null;
       frequency: "DAILY" | "WEEKLY" | null;
+      recurrence_interval: number | null;
+      weekdays: number[] | null;
+      recurrence_until: Date | string | null;
     }>(
       `
         select
@@ -173,7 +176,10 @@ export class BookingsService {
           rb.starts_at,
           rb.ends_at,
           rb.series_id,
-          s.frequency
+          s.frequency,
+          s.recurrence_interval,
+          s.weekdays,
+          s.recurrence_until
         from room_blocks rb
         left join room_block_series s on s.id = rb.series_id
         where rb.room_id = $1
@@ -223,6 +229,12 @@ export class BookingsService {
         endsAt: block.ends_at,
         seriesId: block.series_id,
         recurrence: block.frequency,
+        recurrenceInterval: block.recurrence_interval,
+        recurrenceWeekdays: block.weekdays,
+        recurrenceUntil:
+          block.recurrence_until instanceof Date
+            ? block.recurrence_until.toISOString().slice(0, 10)
+            : block.recurrence_until?.slice(0, 10) ?? null,
       })),
     };
   }

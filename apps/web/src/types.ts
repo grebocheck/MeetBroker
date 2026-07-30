@@ -71,6 +71,9 @@ export interface RoomBlock {
   endsAt: string;
   seriesId: string | null;
   recurrence: "DAILY" | "WEEKLY" | null;
+  recurrenceInterval: number | null;
+  recurrenceWeekdays: number[] | null;
+  recurrenceUntil: string | null;
 }
 
 export interface Schedule {
