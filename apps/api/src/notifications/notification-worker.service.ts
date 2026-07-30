@@ -1,16 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import {
-  and,
-  eq,
-  gt,
-  inArray,
-  isNull,
-  lt,
-  lte,
-  sql
-} from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lt, lte, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { intlLocale, localize } from "../common/localization";
 import { DatabaseService } from "../database/database.service";
 import {
   notificationBookingParticipants,
@@ -18,12 +10,12 @@ import {
   notificationOutbox,
   notificationSubscriptions,
   notificationUsers,
-  telegramConnections
+  telegramConnections,
 } from "../database/schema";
 import {
   categoryForEventType,
   ExternalNotificationChannelName,
-  NotificationRecipient
+  NotificationRecipient,
 } from "./notification-channel";
 import { NotificationChannelRegistry } from "./notification-channel.registry";
 import { NotificationsService } from "./notifications.service";
@@ -37,17 +29,17 @@ export class NotificationWorkerService {
     private readonly database: DatabaseService,
     private readonly notifications: NotificationsService,
     private readonly channels: NotificationChannelRegistry,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.notifyBeforeMinutes = Number(
-      config.get("NOTIFY_BEFORE_MINUTES") ?? 10
+      config.get("NOTIFY_BEFORE_MINUTES") ?? 10,
     );
   }
 
   async processBatch(): Promise<number> {
     await Promise.all([
       this.enqueueDueStartReminders(),
-      this.enqueueDueEndWarnings()
+      this.enqueueDueEndWarnings(),
     ]);
     const jobs = await this.database.orm.transaction(async (tx) => {
       const pending = await tx
@@ -55,15 +47,15 @@ export class NotificationWorkerService {
           id: notificationOutbox.id,
           eventType: notificationOutbox.eventType,
           payload: notificationOutbox.payload,
-          attempts: notificationOutbox.attempts
+          attempts: notificationOutbox.attempts,
         })
         .from(notificationOutbox)
         .where(
           and(
             inArray(notificationOutbox.status, ["PENDING", "FAILED"]),
             lte(notificationOutbox.nextAttemptAt, sql`now()`),
-            lt(notificationOutbox.attempts, 8)
-          )
+            lt(notificationOutbox.attempts, 8),
+          ),
         )
         .orderBy(notificationOutbox.createdAt)
         .limit(20)
@@ -73,13 +65,13 @@ export class NotificationWorkerService {
           .update(notificationOutbox)
           .set({
             status: "PROCESSING",
-            attempts: sql`${notificationOutbox.attempts} + 1`
+            attempts: sql`${notificationOutbox.attempts} + 1`,
           })
           .where(
             inArray(
               notificationOutbox.id,
-              pending.map((job) => job.id)
-            )
+              pending.map((job) => job.id),
+            ),
           );
       }
       return pending;
@@ -93,7 +85,7 @@ export class NotificationWorkerService {
           .set({
             status: "SENT",
             processedAt: sql`now()`,
-            lastError: null
+            lastError: null,
           })
           .where(eq(notificationOutbox.id, job.id));
       } catch (error) {
@@ -106,8 +98,8 @@ export class NotificationWorkerService {
             status: "FAILED",
             lastError: message,
             nextAttemptAt: sql`now() + (${String(
-              delayMinutes
-            )} || ' minutes')::interval`
+              delayMinutes,
+            )} || ' minutes')::interval`,
           })
           .where(eq(notificationOutbox.id, job.id));
         this.logger.warn(`Delivery ${job.id} failed: ${message}`);
@@ -118,7 +110,7 @@ export class NotificationWorkerService {
 
   private async deliver(
     payload: typeof notificationOutbox.$inferSelect.payload,
-    eventType: string
+    eventType: string,
   ): Promise<void> {
     if (payload.activeBookingIds?.length) {
       const bookingIds = [...new Set(payload.activeBookingIds)];
@@ -128,20 +120,20 @@ export class NotificationWorkerService {
         .where(
           and(
             inArray(notificationBookings.id, bookingIds),
-            isNull(notificationBookings.cancelledAt)
-          )
+            isNull(notificationBookings.cancelledAt),
+          ),
         );
       if (Number(active[0]?.count ?? 0) !== bookingIds.length) return;
     }
     const targetRows = await this.database.orm
       .select({
         email: notificationUsers.email,
-        telegramChatId: telegramConnections.chatId
+        telegramChatId: telegramConnections.chatId,
       })
       .from(notificationUsers)
       .leftJoin(
         telegramConnections,
-        eq(telegramConnections.userId, notificationUsers.id)
+        eq(telegramConnections.userId, notificationUsers.id),
       )
       .where(eq(notificationUsers.id, payload.userId))
       .limit(1);
@@ -158,25 +150,25 @@ export class NotificationWorkerService {
                 eq(notificationSubscriptions.userId, payload.userId),
                 eq(
                   notificationSubscriptions.category,
-                  payload.category ?? categoryForEventType(eventType)
+                  payload.category ?? categoryForEventType(eventType),
                 ),
                 eq(notificationSubscriptions.enabled, true),
                 inArray(notificationSubscriptions.channel, [
                   "EMAIL",
-                  "TELEGRAM"
-                ])
-              )
+                  "TELEGRAM",
+                ]),
+              ),
             )
         )
           .map(({ channel }) => channel)
           .filter(
             (channel): channel is ExternalNotificationChannelName =>
-              channel === "EMAIL" || channel === "TELEGRAM"
+              channel === "EMAIL" || channel === "TELEGRAM",
           );
     const recipient: NotificationRecipient = {
       userId: payload.userId,
       email: payload.recipientEmail ?? target.email,
-      telegramChatId: target.telegramChatId
+      telegramChatId: target.telegramChatId,
     };
     await Promise.all(
       enabledChannels.map(async (name) => {
@@ -185,16 +177,16 @@ export class NotificationWorkerService {
         if (!channel?.isAvailable() || !channel.canDeliver(recipient)) {
           if (isForced) {
             throw new Error(
-              `${name} is unavailable for the required notification`
+              `${name} is unavailable for the required notification`,
             );
           }
           return;
         }
         await channel.deliver(recipient, {
           title: payload.title,
-          body: payload.body
+          body: payload.body,
         });
-      })
+      }),
     );
   }
 
@@ -205,9 +197,9 @@ export class NotificationWorkerService {
       lte(
         notificationBookings.startsAt,
         sql`now() + (${String(
-          this.notifyBeforeMinutes
-        )} || ' minutes')::interval`
-      )
+          this.notifyBeforeMinutes,
+        )} || ' minutes')::interval`,
+      ),
     );
     const reminderSelection = {
       bookingId: notificationBookings.id,
@@ -215,7 +207,7 @@ export class NotificationWorkerService {
       startsAt: notificationBookings.startsAt,
       userId: notificationUsers.id,
       locale: notificationUsers.locale,
-      timezone: notificationUsers.timezone
+      timezone: notificationUsers.timezone,
     };
     const [organizers, participants] = await Promise.all([
       this.database.orm
@@ -223,7 +215,7 @@ export class NotificationWorkerService {
         .from(notificationBookings)
         .innerJoin(
           notificationUsers,
-          eq(notificationUsers.id, notificationBookings.organizerId)
+          eq(notificationUsers.id, notificationBookings.organizerId),
         )
         .where(dueWindow),
       this.database.orm
@@ -233,35 +225,34 @@ export class NotificationWorkerService {
           notificationBookingParticipants,
           eq(
             notificationBookingParticipants.bookingId,
-            notificationBookings.id
-          )
+            notificationBookings.id,
+          ),
         )
         .innerJoin(
           notificationUsers,
-          eq(notificationUsers.id, notificationBookingParticipants.userId)
+          eq(notificationUsers.id, notificationBookingParticipants.userId),
         )
         .where(
           and(
             dueWindow,
-            eq(notificationBookingParticipants.status, "ACCEPTED")
-          )
-        )
+            eq(notificationBookingParticipants.status, "ACCEPTED"),
+          ),
+        ),
     ]);
     const reminders = [
       ...new Map(
         [...organizers, ...participants].map((reminder) => [
           `${reminder.bookingId}:${reminder.userId}`,
-          reminder
-        ])
-      ).values()
+          reminder,
+        ]),
+      ).values(),
     ];
 
     for (const reminder of reminders) {
-      const locale = reminder.locale === "en" ? "en-GB" : "uk-UA";
-      const formatted = new Intl.DateTimeFormat(locale, {
+      const formatted = new Intl.DateTimeFormat(intlLocale(reminder.locale), {
         hour: "2-digit",
         minute: "2-digit",
-        timeZone: reminder.timezone ?? "Europe/Kyiv"
+        timeZone: reminder.timezone ?? "Europe/Kyiv",
       }).format(reminder.startsAt);
       await this.database.transaction((client) =>
         this.notifications.enqueue(client, {
@@ -269,17 +260,14 @@ export class NotificationWorkerService {
           userId: reminder.userId,
           type: "BOOKING_REMINDER",
           category: "REMINDERS",
-          title:
-            reminder.locale === "en"
-              ? "Meeting starts soon"
-              : "Зустріч скоро почнеться",
-          body:
-            reminder.locale === "en"
-              ? `“${reminder.title}” starts at ${formatted}.`
-              : `«${reminder.title}» починається о ${formatted}.`,
+          title: localize(reminder.locale, "reminderTitle"),
+          body: localize(reminder.locale, "reminderBody", {
+            title: reminder.title,
+            time: formatted,
+          }),
           bookingId: reminder.bookingId,
-          activeBookingIds: [reminder.bookingId]
-        })
+          activeBookingIds: [reminder.bookingId],
+        }),
       );
     }
   }
@@ -295,7 +283,7 @@ export class NotificationWorkerService {
         nextTitle: nextBooking.title,
         userId: notificationBookings.organizerId,
         locale: notificationUsers.locale,
-        timezone: notificationUsers.timezone
+        timezone: notificationUsers.timezone,
       })
       .from(notificationBookings)
       .innerJoin(
@@ -303,12 +291,12 @@ export class NotificationWorkerService {
         and(
           eq(nextBooking.roomId, notificationBookings.roomId),
           eq(nextBooking.startsAt, notificationBookings.endsAt),
-          isNull(nextBooking.cancelledAt)
-        )
+          isNull(nextBooking.cancelledAt),
+        ),
       )
       .innerJoin(
         notificationUsers,
-        eq(notificationUsers.id, notificationBookings.organizerId)
+        eq(notificationUsers.id, notificationBookings.organizerId),
       )
       .where(
         and(
@@ -317,18 +305,17 @@ export class NotificationWorkerService {
           lte(
             notificationBookings.endsAt,
             sql`now() + (${String(
-              this.notifyBeforeMinutes
-            )} || ' minutes')::interval`
-          )
-        )
+              this.notifyBeforeMinutes,
+            )} || ' minutes')::interval`,
+          ),
+        ),
       );
 
     for (const warning of warnings) {
-      const locale = warning.locale === "en" ? "en-GB" : "uk-UA";
-      const formatted = new Intl.DateTimeFormat(locale, {
+      const formatted = new Intl.DateTimeFormat(intlLocale(warning.locale), {
         hour: "2-digit",
         minute: "2-digit",
-        timeZone: warning.timezone ?? "Europe/Kyiv"
+        timeZone: warning.timezone ?? "Europe/Kyiv",
       }).format(warning.endsAt);
       await this.database.transaction((client) =>
         this.notifications.enqueue(client, {
@@ -336,17 +323,15 @@ export class NotificationWorkerService {
           userId: warning.userId,
           type: "BOOKING_END_WARNING",
           category: "REMINDERS",
-          title:
-            warning.locale === "en"
-              ? "The next slot is occupied"
-              : "Наступний слот уже зайнятий",
-          body:
-            warning.locale === "en"
-              ? `“${warning.title}” ends at ${formatted}. “${warning.nextTitle}” starts immediately after it.`
-              : `«${warning.title}» завершується о ${formatted}. Одразу після неї починається «${warning.nextTitle}».`,
+          title: localize(warning.locale, "endWarningTitle"),
+          body: localize(warning.locale, "endWarningBody", {
+            title: warning.title,
+            time: formatted,
+            nextTitle: warning.nextTitle,
+          }),
           bookingId: warning.bookingId,
-          activeBookingIds: [warning.bookingId, warning.nextBookingId]
-        })
+          activeBookingIds: [warning.bookingId, warning.nextBookingId],
+        }),
       );
     }
   }

@@ -8,11 +8,13 @@ import {
   notifications,
   notificationOutbox,
   notificationSubscriptions,
+  notificationUsers,
   telegramConnections,
   telegramLinkTokens,
 } from "../database/schema";
 import { createOpaqueToken, hashToken } from "../common/crypto";
 import { apiError } from "../common/http-error";
+import { localize } from "../common/localization";
 import type { UpdateNotificationPreferencesDto } from "./notifications.dto";
 import type {
   ExternalNotificationChannelName,
@@ -255,8 +257,15 @@ export class NotificationsService {
 
   async sendTelegramTest(userId: string): Promise<void> {
     const connection = await this.database.orm
-      .select({ userId: telegramConnections.userId })
+      .select({
+        userId: telegramConnections.userId,
+        locale: notificationUsers.locale,
+      })
       .from(telegramConnections)
+      .innerJoin(
+        notificationUsers,
+        eq(notificationUsers.id, telegramConnections.userId),
+      )
       .where(eq(telegramConnections.userId, userId))
       .limit(1);
     if (!connection.length) {
@@ -273,7 +282,7 @@ export class NotificationsService {
         type: "TELEGRAM_TEST",
         category: "REMINDERS",
         title: "MeetBroker · Telegram",
-        body: "Тестове сповіщення успішно пройшло через робочий канал доставки.",
+        body: localize(connection[0].locale, "telegramTest"),
         forcedChannels: ["TELEGRAM"],
       }),
     );
@@ -323,12 +332,17 @@ export class NotificationsService {
       return connectedUserId;
     });
     if (!userId) return { connected: false };
+    const [connectedUser] = await this.database.orm
+      .select({ locale: notificationUsers.locale })
+      .from(notificationUsers)
+      .where(eq(notificationUsers.id, userId))
+      .limit(1);
     try {
       await this.telegramChannel.deliver(
         { userId, email: "", telegramChatId: chatId },
         {
           title: "MeetBroker",
-          body: "Telegram успішно підключено. Тепер ви можете вибрати потрібні групи сповіщень у профілі.",
+          body: localize(connectedUser?.locale ?? "uk", "telegramConnected"),
         },
       );
     } catch (error) {

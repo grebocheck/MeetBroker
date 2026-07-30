@@ -8,7 +8,8 @@ import sharp from "sharp";
 import { AccessPoliciesService } from "../access-policies/access-policies.service";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
-import type { CurrentUser } from "../common/types";
+import type { CurrentUser, Locale } from "../common/types";
+import { intlLocale, localize } from "../common/localization";
 import { NotificationsService } from "../notifications/notifications.service";
 import type {
   CancelBookingDto,
@@ -43,7 +44,7 @@ interface RoomRow {
 interface ParticipantRow {
   id: string;
   name: string;
-  locale: "uk" | "en";
+  locale: Locale;
   timezone: string | null;
 }
 
@@ -236,9 +237,7 @@ export class BookingsService {
         endsAt: booking.ends_at,
         participationMode: booking.participation_mode,
         seriesId: booking.series_id,
-        imageUrl: booking.image_path
-          ? `/uploads/${booking.image_path}`
-          : null,
+        imageUrl: booking.image_path ? `/uploads/${booking.image_path}` : null,
         organizer: {
           id: booking.organizer_id,
           name: booking.organizer_name,
@@ -261,7 +260,7 @@ export class BookingsService {
         recurrenceUntil:
           block.recurrence_until instanceof Date
             ? block.recurrence_until.toISOString().slice(0, 10)
-            : block.recurrence_until?.slice(0, 10) ?? null,
+            : (block.recurrence_until?.slice(0, 10) ?? null),
       })),
     };
   }
@@ -626,6 +625,7 @@ export class BookingsService {
         meeting_type: "ROOM" | "ONLINE";
         meeting_url: string | null;
         organizer_id: string;
+        organizer_locale: Locale;
         cancelled_at: Date | null;
         room_id: string | null;
         room_name: string | null;
@@ -645,6 +645,7 @@ export class BookingsService {
             b.meeting_type,
             b.meeting_url,
             b.organizer_id,
+            organizer.locale as organizer_locale,
             b.cancelled_at,
             r.id as room_id,
             r.name as room_name,
@@ -654,6 +655,7 @@ export class BookingsService {
             r.working_days,
             r.active
           from bookings b
+          join users organizer on organizer.id = b.organizer_id
           left join rooms r on r.id = b.room_id
           where b.id = $1
           for update of b
@@ -900,10 +902,15 @@ export class BookingsService {
           type: "BOOKING_UPDATED",
           category: "CHANGES",
           title: isAdministrativeUpdate
-            ? "Адміністратор змінив зустріч"
+            ? localize(participant.locale, "adminChangedTitle")
             : copy.title,
           body: isAdministrativeUpdate
-            ? `Адміністратор ${user.name} змінив зустріч «${title}». Причина: ${adminReason}. ${copy.body}`
+            ? localize(participant.locale, "adminChangedBody", {
+                admin: user.name,
+                title,
+                reason: adminReason!,
+                details: copy.body,
+              })
             : copy.body,
           bookingId,
         });
@@ -916,10 +923,14 @@ export class BookingsService {
           type: "BOOKING_PARTICIPANT_REMOVED",
           category: "CHANGES",
           title: isAdministrativeUpdate
-            ? "Адміністратор змінив склад зустрічі"
+            ? localize(participant.locale, "adminRemovedTitle")
             : copy.title,
           body: isAdministrativeUpdate
-            ? `Адміністратор ${user.name} видалив вас із зустрічі «${title}». Причина: ${adminReason}.`
+            ? localize(participant.locale, "adminRemovedBody", {
+                admin: user.name,
+                title,
+                reason: adminReason!,
+              })
             : copy.body,
           bookingId,
         });
@@ -938,10 +949,16 @@ export class BookingsService {
           type: "BOOKING_INVITATION",
           category: "INVITATIONS",
           title: isAdministrativeUpdate
-            ? "Адміністратор запросив вас на зустріч"
+            ? localize(participant.locale, "adminInvitedTitle")
             : copy.title,
           body: isAdministrativeUpdate
-            ? `Адміністратор ${user.name} запросив вас на зустріч «${title}» (${locationName ?? "онлайн"}). Причина зміни: ${adminReason}.`
+            ? localize(participant.locale, "adminInvitedBody", {
+                admin: user.name,
+                title,
+                location:
+                  locationName ?? localize(participant.locale, "online"),
+                reason: adminReason!,
+              })
             : copy.body,
           bookingId,
         });
@@ -952,8 +969,12 @@ export class BookingsService {
           userId: booking.organizer_id,
           type: "BOOKING_UPDATED",
           category: "CHANGES",
-          title: "Адміністратор змінив вашу зустріч",
-          body: `Адміністратор ${user.name} змінив зустріч «${title}». Причина: ${adminReason}.`,
+          title: localize(booking.organizer_locale, "adminOrganizerTitle"),
+          body: localize(booking.organizer_locale, "adminOrganizerBody", {
+            admin: user.name,
+            title,
+            reason: adminReason!,
+          }),
           bookingId,
         });
       }
@@ -1148,9 +1169,7 @@ export class BookingsService {
         meetingType: row.meeting_type,
         meetingUrl: row.meeting_url,
         imageUrl: row.image_path ? `/uploads/${row.image_path}` : null,
-        room: row.room_id
-          ? { id: row.room_id, name: row.room_name }
-          : null,
+        room: row.room_id ? { id: row.room_id, name: row.room_name } : null,
         participationMode: row.participation_mode,
         seriesId: row.series_id,
         organizer: {
@@ -1277,12 +1296,9 @@ export class BookingsService {
       }
       if (dto.status === "ACCEPTED") {
         await this.lockAttendees(client, [userId]);
-        await this.assertAttendeesAvailable(
-          client,
-          [userId],
-          invitation.rows,
-          [bookingId],
-        );
+        await this.assertAttendeesAvailable(client, [userId], invitation.rows, [
+          bookingId,
+        ]);
       }
       const result = await client.query(
         `
@@ -1368,12 +1384,9 @@ export class BookingsService {
         [bookingId],
       );
       await this.lockAttendees(client, [userId]);
-      await this.assertAttendeesAvailable(
-        client,
-        [userId],
-        interval.rows,
-        [bookingId],
-      );
+      await this.assertAttendeesAvailable(client, [userId], interval.rows, [
+        bookingId,
+      ]);
       await client.query(
         `
           insert into booking_participants
@@ -1553,16 +1566,27 @@ export class BookingsService {
         if (isAdministrativeCancellation) {
           recipientIds.add(target.organizer_id);
         }
-        for (const recipientId of recipientIds) {
+        const recipients = await client.query<{
+          id: string;
+          locale: Locale;
+        }>("select id, locale from users where id = any($1::uuid[])", [
+          [...recipientIds],
+        ]);
+        for (const recipient of recipients.rows) {
           await this.notifications.enqueue(client, {
-            eventKey: `booking:${target.id}:cancel:${recipientId}`,
-            userId: recipientId,
+            eventKey: `booking:${target.id}:cancel:${recipient.id}`,
+            userId: recipient.id,
             type: "BOOKING_CANCELLED",
             category: "CHANGES",
-            title: "Зустріч скасовано",
+            title: localize(recipient.locale, "cancelledTitle"),
             body: cancellationReason
-              ? `Зустріч «${target.title}» було скасовано. Причина: ${cancellationReason}.`
-              : `Зустріч «${target.title}» було скасовано.`,
+              ? localize(recipient.locale, "cancelledWithReason", {
+                  title: target.title,
+                  reason: cancellationReason,
+                })
+              : localize(recipient.locale, "cancelledBody", {
+                  title: target.title,
+                }),
             bookingId: target.id,
           });
         }
@@ -1731,9 +1755,7 @@ export class BookingsService {
     );
   }
 
-  private normalizeMeetingUrl(
-    value: string | null | undefined,
-  ): string | null {
+  private normalizeMeetingUrl(value: string | null | undefined): string | null {
     const trimmed = value?.trim();
     if (!trimmed) return null;
     try {
@@ -1761,7 +1783,12 @@ export class BookingsService {
   private async assertAttendeesAvailable(
     client: PoolClient,
     userIds: string[],
-    occurrences: Array<{ startsAt?: Date; endsAt?: Date; starts_at?: Date; ends_at?: Date }>,
+    occurrences: Array<{
+      startsAt?: Date;
+      endsAt?: Date;
+      starts_at?: Date;
+      ends_at?: Date;
+    }>,
     excludedBookingIds: string[] = [],
   ): Promise<void> {
     const requested = occurrences.map((occurrence) => ({
@@ -1905,25 +1932,23 @@ export class BookingsService {
     startsAt: Date,
     participant: ParticipantRow,
   ): { title: string; body: string } {
-    const locale = participant.locale === "en" ? "en-GB" : "uk-UA";
-    const date = new Intl.DateTimeFormat(locale, {
+    const date = new Intl.DateTimeFormat(intlLocale(participant.locale), {
       dateStyle: "full",
       timeStyle: "short",
       timeZone: participant.timezone ?? this.officeTimeZone,
     }).format(startsAt);
-    if (participant.locale === "en") {
-      return {
-        title: "Meeting details changed",
-        body: roomName
-          ? `“${bookingTitle}” is now scheduled in “${roomName}” on ${date}.`
-          : `The online meeting “${bookingTitle}” is now scheduled for ${date}.`,
-      };
-    }
     return {
-      title: "Деталі зустрічі змінено",
+      title: localize(participant.locale, "changedTitle"),
       body: roomName
-        ? `Зустріч «${bookingTitle}» тепер запланована в кімнаті «${roomName}»: ${date}.`
-        : `Онлайн-зустріч «${bookingTitle}» тепер запланована на ${date}.`,
+        ? localize(participant.locale, "changedRoom", {
+            title: bookingTitle,
+            room: roomName,
+            date,
+          })
+        : localize(participant.locale, "changedOnline", {
+            title: bookingTitle,
+            date,
+          }),
     };
   }
 
@@ -1931,15 +1956,11 @@ export class BookingsService {
     bookingTitle: string,
     participant: ParticipantRow,
   ): { title: string; body: string } {
-    if (participant.locale === "en") {
-      return {
-        title: "Meeting participation changed",
-        body: `You are no longer a participant of “${bookingTitle}”.`,
-      };
-    }
     return {
-      title: "Участь у зустрічі змінено",
-      body: `Вас більше немає серед учасників зустрічі «${bookingTitle}».`,
+      title: localize(participant.locale, "removedTitle"),
+      body: localize(participant.locale, "removedBody", {
+        title: bookingTitle,
+      }),
     };
   }
 
@@ -1950,25 +1971,25 @@ export class BookingsService {
     startsAt: Date,
     participant: ParticipantRow,
   ): { title: string; body: string } {
-    const locale = participant.locale === "en" ? "en-GB" : "uk-UA";
-    const date = new Intl.DateTimeFormat(locale, {
+    const date = new Intl.DateTimeFormat(intlLocale(participant.locale), {
       dateStyle: "full",
       timeStyle: "short",
       timeZone: participant.timezone ?? this.officeTimeZone,
     }).format(startsAt);
-    if (participant.locale === "en") {
-      return {
-        title: "New meeting invitation",
-        body: roomName
-          ? `${organizer} invited you to “${bookingTitle}” in “${roomName}” on ${date}.`
-          : `${organizer} invited you to the online meeting “${bookingTitle}” on ${date}.`,
-      };
-    }
     return {
-      title: "Нове запрошення",
+      title: localize(participant.locale, "invitationTitle"),
       body: roomName
-        ? `${organizer} запрошує вас на зустріч «${bookingTitle}» у кімнаті «${roomName}»: ${date}.`
-        : `${organizer} запрошує вас на онлайн-зустріч «${bookingTitle}»: ${date}.`,
+        ? localize(participant.locale, "invitationRoom", {
+            organizer,
+            title: bookingTitle,
+            room: roomName,
+            date,
+          })
+        : localize(participant.locale, "invitationOnline", {
+            organizer,
+            title: bookingTitle,
+            date,
+          }),
     };
   }
 
