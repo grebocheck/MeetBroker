@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { addDays } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +18,14 @@ import { CancelBookingDialog } from "../components/CancelBookingDialog";
 
 const SLOT_HEIGHT = 32;
 const DEFAULT_TIME_ZONE = "Europe/Kyiv";
+
+function calendarDayCount(width: number): number {
+  if (width < 480) return 2;
+  if (width < 650) return 3;
+  if (width < 800) return 4;
+  if (width < 980) return 5;
+  return 6;
+}
 
 function clockMinutes(value: string): number {
   const [hours, minutes] = value.split(":").map(Number);
@@ -43,7 +51,8 @@ export function CalendarPage({ user }: { user: User }) {
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
   })();
   const [reference, setReference] = useState(initialReference);
-  const [mobileDayIndex, setMobileDayIndex] = useState(0);
+  const calendarCardRef = useRef<HTMLElement>(null);
+  const [visibleDayCount, setVisibleDayCount] = useState(6);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(
     initialParams.get("roomId"),
   );
@@ -70,9 +79,23 @@ export function CalendarPage({ user }: { user: User }) {
     ? selectedRoomId
     : (roomOptions[0]?.id ?? null);
   const officeTimeZone = DEFAULT_TIME_ZONE;
+  useLayoutEffect(() => {
+    const card = calendarCardRef.current;
+    if (!card) return;
+
+    const updateDayCount = () => {
+      setVisibleDayCount(calendarDayCount(card.clientWidth));
+    };
+    updateDayCount();
+
+    const observer = new ResizeObserver(updateDayCount);
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, []);
+
   const visibleDays = useMemo(
-    () => officeDateWindow(reference, officeTimeZone),
-    [reference, officeTimeZone],
+    () => officeDateWindow(reference, officeTimeZone, visibleDayCount),
+    [reference, officeTimeZone, visibleDayCount],
   );
   const rangeStart = officeLocalToInstant(
     visibleDays[0],
@@ -87,7 +110,12 @@ export function CalendarPage({ user }: { user: User }) {
     officeTimeZone,
   );
   const schedule = useQuery({
-    queryKey: ["schedule", roomId, rangeStart.toISOString()],
+    queryKey: [
+      "schedule",
+      roomId,
+      rangeStart.toISOString(),
+      rangeEnd.toISOString(),
+    ],
     queryFn: () =>
       api<Schedule>(
         `/api/bookings/schedule?roomId=${roomId}&from=${encodeURIComponent(
@@ -150,11 +178,6 @@ export function CalendarPage({ user }: { user: User }) {
   const officeNow = toZonedTime(now, officeTimeZone);
   const nowMinutes = officeNow.getHours() * 60 + officeNow.getMinutes();
   const currentDayVisible = dayDisplayInstants.some(
-    (instant) =>
-      dateKeyInZone(instant, localTimeZone) ===
-      dateKeyInZone(now, localTimeZone),
-  );
-  const currentDayIndex = dayDisplayInstants.findIndex(
     (instant) =>
       dateKeyInZone(instant, localTimeZone) ===
       dateKeyInZone(now, localTimeZone),
@@ -274,14 +297,13 @@ export function CalendarPage({ user }: { user: User }) {
         </div>
       </header>
 
-      <section className="calendar-card">
+      <section className="calendar-card" ref={calendarCardRef}>
         <div className="calendar-card__toolbar">
           <div className="week-nav">
             <button
               className="icon-button icon-button--bordered"
               onClick={() => {
-                setReference((date) => addDays(date, -6));
-                setMobileDayIndex(0);
+                setReference((date) => addDays(date, -visibleDayCount));
               }}
               aria-label={t("calendar.previousPeriod")}
             >
@@ -292,7 +314,6 @@ export function CalendarPage({ user }: { user: User }) {
               onClick={() => {
                 const today = new Date();
                 setReference(today);
-                setMobileDayIndex(0);
               }}
             >
               {t("today")}
@@ -300,8 +321,7 @@ export function CalendarPage({ user }: { user: User }) {
             <button
               className="icon-button icon-button--bordered"
               onClick={() => {
-                setReference((date) => addDays(date, 6));
-                setMobileDayIndex(0);
+                setReference((date) => addDays(date, visibleDayCount));
               }}
               aria-label={t("calendar.nextPeriod")}
             >
@@ -364,46 +384,13 @@ export function CalendarPage({ user }: { user: User }) {
           <CalendarSkeleton />
         ) : (
           <>
-            <div
-              className="mobile-day-switch"
-              aria-label={t("calendar.weekday")}
-            >
-              {dayDisplayInstants.map((instant, index) => {
-                const day = visibleDays[index];
-                const isoWeekday = day.getDay() === 0 ? 7 : day.getDay();
-                const isWorkingDay = room.workingDays.includes(isoWeekday);
-                return (
-                  <button
-                    type="button"
-                    className={`${
-                      mobileDayIndex === index ? "is-active" : ""
-                    }${!isWorkingDay ? " is-closed" : ""}`}
-                    onClick={() => setMobileDayIndex(index)}
-                    aria-pressed={mobileDayIndex === index}
-                    key={instant.toISOString()}
-                  >
-                    <span>
-                      {new Intl.DateTimeFormat(dateLocale, {
-                        weekday: "short",
-                        timeZone: localTimeZone,
-                      }).format(instant)}
-                    </span>
-                    <strong>
-                      {new Intl.DateTimeFormat(dateLocale, {
-                        day: "2-digit",
-                        timeZone: localTimeZone,
-                      }).format(instant)}
-                    </strong>
-                  </button>
-                );
-              })}
-            </div>
             <div className="calendar-scroll">
               <div
                 className="week-grid"
                 style={
                   {
                     "--calendar-height": `${slots.length * SLOT_HEIGHT}px`,
+                    "--calendar-days": visibleDayCount,
                   } as React.CSSProperties
                 }
               >
@@ -419,8 +406,6 @@ export function CalendarPage({ user }: { user: User }) {
                     <div
                       className={`day-heading${isToday ? " is-today" : ""}${
                         !isWorkingDay ? " is-closed" : ""
-                      }${
-                        mobileDayIndex === index ? " is-mobile-selected" : ""
                       }`}
                       key={day.toISOString()}
                     >
@@ -474,7 +459,6 @@ export function CalendarPage({ user }: { user: User }) {
                   return (
                     <DayColumn
                       key={day.toISOString()}
-                      selectedOnMobile={mobileDayIndex === index}
                       day={day}
                       slots={slots}
                       startMinutes={startMinutes}
@@ -491,11 +475,7 @@ export function CalendarPage({ user }: { user: User }) {
                 })}
                 {showCurrentTime && (
                   <div
-                    className={`current-time-line${
-                      currentDayIndex === mobileDayIndex
-                        ? ""
-                        : " is-mobile-hidden"
-                    }`}
+                    className="current-time-line"
                     style={{
                       top:
                         58 + ((nowMinutes - startMinutes) / 30) * SLOT_HEIGHT,
@@ -606,7 +586,6 @@ export function CalendarPage({ user }: { user: User }) {
 
 function DayColumn({
   day,
-  selectedOnMobile,
   slots,
   startMinutes,
   workStartMinutes,
@@ -619,7 +598,6 @@ function DayColumn({
   onBooking,
 }: {
   day: Date;
-  selectedOnMobile: boolean;
   slots: number[];
   startMinutes: number;
   workStartMinutes: number;
@@ -646,9 +624,7 @@ function DayColumn({
 
   return (
     <div
-      className={`day-column${selectedOnMobile ? " is-mobile-selected" : ""}${
-        !workingDay ? " is-closed" : ""
-      }`}
+      className={`day-column${!workingDay ? " is-closed" : ""}`}
     >
       {!workingDay && (
         <span className="day-column__closed-label">
