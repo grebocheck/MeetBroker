@@ -159,11 +159,24 @@ export class UsersService {
     await this.database.transaction(async (client) => {
       await client.query(
         `
-          update email_verification_tokens
-          set used_at = now()
-          where user_id = $1
-            and pending_email is not null
-            and used_at is null
+          with superseded as (
+            update email_verification_tokens
+            set used_at = now()
+            where user_id = $1
+              and pending_email is not null
+              and used_at is null
+            returning id
+          )
+          update notification_outbox
+          set
+            status = 'SENT',
+            processed_at = now(),
+            last_error = 'Superseded by a newer email change request'
+          where event_key in (
+            select 'email-change-verification:' || id::text
+            from superseded
+          )
+            and status in ('PENDING', 'PROCESSING', 'FAILED')
         `,
         [userId]
       );
