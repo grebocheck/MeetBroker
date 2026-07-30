@@ -440,6 +440,8 @@ export const uk = {
     "Кількість учасників перевищує місткість кімнати.",
   "booking.invalidParticipant":
     "Один або кілька учасників більше недоступні для запрошення.",
+  "booking.attendeeBusy": "Деякі учасники вже зайняті в цей час:",
+  "booking.attendeeBusyPerson": "{name}: {meetings}",
   "booking.createRestricted":
     "Створення бронювань для вашого профілю тимчасово обмежене.",
   "booking.actionRestricted": "Ця дія тимчасово обмежена адміністратором.",
@@ -592,6 +594,8 @@ export const uk = {
   "errors.ADMIN_EDIT_REASON_REQUIRED": "Адміністратор має вказати причину зміни.",
   "errors.ADMIN_REQUIRED": "Для цієї дії потрібні права адміністратора.",
   "errors.APPROVAL_REQUIRED": "Обліковий запис ще очікує схвалення адміністратора.",
+  "errors.ATTENDEE_BUSY":
+    "Користувач уже зайнятий іншою зустріччю в цей час.",
   "errors.AVATAR_REQUIRED": "Оберіть зображення для аватара.",
   "errors.BLOCK_DURATION_TOO_LONG": "Період недоступності перевищує дозволену тривалість.",
   "errors.BOOKING_NOT_FOUND": "Бронювання не знайдено або воно вже недоступне.",

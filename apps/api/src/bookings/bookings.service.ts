@@ -40,6 +40,17 @@ interface ParticipantRow {
   timezone: string | null;
 }
 
+interface AttendeeConflictRow {
+  user_id: string;
+  user_name: string;
+  booking_id: string;
+  booking_title: string;
+  starts_at: Date;
+  ends_at: Date;
+  requested_start: Date;
+  relation: "ORGANIZER" | "PARTICIPANT";
+}
+
 @Injectable()
 export class BookingsService {
   private readonly officeTimeZone: string;
@@ -345,6 +356,12 @@ export class BookingsService {
           "One or more participants are unavailable",
         );
       }
+      await this.lockAttendees(client, [user.id, ...participantIds]);
+      await this.assertAttendeesAvailable(
+        client,
+        [user.id, ...participantIds],
+        occurrences,
+      );
 
       const seriesId = recurrence === "NONE" ? null : randomUUID();
       if (seriesId) {
@@ -686,6 +703,25 @@ export class BookingsService {
       const currentIds = new Set(
         currentParticipants.rows.map((participant) => participant.id),
       );
+      const currentStatuses = new Map(
+        currentParticipants.rows.map((participant) => [
+          participant.id,
+          participant.status,
+        ]),
+      );
+      const busyParticipantIds = participantIds.filter(
+        (id) => currentStatuses.get(id) !== "DECLINED",
+      );
+      await this.lockAttendees(client, [
+        booking.organizer_id,
+        ...busyParticipantIds,
+      ]);
+      await this.assertAttendeesAvailable(
+        client,
+        [booking.organizer_id, ...busyParticipantIds],
+        [{ startsAt, endsAt }],
+        [bookingId],
+      );
       const nextIds = new Set(participantIds);
       const added = participants.filter(
         (participant) => !currentIds.has(participant.id),
@@ -967,6 +1003,42 @@ export class BookingsService {
     dto: RespondToInvitationDto,
   ): Promise<void> {
     await this.database.transaction(async (client) => {
+      await client.query("select pg_advisory_xact_lock(hashtext($1))", [
+        bookingId,
+      ]);
+      const invitation = await client.query<{
+        starts_at: Date;
+        ends_at: Date;
+      }>(
+        `
+          select b.starts_at, b.ends_at
+          from booking_participants bp
+          join bookings b on b.id = bp.booking_id
+          where bp.booking_id = $1
+            and bp.user_id = $2
+            and b.cancelled_at is null
+            and b.starts_at > now()
+            and bp.status = 'INVITED'
+          for update of bp
+        `,
+        [bookingId, userId],
+      );
+      if (!invitation.rowCount) {
+        throw apiError(
+          HttpStatus.NOT_FOUND,
+          "INVITATION_NOT_FOUND",
+          "Active invitation was not found",
+        );
+      }
+      if (dto.status === "ACCEPTED") {
+        await this.lockAttendees(client, [userId]);
+        await this.assertAttendeesAvailable(
+          client,
+          [userId],
+          invitation.rows,
+          [bookingId],
+        );
+      }
       const result = await client.query(
         `
           update booking_participants bp
@@ -1039,6 +1111,24 @@ export class BookingsService {
       if (Number(event.participant_count) + 1 >= event.capacity) {
         throw apiError(HttpStatus.CONFLICT, "EVENT_FULL", "This event is full");
       }
+      const interval = await client.query<{
+        starts_at: Date;
+        ends_at: Date;
+      }>(
+        `
+          select starts_at, ends_at
+          from bookings
+          where id = $1
+        `,
+        [bookingId],
+      );
+      await this.lockAttendees(client, [userId]);
+      await this.assertAttendeesAvailable(
+        client,
+        [userId],
+        interval.rows,
+        [bookingId],
+      );
       await client.query(
         `
           insert into booking_participants
@@ -1259,6 +1349,116 @@ export class BookingsService {
       userId,
       "BOOKING_CREATE",
       roomId,
+    );
+  }
+
+  private async lockAttendees(
+    client: PoolClient,
+    userIds: string[],
+  ): Promise<void> {
+    const sortedIds = [...new Set(userIds)].sort();
+    for (const userId of sortedIds) {
+      await client.query(
+        "select pg_advisory_xact_lock(hashtextextended($1, 0))",
+        [userId],
+      );
+    }
+  }
+
+  private async assertAttendeesAvailable(
+    client: PoolClient,
+    userIds: string[],
+    occurrences: Array<{ startsAt?: Date; endsAt?: Date; starts_at?: Date; ends_at?: Date }>,
+    excludedBookingIds: string[] = [],
+  ): Promise<void> {
+    const requested = occurrences.map((occurrence) => ({
+      starts_at: (occurrence.startsAt ?? occurrence.starts_at)!.toISOString(),
+      ends_at: (occurrence.endsAt ?? occurrence.ends_at)!.toISOString(),
+    }));
+    if (!userIds.length || !requested.length) return;
+
+    const result = await client.query<AttendeeConflictRow>(
+      `
+        with attendee_ids as (
+          select distinct unnest($1::uuid[]) as user_id
+        ),
+        requested as (
+          select starts_at, ends_at
+          from jsonb_to_recordset($2::jsonb)
+            as intervals(starts_at timestamptz, ends_at timestamptz)
+        )
+        select distinct
+          u.id as user_id,
+          u.name as user_name,
+          b.id as booking_id,
+          b.title as booking_title,
+          b.starts_at,
+          b.ends_at,
+          requested.starts_at as requested_start,
+          case
+            when b.organizer_id = u.id then 'ORGANIZER'
+            else 'PARTICIPANT'
+          end as relation
+        from attendee_ids attendee
+        join users u on u.id = attendee.user_id
+        join bookings b
+          on b.cancelled_at is null
+          and (
+            b.organizer_id = u.id
+            or exists (
+              select 1
+              from booking_participants bp
+              where bp.booking_id = b.id
+                and bp.user_id = u.id
+                and bp.status in ('INVITED', 'ACCEPTED')
+            )
+          )
+        join requested
+          on b.starts_at < requested.ends_at
+          and b.ends_at > requested.starts_at
+        where not (b.id = any($3::uuid[]))
+        order by u.name, b.starts_at, b.id
+      `,
+      [[...new Set(userIds)], JSON.stringify(requested), excludedBookingIds],
+    );
+    if (!result.rowCount) return;
+
+    const grouped = new Map<
+      string,
+      {
+        userId: string;
+        userName: string;
+        bookings: Array<{
+          id: string;
+          title: string;
+          startsAt: Date;
+          endsAt: Date;
+          requestedStart: Date;
+          relation: "ORGANIZER" | "PARTICIPANT";
+        }>;
+      }
+    >();
+    for (const row of result.rows) {
+      const conflict = grouped.get(row.user_id) ?? {
+        userId: row.user_id,
+        userName: row.user_name,
+        bookings: [],
+      };
+      conflict.bookings.push({
+        id: row.booking_id,
+        title: row.booking_title,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at,
+        requestedStart: row.requested_start,
+        relation: row.relation,
+      });
+      grouped.set(row.user_id, conflict);
+    }
+    throw apiError(
+      HttpStatus.CONFLICT,
+      "ATTENDEE_BUSY",
+      "One or more attendees already have overlapping meetings",
+      { conflicts: [...grouped.values()] },
     );
   }
 

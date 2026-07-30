@@ -440,6 +440,8 @@ export const en = {
   "booking.capacityExceeded": "The number of participants exceeds capacity.",
   "booking.invalidParticipant":
     "One or more participants are no longer available.",
+  "booking.attendeeBusy": "Some attendees are already busy at this time:",
+  "booking.attendeeBusyPerson": "{name}: {meetings}",
   "booking.createRestricted": "Creating bookings is temporarily restricted.",
   "booking.actionRestricted":
     "This action has been temporarily restricted by an administrator.",
@@ -589,6 +591,8 @@ export const en = {
   "errors.ADMIN_EDIT_REASON_REQUIRED": "The administrator must provide a reason for this change.",
   "errors.ADMIN_REQUIRED": "Administrator permissions are required for this action.",
   "errors.APPROVAL_REQUIRED": "This account is still awaiting administrator approval.",
+  "errors.ATTENDEE_BUSY":
+    "The user already has another meeting at this time.",
   "errors.AVATAR_REQUIRED": "Select an avatar image.",
   "errors.BLOCK_DURATION_TOO_LONG": "The unavailable period exceeds the allowed duration.",
   "errors.BOOKING_NOT_FOUND": "The booking was not found or is no longer available.",

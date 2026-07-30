@@ -1070,6 +1070,7 @@ hr {
   font-size: 0.68rem;
   font-weight: 650;
   line-height: 1.45;
+  white-space: pre-line;
 }
 
 .time-fields {

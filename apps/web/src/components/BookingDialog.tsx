@@ -31,6 +31,58 @@ function bookingError(
   message: string;
 } | null {
   if (!(error instanceof ApiError)) return null;
+  if (
+    error.code === "ATTENDEE_BUSY" &&
+    typeof error.details === "object" &&
+    error.details !== null &&
+    "conflicts" in error.details &&
+    Array.isArray(error.details.conflicts)
+  ) {
+    const formatter = new Intl.DateTimeFormat(dateLocale, {
+      dateStyle: "medium",
+      timeStyle: "short"
+    });
+    const lines = error.details.conflicts.flatMap((conflict: unknown) => {
+      if (
+        typeof conflict !== "object" ||
+        conflict === null ||
+        !("userName" in conflict) ||
+        !("bookings" in conflict) ||
+        !Array.isArray(conflict.bookings)
+      ) {
+        return [];
+      }
+      const meetings = conflict.bookings.flatMap((booking: unknown) => {
+        if (
+          typeof booking !== "object" ||
+          booking === null ||
+          !("title" in booking) ||
+          !("startsAt" in booking)
+        ) {
+          return [];
+        }
+        return [
+          `«${String(booking.title)}» — ${formatter.format(
+            new Date(String(booking.startsAt))
+          )}`
+        ];
+      });
+      return meetings.length
+        ? [
+            t("booking.attendeeBusyPerson", {
+              name: String(conflict.userName),
+              meetings: meetings.join("; ")
+            })
+          ]
+        : [];
+    });
+    return {
+      target: "participants",
+      message: lines.length
+        ? `${t("booking.attendeeBusy")}\n${lines.join("\n")}`
+        : t("booking.attendeeBusy")
+    };
+  }
   const errors: Record<string, { target: BookingErrorTarget; message: string }> = {
     INVALID_TIME: {
       target: "time",
