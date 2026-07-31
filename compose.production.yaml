@@ -1,8 +1,4 @@
 services:
-  postgres:
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD for production}
-
   api:
     env_file:
       - path: .env
