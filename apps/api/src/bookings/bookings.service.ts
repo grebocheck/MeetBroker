@@ -1,13 +1,11 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
 import type { PoolClient } from "pg";
-import sharp from "sharp";
 import { AccessPoliciesService } from "../access-policies/access-policies.service";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
+import { recordActivity } from "../common/record-activity";
 import type { CurrentUser, Locale } from "../common/types";
 import { localize } from "../common/localization";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -34,6 +32,7 @@ import {
   RecurrenceError,
   type RecurrenceOccurrence,
 } from "./recurrence";
+import { BookingImagesService } from "./booking-images.service";
 
 interface RoomRow {
   id: string;
@@ -69,19 +68,16 @@ interface AttendeeConflictRow {
 @Injectable()
 export class BookingsService {
   private readonly officeTimeZone: string;
-  private readonly uploadDir: string;
 
   constructor(
     private readonly database: DatabaseService,
     private readonly notifications: NotificationsService,
     private readonly accessPolicies: AccessPoliciesService,
+    private readonly bookingImages: BookingImagesService,
     config: ConfigService,
   ) {
     this.officeTimeZone =
       config.get<string>("OFFICE_TIMEZONE") ?? "Europe/Kyiv";
-    this.uploadDir =
-      config.get<string>("UPLOAD_DIR") ??
-      resolve(process.cwd(), "storage/uploads");
   }
 
   async schedule(
@@ -575,7 +571,7 @@ export class BookingsService {
           );
         }
 
-        await this.recordActivity(
+        await recordActivity(
           client,
           user.id,
           "BOOKING_CREATED",
@@ -986,7 +982,7 @@ export class BookingsService {
           bookingId,
         });
       }
-      await this.recordActivity(
+      await recordActivity(
         client,
         user.id,
         isAdministrativeUpdate ? "BOOKING_UPDATED_BY_ADMIN" : "BOOKING_UPDATED",
@@ -1329,7 +1325,7 @@ export class BookingsService {
           "Active invitation was not found",
         );
       }
-      await this.recordActivity(
+      await recordActivity(
         client,
         userId,
         dto.status === "ACCEPTED"
@@ -1405,7 +1401,7 @@ export class BookingsService {
         `,
         [bookingId, userId],
       );
-      await this.recordActivity(
+      await recordActivity(
         client,
         userId,
         "OPEN_EVENT_JOINED",
@@ -1429,7 +1425,7 @@ export class BookingsService {
         [bookingId, userId],
       );
       if (result.rowCount) {
-        await this.recordActivity(
+        await recordActivity(
           client,
           userId,
           "OPEN_EVENT_LEFT",
@@ -1600,7 +1596,7 @@ export class BookingsService {
         }
       }
       if (!isAdministrativeCancellation) {
-        await this.recordActivity(
+        await recordActivity(
           client,
           user.id,
           cancelFuture ? "BOOKING_SERIES_CANCELLED" : "BOOKING_CANCELLED",
@@ -1621,133 +1617,11 @@ export class BookingsService {
     bookingId: string,
     file: Express.Multer.File,
   ) {
-    const result = await this.database.query<{
-      organizer_id: string;
-      image_path: string | null;
-      cancelled_at: Date | null;
-    }>(
-      `
-        select organizer_id, image_path, cancelled_at
-        from bookings
-        where id = $1
-      `,
-      [bookingId],
-    );
-    const booking = result.rows[0];
-    if (!booking || booking.cancelled_at) {
-      throw apiError(
-        HttpStatus.NOT_FOUND,
-        "BOOKING_NOT_FOUND",
-        "Booking was not found",
-      );
-    }
-    if (booking.organizer_id !== user.id && user.role !== "ADMIN") {
-      throw apiError(
-        HttpStatus.FORBIDDEN,
-        "NOT_BOOKING_OWNER",
-        "Only the organizer can update this meeting image",
-      );
-    }
-
-    let processed: Buffer;
-    try {
-      processed = await sharp(file.buffer, {
-        failOn: "warning",
-        limitInputPixels: 30_000_000,
-      })
-        .rotate()
-        .resize(1400, 788, { fit: "cover", position: "attention" })
-        .webp({ quality: 82 })
-        .toBuffer();
-    } catch {
-      throw apiError(
-        HttpStatus.BAD_REQUEST,
-        "INVALID_BOOKING_IMAGE",
-        "Meeting image must be a valid image",
-      );
-    }
-
-    await mkdir(this.uploadDir, { recursive: true });
-    const filename = `booking-${randomUUID()}.webp`;
-    await writeFile(resolve(this.uploadDir, filename), processed, {
-      flag: "wx",
-    });
-    try {
-      await this.database.transaction(async (client) => {
-        await client.query(
-          `
-            update bookings
-            set image_path = $2, updated_at = now()
-            where id = $1 and cancelled_at is null
-          `,
-          [bookingId, filename],
-        );
-        await this.recordActivity(
-          client,
-          user.id,
-          "BOOKING_IMAGE_UPDATED",
-          "BOOKING",
-          bookingId,
-        );
-      });
-    } catch (error) {
-      await unlink(resolve(this.uploadDir, filename)).catch(() => undefined);
-      throw error;
-    }
-    if (booking.image_path && booking.image_path !== filename) {
-      await unlink(resolve(this.uploadDir, booking.image_path)).catch(
-        () => undefined,
-      );
-    }
-    return { imageUrl: `/uploads/${filename}` };
+    return this.bookingImages.save(user, bookingId, file);
   }
 
   async removeImage(user: CurrentUser, bookingId: string): Promise<void> {
-    const result = await this.database.query<{
-      organizer_id: string;
-      image_path: string | null;
-      cancelled_at: Date | null;
-    }>(
-      `
-        select organizer_id, image_path, cancelled_at
-        from bookings
-        where id = $1
-      `,
-      [bookingId],
-    );
-    const booking = result.rows[0];
-    if (!booking || booking.cancelled_at) {
-      throw apiError(
-        HttpStatus.NOT_FOUND,
-        "BOOKING_NOT_FOUND",
-        "Booking was not found",
-      );
-    }
-    if (booking.organizer_id !== user.id && user.role !== "ADMIN") {
-      throw apiError(
-        HttpStatus.FORBIDDEN,
-        "NOT_BOOKING_OWNER",
-        "Only the organizer can remove this meeting image",
-      );
-    }
-    await this.database.transaction(async (client) => {
-      await client.query(
-        "update bookings set image_path = null, updated_at = now() where id = $1",
-        [bookingId],
-      );
-      await this.recordActivity(
-        client,
-        user.id,
-        "BOOKING_IMAGE_REMOVED",
-        "BOOKING",
-        bookingId,
-      );
-    });
-    if (booking.image_path) {
-      await unlink(resolve(this.uploadDir, booking.image_path)).catch(
-        () => undefined,
-      );
-    }
+    await this.bookingImages.remove(user, bookingId);
   }
 
   private async assertCanCreate(
@@ -1895,31 +1769,6 @@ export class BookingsService {
       [ids],
     );
     return result.rows;
-  }
-
-  private async recordActivity(
-    client: PoolClient,
-    actorId: string,
-    action: string,
-    targetType: string,
-    targetId: string,
-    details: Record<string, unknown> = {},
-  ): Promise<void> {
-    await client.query(
-      `
-        insert into audit_logs
-          (id, actor_id, action, target_type, target_id, details)
-        values ($1, $2, $3, $4, $5, $6)
-      `,
-      [
-        randomUUID(),
-        actorId,
-        action,
-        targetType,
-        targetId,
-        JSON.stringify(details),
-      ],
-    );
   }
 
   private ruleException(code: BookingRuleError) {
