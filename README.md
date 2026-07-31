@@ -5,6 +5,31 @@
 Корпоративний застосунок для бронювання переговорних кімнат. MVP уже
 запускається як контейнеризований стек і придатний до наскрізного тестування.
 
+## Інтерфейс
+
+### Персональна agenda
+
+«Мої зустрічі» збирають кімнатні та онлайн-події організатора й учасника,
+показують найближчу зустріч, запрошення та план на шість днів.
+
+[![Мої зустрічі у світлій темі](docs/screenshots/my-meetings-light.webp)](docs/screenshots/my-meetings-light.webp)
+
+### Живий розклад кімнати
+
+Семиденний і Auto-режими враховують робочі дні, недоступність, часовий пояс
+та різні типи зустрічей без горизонтальної прокрутки сторінки.
+
+[![Розклад переговорної](docs/screenshots/schedule-light.webp)](docs/screenshots/schedule-light.webp)
+
+### Темна тема й адміністрування
+
+| Відкриті події                                                                                                    | Керування кімнатами                                                                                           |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| [![Відкриті події у темній темі](docs/screenshots/open-events-dark.webp)](docs/screenshots/open-events-dark.webp) | [![Адміністрування кімнат](docs/screenshots/admin-rooms-light.webp)](docs/screenshots/admin-rooms-light.webp) |
+
+Актуальний responsive-набір і команда його відтворення описані в
+[`docs/screenshots`](docs/screenshots/README.md).
+
 ## Швидкий запуск
 
 Потрібні Docker із Compose plugin. З кореня репозиторію:
@@ -277,11 +302,24 @@ browser regression сценарії. Міграції виконує той са
 - [Продуктова модель доступу та профілів](docs/decisions/0001-product-access-and-profiles.md)
 - [Запрошення, сповіщення та доступність кімнат](docs/decisions/0002-invitations-notifications-and-room-availability.md)
 - [Дизайн, локалізація та теми](docs/decisions/0003-design-localization-and-theming.md)
+- [Детальний технічний опис](docs/TECHNICAL_OVERVIEW.md)
+- [Оформлений технічний опис DOCX](docs/MeetBroker-Technical-Overview.docx)
 - [Карта екранів](docs/design/SCREEN_MAP.md)
-- [Візуальні напрями](docs/design/DESIGN_DIRECTIONS.md)
+- [Актуальна дизайн-система](docs/design/DESIGN_DIRECTIONS.md)
+- [Архів ранніх концептів](docs/design/CONCEPT_ARCHIVE.md)
 - [Канонічні UI-компоненти](docs/design/UI_COMPONENTS.md)
-- [Маніфест дизайн-концептів](docs/design/ASSET_MANIFEST.md)
+- [Маніфест візуальних асетів](docs/design/ASSET_MANIFEST.md)
+- [Актуальні product screenshots](docs/screenshots/README.md)
 - [Журнал промптів](docs/prompt-journal/README.md)
+
+DOCX генерується з канонічного `docs/TECHNICAL_OVERVIEW.md`, тому текстова й
+оформлена версії не розходяться:
+
+```bash
+python3 -m venv .venv-docs
+.venv-docs/bin/pip install -r scripts/requirements-docs.txt
+.venv-docs/bin/python scripts/build-technical-docx.py
+```
 
 ## Ліцензії
 
