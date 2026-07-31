@@ -213,6 +213,15 @@ CLI не дозволить позбавити систему останньог
   іспанською, французькою та японською мовами;
 - окремі контейнери PostgreSQL, API, worker, web і Nginx.
 
+### Чому календар показує сім послідовних днів
+
+Формулювання ТЗ про «тижневу сітку» MeetBroker трактує як семиденний робочий
+період, а не як жорстку межу понеділок–неділя. Початковий екран показує
+сьогодні та наступні шість днів, тому найближчі доступні слоти завжди перед
+користувачем і не ховаються на межі календарного тижня. Кнопки навігації
+зсувають період на сім днів, а режим «Авто» змінює лише кількість видимих
+колонок відповідно до ширини екрана, не змінюючи сам часовий діапазон.
+
 ## Перевірки
 
 ```bash
@@ -297,6 +306,7 @@ browser regression сценарії. Міграції виконує той са
 
 ## Документація
 
+- [Changelog](CHANGELOG.md)
 - [Правила внесення змін і commit convention](CONTRIBUTING.md)
 - [Офіційна сторінка конкурсу та технічного завдання](https://ua-skills.com/tournaments)
 - [Acceptance-матриця вимог](docs/ACCEPTANCE_MATRIX.md)
@@ -308,6 +318,8 @@ browser regression сценарії. Міграції виконує той са
 - [Дизайн, локалізація та теми](docs/decisions/0003-design-localization-and-theming.md)
 - [Детальний технічний опис](docs/TECHNICAL_OVERVIEW.md)
 - [Оформлений технічний опис DOCX](docs/MeetBroker-Technical-Overview.docx)
+- [Release checklist](docs/RELEASE_CHECKLIST.md)
+- [Реєстр технічного боргу](docs/TECHNICAL_DEBT.md)
 - [Карта екранів](docs/design/SCREEN_MAP.md)
 - [Актуальна дизайн-система](docs/design/DESIGN_DIRECTIONS.md)
 - [Архів ранніх концептів](docs/design/CONCEPT_ARCHIVE.md)
