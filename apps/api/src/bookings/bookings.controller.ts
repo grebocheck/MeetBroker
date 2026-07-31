@@ -13,10 +13,10 @@ import {
   UploadedFile,
   UseInterceptors,
 } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Approved } from "../auth/auth.decorators";
 import { apiError } from "../common/http-error";
+import { MAX_UPLOAD_BYTES } from "../common/upload-policy";
 import type { AuthenticatedRequest } from "../common/types";
 import {
   CancelBookingDto,
@@ -29,16 +29,7 @@ import { BookingsService } from "./bookings.service";
 @Approved()
 @Controller("api/bookings")
 export class BookingsController {
-  private readonly maxBookingImageBytes: number;
-
-  constructor(
-    private readonly bookings: BookingsService,
-    config: ConfigService,
-  ) {
-    this.maxBookingImageBytes = Number(
-      config.get("MAX_BOOKING_IMAGE_BYTES") ?? 12_582_912,
-    );
-  }
+  constructor(private readonly bookings: BookingsService) {}
 
   @Get("schedule")
   schedule(
@@ -92,7 +83,7 @@ export class BookingsController {
   @Post(":id/image")
   @UseInterceptors(
     FileInterceptor("image", {
-      limits: { fileSize: 12_582_912, files: 1 },
+      limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },
     }),
   )
   uploadImage(
@@ -100,7 +91,7 @@ export class BookingsController {
     @Param("id") id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file || file.size > this.maxBookingImageBytes) {
+    if (!file) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "BOOKING_IMAGE_REQUIRED",

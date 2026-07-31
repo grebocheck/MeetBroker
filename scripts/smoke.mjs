@@ -1036,12 +1036,15 @@ async function main() {
   );
   check(placeholderRoom, "Expected one demo room to keep the placeholder");
   const roomImageForm = new FormData();
+  const imagePadding = `<!--${"x".repeat(4 * 1024 * 1024)}-->`;
   roomImageForm.set(
     "image",
     new Blob(
       [
         '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="18">' +
-          '<rect width="32" height="18" fill="#0878f9"/></svg>',
+          '<rect width="32" height="18" fill="#0878f9"/>' +
+          imagePadding +
+          "</svg>",
       ],
       { type: "image/svg+xml" },
     ),

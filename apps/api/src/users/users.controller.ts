@@ -11,10 +11,10 @@ import {
   UploadedFile,
   UseInterceptors,
 } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { AuthenticatedRequest } from "../common/types";
 import { apiError } from "../common/http-error";
+import { MAX_UPLOAD_BYTES } from "../common/upload-policy";
 import { Approved } from "../auth/auth.decorators";
 import {
   ChangeEmailDto,
@@ -25,14 +25,7 @@ import { UsersService } from "./users.service";
 
 @Controller("api/users")
 export class UsersController {
-  private readonly maxAvatarBytes: number;
-
-  constructor(
-    private readonly users: UsersService,
-    config: ConfigService,
-  ) {
-    this.maxAvatarBytes = Number(config.get("MAX_AVATAR_BYTES") ?? 12_582_912);
-  }
+  constructor(private readonly users: UsersService) {}
 
   @Patch("me")
   async updateProfile(
@@ -64,14 +57,14 @@ export class UsersController {
   @Post("me/avatar")
   @UseInterceptors(
     FileInterceptor("avatar", {
-      limits: { fileSize: 12_582_912, files: 1 },
+      limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },
     }),
   )
   uploadAvatar(
     @Req() request: AuthenticatedRequest,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file || file.size > this.maxAvatarBytes) {
+    if (!file) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "AVATAR_REQUIRED",

@@ -704,6 +704,8 @@ export const uk = {
   "errors.EVENT_FULL": "У кімнаті більше немає вільних місць.",
   "errors.INTERNAL_ERROR":
     "На сервері сталася помилка. Спробуйте трохи пізніше.",
+  "errors.PAYLOAD_TOO_LARGE":
+    "Файл завеликий. Оберіть зображення розміром до 12 МБ.",
   "errors.INVALID_BLOCK_RANGE": "Період недоступності вказано некоректно.",
   "errors.INVALID_CREDENTIALS": "Неправильна email-адреса або пароль.",
   "errors.INVALID_IMAGE": "Файл не є підтримуваним зображенням.",

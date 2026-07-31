@@ -702,6 +702,8 @@ export const en = {
     "The selected recurrence does not produce any events.",
   "errors.EVENT_FULL": "The room has no remaining capacity.",
   "errors.INTERNAL_ERROR": "A server error occurred. Please try again later.",
+  "errors.PAYLOAD_TOO_LARGE":
+    "The file is too large. Choose an image up to 12 MB.",
   "errors.INVALID_BLOCK_RANGE": "The unavailable period is invalid.",
   "errors.INVALID_CREDENTIALS": "The email address or password is incorrect.",
   "errors.INVALID_IMAGE": "The file is not a supported image.",

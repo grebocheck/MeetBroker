@@ -174,7 +174,7 @@ export class AuthService {
               $1,
               category,
               channel,
-              channel <> 'TELEGRAM'
+              channel = 'IN_APP'
             from unnest(
               array['INVITATIONS', 'CHANGES', 'REMINDERS', 'ACCESS']
             ) as categories(category)

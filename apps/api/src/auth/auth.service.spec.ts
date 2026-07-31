@@ -59,6 +59,13 @@ describe("AuthService registration policies", () => {
         sql.includes("email_verification_tokens"),
       ),
     ).toBe(false);
+    expect(
+      transactionCalls.some(
+        ({ sql }) =>
+          sql.includes("notification_subscriptions") &&
+          sql.includes("channel = 'IN_APP'"),
+      ),
+    ).toBe(true);
   });
 
   it("requires both email verification and approval in production", async () => {
