@@ -3,13 +3,22 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import { resolve } from "node:path";
 import { ApiErrorFilter } from "./common/api-error.filter";
 import { AppModule } from "./app.module";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const production = process.env.NODE_ENV === "production";
   app.set("trust proxy", 1);
+  app.use(
+    helmet({
+      strictTransportSecurity: production
+        ? { maxAge: 31_536_000, includeSubDomains: true }
+        : false,
+    }),
+  );
   app.use(cookieParser());
   app.enableCors({
     origin: process.env.APP_ORIGIN ?? "http://localhost:5173",

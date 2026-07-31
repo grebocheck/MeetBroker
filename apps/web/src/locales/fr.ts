@@ -740,6 +740,8 @@ export const fr = {
     "Une erreur de serveur s'est produite. Veuillez réessayer plus tard.",
   "errors.PAYLOAD_TOO_LARGE":
     "Le fichier est trop volumineux. Choisissez une image de 12 Mo maximum.",
+  "errors.TOO_MANY_REQUESTS":
+    "Trop de requêtes. Patientez un instant puis réessayez.",
   "errors.INVALID_BLOCK_RANGE":
     "La période d'indisponibilité n'est pas valide.",
   "errors.INVALID_CREDENTIALS":

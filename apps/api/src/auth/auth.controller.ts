@@ -8,6 +8,7 @@ import {
   Res,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { Throttle } from "@nestjs/throttler";
 import type { Response } from "express";
 import type { AuthenticatedRequest } from "../common/types";
 import { Public } from "./auth.decorators";
@@ -29,12 +30,18 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({
+    default: { limit: 10, ttl: 10 * 60_000, blockDuration: 10 * 60_000 },
+  })
   @Post("register")
   async register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
   }
 
   @Public()
+  @Throttle({
+    default: { limit: 20, ttl: 60_000, blockDuration: 5 * 60_000 },
+  })
   @Post("verify-email")
   @HttpCode(204)
   async verifyEmail(@Body() dto: VerifyEmailDto): Promise<void> {
@@ -42,6 +49,9 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({
+    default: { limit: 20, ttl: 60_000, blockDuration: 5 * 60_000 },
+  })
   @Post("login")
   async login(
     @Body() dto: LoginDto,
