@@ -2,8 +2,8 @@
 
 ## Технічний опис системи
 
-**Версія документа:** 1.0  
-**Стан продукту:** конкурсне MVP, готове до наскрізного тестування  
+**Версія документа:** 2.0
+**Стан продукту:** MeetBroker v0.2.0, релізний кандидат
 **Дата:** 31 липня 2026 року
 
 MeetBroker — корпоративна система планування кімнатних та онлайн-зустрічей.
@@ -100,7 +100,7 @@ NestJS API розділено на предметні модулі:
 | `auth` | Реєстрація, login/logout, email token, cookie sessions |
 | `users` | Профіль, avatar upload, email і пароль, каталог колег |
 | `rooms` | Доступний користувачу каталог переговорних |
-| `bookings` | Розклад, кімнатні/онлайн зустрічі, recurrence; блокування й конфлікти учасників ізольовані в `BookingAttendeesService` |
+| `bookings` | Розклад, кімнатні/онлайн зустрічі й recurrence; query, create, update, RSVP, cancellation, attendee, media та open-event boundaries ізольовані |
 | `notifications` | Центр, preferences, channels, Telegram linking, worker |
 | `access-policies` | Capability-обмеження з початком і завершенням |
 | `admin` | Користувачі, бронювання, кімнати, недоступність, аудит |
@@ -315,9 +315,10 @@ templates мають окремі типізовані каталоги. Тем�
 - password/email security events;
 - operator CLI actions.
 
-Read projections цих трьох адміністративних списків формує окремий
-`AdminQueriesService`; command-oriented `AdminService` не змішує їх із
-керуванням доступом, кімнатами й недоступністю.
+Read projections адміністративних списків формує `AdminQueriesService`.
+Команди доступу та кімнат лишаються в компактному `AdminService`, тоді як
+графіки/недоступність і media lifecycle ізольовані у
+`RoomAvailabilityService` та `RoomMediaService`.
 
 Користувацьке сповіщення окремо повідомляє, якщо зустріч змінив або скасував
 адміністратор.
@@ -325,9 +326,11 @@ Read projections цих трьох адміністративних спискі
 Відкриті події мають окремий `OpenEventsService`, серверний пошук за назвою,
 кімнатою або організатором і сторінкову видачу по 12 карток.
 Read-side бронювань ізольовано у `BookingQueriesService`: він формує розклад
-кімнати, сторінки власної історії та персональний календар, тоді як
-`BookingsService` відповідає за команди створення, зміни, RSVP і скасування.
-HTTP-контракти при цьому не змінилися.
+кімнати, сторінки власної історії та персональний календар. Команди
+розподілено між `BookingCreationService`, `BookingUpdatesService`,
+`BookingInvitationsService` і `BookingCancellationsService`; учасники,
+обкладинки та відкриті події також мають окремі boundaries. Колишній
+1642-рядковий `BookingsService` видалено, а HTTP-контракти не змінилися.
 
 ![Керування кімнатами](screenshots/admin-rooms-light.webp)
 
@@ -347,7 +350,7 @@ npm run test:e2e
 
 Поточний набір містить:
 
-- 76 API unit-тестів;
+- 98 API unit-тестів;
 - 61 web unit-тест;
 - 34 Playwright-сценарії у 13 файлах;
 - API integration для транзакцій, дозволів, RSVP, upload policy,
