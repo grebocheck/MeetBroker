@@ -210,7 +210,10 @@ Domain transaction
 
 Outbox має унікальний event key, статуси, retry metadata та атомарне
 claiming. Повторний цикл worker не створює дублікати. Збій SMTP або Telegram
-не відкочує бронювання.
+не відкочує бронювання. Окремий `updated_at` дозволяє worker повернути в
+чергу job, що завис у `PROCESSING` після аварії. Адміністратор бачить
+пагінований стан доставки, retry budget і помилку та може контрольовано
+повторити лише невдалу доставку; ця дія фіксується в audit log.
 
 ### Email
 
@@ -229,6 +232,8 @@ claiming. Повторний цикл worker не створює дубліка�
 - `POLLING` для локального demo;
 - `WEBHOOK` для HTTPS production;
 - `DISABLED` для інсталяцій без Telegram.
+- локалізований HTML renderer із семантичними емодзі за типом події,
+  брендованою ієрархією та екрануванням користувацького тексту.
 
 ## 9. Автентифікація й безпека
 
@@ -347,7 +352,9 @@ docker compose up -d --build
 npm run smoke
 ```
 
-Health checks є в PostgreSQL, API, worker, web і Nginx. Persistent дані
+Health checks є в PostgreSQL, API, worker, web і Nginx. Worker health
+перевіряє свіжий атомарний heartbeat, а не лише існування процесу.
+Persistent дані
 зберігаються у volumes `postgres-data` та `uploads`. Application-контейнери
 працюють без root, із read-only root filesystem, `cap_drop: ALL`,
 `no-new-privileges`, restart policy та контрольованим graceful shutdown.
@@ -362,8 +369,12 @@ Production запуск накладає `compose.production.yaml`: він ви�
 - налаштувати SMTP та/або Telegram;
 - увімкнути secure cookie й HTTPS;
 - винести migration step перед запуском replicas;
-- налаштувати резервне копіювання PostgreSQL та uploads;
 - централізувати logs і health monitoring.
+
+Вбудовані операторські скрипти створюють узгоджений backup PostgreSQL та
+uploads із SHA-256 manifest. Restore вимагає явного підтвердження, перевіряє
+архіви до заміни даних і навмисно залишає worker зупиненим до ручного
+перегляду черги доставок.
 
 ## 16. Точки розширення
 

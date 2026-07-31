@@ -188,16 +188,34 @@ export function DeliveriesAdmin() {
                   {statusLabels[delivery.status]}
                 </span>
                 <div className="delivery-row__details">
-                  <strong>{t("admin.deliveryLastError")}</strong>
-                  <span>
-                    {delivery.lastError ?? t("admin.deliveryNoError")}
-                  </span>
-                  {delivery.status === "FAILED" && delivery.attempts < 8 && (
-                    <small>
-                      {t("admin.deliveryNextAttempt", {
-                        date: formatDate(delivery.nextAttemptAt),
-                      })}
-                    </small>
+                  {delivery.status === "FAILED" ? (
+                    <>
+                      <strong>{t("admin.deliveryLastError")}</strong>
+                      <span>
+                        {delivery.lastError ?? t("admin.deliveryNoError")}
+                      </span>
+                      {delivery.attempts < 8 && (
+                        <small>
+                          {t("admin.deliveryNextAttempt", {
+                            date: formatDate(delivery.nextAttemptAt),
+                          })}
+                        </small>
+                      )}
+                    </>
+                  ) : delivery.status === "SENT" && delivery.processedAt ? (
+                    <>
+                      <strong>{t("admin.deliverySent")}</strong>
+                      <span>{formatDate(delivery.processedAt)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <strong>{statusLabels[delivery.status]}</strong>
+                      <small>
+                        {t("admin.deliveryNextAttempt", {
+                          date: formatDate(delivery.nextAttemptAt),
+                        })}
+                      </small>
+                    </>
                   )}
                 </div>
                 {delivery.status === "FAILED" && (
