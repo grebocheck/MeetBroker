@@ -450,6 +450,12 @@ export const fr = {
   "events.subtitle":
     "Réunions, présentations et discussions ouvertes à toute l'équipe.",
   "events.loadError": "Impossible de charger les événements",
+  "events.search": "Rechercher",
+  "events.searchPlaceholder": "Titre, salle ou organisateur",
+  "events.count": "Trouvés : {count}",
+  "events.itemLabel": "événements",
+  "events.emptySearchTitle": "Aucun événement ne correspond",
+  "events.emptySearchBody": "Essayez un terme plus court ou différent.",
   "events.emptyTitle": "Il n'y a aucun nouvel événement ouvert",
   "events.emptyBody":
     "Les réunions ouvertes créées par des collègues apparaîtront ici.",

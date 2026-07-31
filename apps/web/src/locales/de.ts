@@ -455,6 +455,13 @@ export const de = {
   "events.subtitle":
     "Meetings, Präsentationen und Diskussionen, die dem gesamten Team offen stehen.",
   "events.loadError": "Ereignisse konnten nicht geladen werden",
+  "events.search": "Suchen",
+  "events.searchPlaceholder": "Titel, Raum oder Veranstalter",
+  "events.count": "Gefunden: {count}",
+  "events.itemLabel": "Ereignisse",
+  "events.emptySearchTitle": "Keine passenden Ereignisse gefunden",
+  "events.emptySearchBody":
+    "Versuchen Sie einen kürzeren oder anderen Suchbegriff.",
   "events.emptyTitle": "Es gibt keine neuen offenen Ereignisse",
   "events.emptyBody":
     "Von Kollegen erstellte offene Besprechungen werden hier angezeigt.",

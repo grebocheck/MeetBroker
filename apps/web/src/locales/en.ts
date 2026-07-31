@@ -439,6 +439,12 @@ export const en = {
   "events.subtitle":
     "Meetings, presentations and discussions open to the whole team.",
   "events.loadError": "Could not load events",
+  "events.search": "Search",
+  "events.searchPlaceholder": "Title, room or organizer",
+  "events.count": "Found: {count}",
+  "events.itemLabel": "events",
+  "events.emptySearchTitle": "No events match this search",
+  "events.emptySearchBody": "Try a shorter or different search term.",
   "events.emptyTitle": "There are no new open events",
   "events.emptyBody": "Open meetings created by colleagues will appear here.",
   "events.organizer": "Organizer: {name}",

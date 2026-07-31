@@ -435,6 +435,12 @@ export const uk = {
   "events.subtitle":
     "Зустрічі, презентації та обговорення, відкриті для всієї команди.",
   "events.loadError": "Не вдалося завантажити події",
+  "events.search": "Знайти",
+  "events.searchPlaceholder": "Назва, кімната або організатор",
+  "events.count": "Знайдено: {count}",
+  "events.itemLabel": "подій",
+  "events.emptySearchTitle": "За цим запитом подій немає",
+  "events.emptySearchBody": "Спробуйте коротший або інший пошуковий запит.",
   "events.emptyTitle": "Нових відкритих подій поки немає",
   "events.emptyBody":
     "Коли колеги створять відкриту зустріч, вона з’явиться тут.",

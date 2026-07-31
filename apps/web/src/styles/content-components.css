@@ -160,6 +160,40 @@
   gap: 16px;
 }
 
+.events-toolbar {
+  display: flex;
+  width: min(1120px, 100%);
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 3px 18px 3px 18px;
+  background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.events-search {
+  display: flex;
+  min-width: min(460px, 100%);
+  align-items: end;
+  gap: 10px;
+}
+
+.events-search .field {
+  flex: 1;
+}
+
+.events-toolbar .result-count {
+  flex: none;
+}
+
+.events-page > .pagination {
+  width: min(1120px, 100%);
+  margin-top: 18px;
+}
+
 .event-card {
   position: relative;
   overflow: hidden;
