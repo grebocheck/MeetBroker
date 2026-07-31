@@ -297,6 +297,7 @@ browser regression сценарії. Міграції виконує той са
 
 ## Документація
 
+- [Правила внесення змін і commit convention](CONTRIBUTING.md)
 - [Офіційна сторінка конкурсу та технічного завдання](https://ua-skills.com/tournaments)
 - [Acceptance-матриця вимог](docs/ACCEPTANCE_MATRIX.md)
 - [Accessibility та demo-аудит](docs/ACCESSIBILITY_AND_DEMO_AUDIT.md)
