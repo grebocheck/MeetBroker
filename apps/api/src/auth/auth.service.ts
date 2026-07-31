@@ -7,6 +7,7 @@ import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
 import { createOpaqueToken, hashToken } from "../common/crypto";
 import { EmailVerificationPolicy } from "../common/email-verification";
+import { ApplicationModePolicy } from "../common/application-mode";
 import type { CurrentUser, Locale, Role, Theme } from "../common/types";
 import type { LoginDto, RegisterDto } from "./auth.dto";
 
@@ -38,6 +39,7 @@ export interface SessionResult {
 export class AuthService {
   private readonly sessionTtlDays: number;
   private readonly emailVerification: EmailVerificationPolicy;
+  private readonly applicationMode: ApplicationModePolicy;
 
   constructor(
     private readonly database: DatabaseService,
@@ -46,6 +48,7 @@ export class AuthService {
   ) {
     this.sessionTtlDays = Number(config.get("SESSION_TTL_DAYS") ?? 30);
     this.emailVerification = new EmailVerificationPolicy(config);
+    this.applicationMode = new ApplicationModePolicy(config);
   }
 
   async register(dto: RegisterDto): Promise<{
@@ -102,13 +105,15 @@ export class AuthService {
         await client.query(
           `
             insert into users (
-              id, name, email, password_hash, email_verified_at, locale
-            )
-            values (
-              $1, $2, $3, $4,
-              case when $5::boolean then null else now() end,
-              $6
-            )
+            id, name, email, password_hash, email_verified_at, approved_at,
+            locale
+          )
+          values (
+            $1, $2, $3, $4,
+            case when $5::boolean then null else now() end,
+            case when $6::boolean then null else now() end,
+            $7
+          )
           `,
           [
             userId,
@@ -116,6 +121,7 @@ export class AuthService {
             email,
             passwordHash,
             this.emailVerification.required,
+            this.applicationMode.adminApprovalRequired,
             dto.locale ?? "uk",
           ],
         );
