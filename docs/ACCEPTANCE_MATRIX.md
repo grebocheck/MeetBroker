@@ -58,7 +58,7 @@
 
 | Бонус PDF | Реалізація | Перевірка | Статус |
 | --- | --- | --- | --- |
-| Docker Compose однією командою | Nginx + web + API + worker + PostgreSQL | CI `docker compose up --wait` | Auto |
+| Docker Compose однією командою | Nginx зі статичною SPA + API + worker + PostgreSQL | CI `docker compose up --wait` | Auto |
 | Email verification у dev | Повноцінний SMTP/log flow, керується env | `email-verification.spec.ts`, `smoke.mjs` | Auto |
 | Щотижневі повторення і scope cancellation | Booking series та occurrence scopes | `recurrence.spec.ts`, `smoke.mjs` | Auto |
 | Захист від гонки | PostgreSQL exclusion constraint і транзакції | конкурентний E2E API test | Auto |

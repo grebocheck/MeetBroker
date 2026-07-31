@@ -49,24 +49,31 @@ npm run smoke
 адміністратор. Якщо змінна відсутня при запуску API поза Compose,
 використовується безпечний `PRODUCTION`.
 
-Для бойового запуску використовуйте окремий override після заміни
-демонстраційних паролів, `APP_ORIGIN`, `DATABASE_URL`, SMTP/Telegram secrets
-і встановлення HTTPS перед Nginx:
+Для бойового запуску використовується той самий Compose-файл. Перед стартом
+замініть демонстраційні паролі, `APP_ORIGIN`, `DATABASE_URL`,
+SMTP/Telegram secrets, встановіть HTTPS перед Nginx і задайте в `.env`:
 
-```bash
-docker compose \
-  -f compose.yaml \
-  -f compose.production.yaml \
-  up -d --build --wait
+```dotenv
+NODE_ENV=production
+APP_MODE=PRODUCTION
+SEED_DEMO_DATA=false
 ```
 
-Production override вимагає `.env`, примусово встановлює
-`NODE_ENV=production`, `APP_MODE=PRODUCTION` і `SEED_DEMO_DATA=false`.
-API/worker та web працюють як непривілейований `node`, Nginx — як
-непривілейований `nginx` на внутрішньому порту 8080. Їхні root filesystem
-read-only, Linux capabilities скинуті, увімкнено `no-new-privileges`,
-restart/health/stop policies; запис дозволено лише в uploads volume і
-обмежені `tmpfs`. Зовнішній порт можна змінити через `HTTP_PORT`.
+Після цього команда запуску не відрізняється від демонстраційної:
+
+```bash
+docker compose up -d --build --wait
+```
+
+API перевіряє production-конфігурацію під час старту, а Compose окремо
+блокує `SEED_DEMO_DATA=true` ще до міграцій і наповнення БД. API та worker
+працюють як непривілейований `node`. Vite SPA збирається на build-етапі й
+копіюється до Nginx, тому окремий Node-контейнер для статики не запускається.
+Nginx працює як непривілейований `nginx` на внутрішньому порту 8080. Root
+filesystem контейнерів read-only, Linux capabilities скинуті, увімкнено
+`no-new-privileges`, restart/health/stop policies; запис дозволено лише в
+uploads volume і обмежені `tmpfs`. Зовнішній порт можна змінити через
+`HTTP_PORT`.
 
 Демонстраційні облікові записи:
 
@@ -280,7 +287,8 @@ MEETBROKER_RESTORE_CONFIRM=restore \
 - адаптивний інтерфейс із компактним мобільним календарем, світла/темна тема
   та повні типізовані каталоги українською, англійською, німецькою,
   іспанською, французькою та японською мовами;
-- окремі контейнери PostgreSQL, API, worker, web і Nginx.
+- окремі контейнери PostgreSQL, API, worker і Nginx; скомпільовану SPA
+  безпосередньо віддає Nginx.
 
 ### Чому календар показує сім послідовних днів
 
@@ -366,7 +374,8 @@ browser regression сценарії. Міграції виконує той са
 
 ## Реалізовані бонуси специфікації
 
-- Docker Compose із Nginx, web, API, worker і PostgreSQL;
+- Docker Compose із Nginx, API, worker і PostgreSQL; React SPA збирається
+  всередині multi-stage Nginx image без окремого runtime-контейнера;
 - підтвердження email із dev-посиланням у серверному журналі;
 - захист від конкурентного бронювання на рівні транзакції та БД;
 - фільтр переговорних за мінімальною місткістю;

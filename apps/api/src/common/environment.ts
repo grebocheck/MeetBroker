@@ -48,6 +48,7 @@ export function validateEnvironment(source: Environment): Environment {
     "EMAIL_VERIFICATION_REQUIRED",
     true,
   );
+  environment.SEED_DEMO_DATA = booleanValue(source, "SEED_DEMO_DATA", false);
   environment.SMTP_SECURE = booleanValue(source, "SMTP_SECURE", false);
   environment.TELEGRAM_UPDATE_MODE = enumValue(
     source,
@@ -60,6 +61,7 @@ export function validateEnvironment(source: Environment): Environment {
   validateTimezone(source);
   validateTelegram(environment);
   validateProductionEmail(environment);
+  validateApplicationMode(environment);
 
   return environment;
 }
@@ -199,5 +201,20 @@ function validateProductionEmail(environment: Environment): void {
     throw new Error(
       "SMTP_HOST is required when email verification is enabled in production",
     );
+  }
+}
+
+function validateApplicationMode(environment: Environment): void {
+  if (
+    environment.NODE_ENV === "production" &&
+    environment.APP_MODE !== "PRODUCTION"
+  ) {
+    throw new Error("APP_MODE must be PRODUCTION when NODE_ENV=production");
+  }
+  if (
+    environment.APP_MODE === "PRODUCTION" &&
+    environment.SEED_DEMO_DATA === "true"
+  ) {
+    throw new Error("SEED_DEMO_DATA must be false when APP_MODE=PRODUCTION");
   }
 }

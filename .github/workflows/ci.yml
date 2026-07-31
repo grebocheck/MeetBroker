@@ -56,23 +56,28 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: cp .env.example .env
-      - name: Validate production Compose override
-        run: >-
-          docker compose
-          -f compose.yaml
-          -f compose.production.yaml
-          config --quiet
+      - name: Validate Compose model
+        run: docker compose config --quiet
       - run: docker compose up -d --build --wait --wait-timeout 180
       - name: Verify container security boundaries
         run: |
           set -eu
-          for service in api worker web nginx; do
+          for service in api worker nginx; do
             container_id="$(docker compose ps -q "$service")"
             test -n "$container_id"
             test "$(docker compose exec -T "$service" id -u)" != "0"
             test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$container_id")" = "true"
             test "$(docker inspect --format '{{json .HostConfig.CapDrop}}' "$container_id")" = '["ALL"]'
           done
+      - name: Reject demo seed in production mode
+        run: |
+          if docker compose run --rm --no-deps \
+            -e APP_MODE=PRODUCTION \
+            -e SEED_DEMO_DATA=true \
+            api; then
+            echo "Production mode unexpectedly accepted demo seed" >&2
+            exit 1
+          fi
       - run: npm run smoke
       - name: Reset in-memory guards before browser suite
         run: |
