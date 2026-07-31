@@ -297,7 +297,10 @@ browser regression сценарії. Міграції виконує той са
 
 ## Документація
 
-- [Конкурсне технічне завдання](spec-uk.pdf)
+- [Офіційна сторінка конкурсу та технічного завдання](https://ua-skills.com/tournaments)
+- [Acceptance-матриця вимог](docs/ACCEPTANCE_MATRIX.md)
+- [Accessibility та demo-аудит](docs/ACCESSIBILITY_AND_DEMO_AUDIT.md)
+- [Перевірка права на поширення конкурсного PDF](docs/SPEC_DISTRIBUTION_REVIEW.md)
 - [План розробки](docs/PROJECT_PLAN.md)
 - [Продуктова модель доступу та профілів](docs/decisions/0001-product-access-and-profiles.md)
 - [Запрошення, сповіщення та доступність кімнат](docs/decisions/0002-invitations-notifications-and-room-availability.md)
@@ -331,7 +334,8 @@ python3 -m venv .venv-docs
   вказано інше;
 - Manrope Variable та Unbounded Variable залишаються під
   [SIL Open Font License 1.1](LICENSES/OFL-1.1.txt);
-- `spec-uk.pdf` не перелицензовується проєктом.
+- оригінальний конкурсний PDF не входить до поточного дерева репозиторію:
+  опубліковані умови не містять дозволу на його повторне поширення.
 
 Повний перелік винятків і авторських повідомлень наведено у
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

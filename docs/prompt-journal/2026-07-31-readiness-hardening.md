@@ -259,3 +259,28 @@
 
 - `0722e1f` — актуальна дизайн-система, карта екранів і product screenshots;
 - `1189071` — канонічний технічний опис, DOCX-генератор і оформлений документ.
+
+## Запит 092 — repository governance, security та acceptance
+
+> Увімкнути захист `main`, Dependabot і CodeQL, скласти фінальну
+> acceptance-матрицю, провести accessibility/demo-аудит та перевірити право
+> на публічне поширення конкурсного PDF.
+
+### Результат
+
+- додано щотижневі Dependabot updates для npm, GitHub Actions і двох Docker
+  build contexts; на GitHub увімкнено vulnerability alerts, автоматичні
+  security updates, secret scanning і push protection;
+- додано CodeQL workflow для `javascript-typescript` із
+  `security-extended` queries та зафіксованим commit SHA action;
+- сформовано матрицю «вимога PDF → UI/API → автоматичний або ручний тест»,
+  яка окремо відділяє базові вимоги від бонусів і розширень MeetBroker;
+- axe-core став CI gate для authenticated pages і booking modal; додано
+  keyboard-перевірку skip-link;
+- аудит знайшов і виправив порожні accessible names preview-аватарів та
+  неназваний participant listbox;
+- документовано ручний demo walkthrough для чистого запуску, основного,
+  адміністративного, notification, localization та responsive сценаріїв;
+- офіційні умови UA-Skills не містять redistribution grant для PDF, тому
+  файл прибрано з поточного Git tree, README посилається на офіційну сторінку,
+  а рішення й межі історичного видалення задокументовано окремо.

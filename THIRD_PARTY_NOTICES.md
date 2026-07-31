@@ -26,7 +26,8 @@ with the npm dependencies.
 
 ## Competition specification
 
-`spec-uk.pdf` is a supplied competition specification. It is included only as
-project context and is **not** covered by the MeetBroker MIT or CC0 licenses.
-Copyright and redistribution terms for that document remain with its original
-rights holder.
+The original competition PDF is not included in the current repository tree.
+The published terms do not provide an explicit redistribution license for that
+document. Use the
+[official UA-Skills tournament page](https://ua-skills.com/tournaments) to
+obtain the specification from its rights holder.

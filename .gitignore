@@ -14,3 +14,4 @@ storage/uploads/*
 playwright-report/
 test-results/
 blob-report/
+spec-uk.pdf
