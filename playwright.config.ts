@@ -24,7 +24,7 @@ export default defineConfig({
     },
     {
       name: "desktop-wide",
-      testIgnore: /api-.*\.spec\.ts/,
+      testIgnore: [/api-.*\.spec\.ts/, /timezone\.spec\.ts/],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 1000 },
@@ -32,7 +32,7 @@ export default defineConfig({
     },
     {
       name: "desktop-compact",
-      testIgnore: /api-.*\.spec\.ts/,
+      testIgnore: [/api-.*\.spec\.ts/, /timezone\.spec\.ts/],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1024, height: 900 },
@@ -40,7 +40,7 @@ export default defineConfig({
     },
     {
       name: "tablet",
-      testIgnore: /api-.*\.spec\.ts/,
+      testIgnore: [/api-.*\.spec\.ts/, /timezone\.spec\.ts/],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 768, height: 1024 },
@@ -48,10 +48,19 @@ export default defineConfig({
     },
     {
       name: "mobile",
-      testIgnore: /api-.*\.spec\.ts/,
+      testIgnore: [/api-.*\.spec\.ts/, /timezone\.spec\.ts/],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 390, height: 844 },
+      },
+    },
+    {
+      name: "timezone-berlin",
+      testMatch: /timezone\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 1000 },
+        timezoneId: "Europe/Berlin",
       },
     },
   ],
