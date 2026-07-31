@@ -917,7 +917,9 @@ async function main() {
     headers: { cookie: userCookie },
   });
   check(
-    Array.isArray(openEvents.body?.events),
+    Array.isArray(openEvents.body?.events) &&
+      Number.isInteger(openEvents.body?.pagination?.total) &&
+      openEvents.body.pagination.total >= openEvents.body.events.length,
     "Open events response is invalid",
   );
 
