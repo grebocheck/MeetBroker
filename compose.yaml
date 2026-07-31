@@ -92,11 +92,13 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgres://meetbroker:meetbroker@postgres:5432/meetbroker}
       SMTP_HOST: ${SMTP_HOST:-}
       TELEGRAM_UPDATE_MODE: ${TELEGRAM_UPDATE_MODE:-DISABLED}
+      WORKER_HEARTBEAT_FILE: /tmp/meetbroker-worker-heartbeat.json
+      WORKER_HEARTBEAT_MAX_AGE_SECONDS: ${WORKER_HEARTBEAT_MAX_AGE_SECONDS:-45}
     depends_on:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "ps -o args | grep -q '[d]ist/worker.js'"]
+      test: ["CMD", "node", "apps/api/dist/worker-health.js"]
       interval: 15s
       timeout: 5s
       retries: 5
