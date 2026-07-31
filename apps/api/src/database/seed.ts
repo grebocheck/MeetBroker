@@ -2,12 +2,13 @@ import "reflect-metadata";
 import { randomUUID } from "node:crypto";
 import * as argon2 from "argon2";
 import { addDays, set } from "date-fns";
-import { fromZonedTime } from "date-fns-tz";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { Client } from "pg";
 
 const ADMIN_ID = "00000000-0000-4000-8000-000000000001";
 const USER_ID = "00000000-0000-4000-8000-000000000002";
 const SECOND_USER_ID = "00000000-0000-4000-8000-000000000003";
+const OFFICE_TIME_ZONE = "Europe/Kyiv";
 
 const rooms = [
   ["10000000-0000-4000-8000-000000000001", "Акваріум", 3, 8],
@@ -48,9 +49,18 @@ async function seed(): Promise<void> {
             'Дизайн і дослідження користувачів.', 'avatar-01', 'USER',
             now(), now())
         on conflict (id) do update set
+          name = excluded.name,
+          email = excluded.email,
           password_hash = excluded.password_hash,
-          email_verified_at = coalesce(users.email_verified_at, now()),
-          approved_at = coalesce(users.approved_at, now())
+          bio = excluded.bio,
+          avatar_preset = excluded.avatar_preset,
+          avatar_path = null,
+          role = excluded.role,
+          pending_email = null,
+          email_verified_at = now(),
+          approved_at = now(),
+          access_revoked_at = null,
+          updated_at = now()
       `,
       [ADMIN_ID, adminHash, USER_ID, userHash, SECOND_USER_ID]
     );
@@ -100,40 +110,89 @@ async function seed(): Promise<void> {
       );
     }
 
-    const localBase = set(addDays(new Date(), 2), {
-      hours: 10,
-      minutes: 0,
-      seconds: 0,
-      milliseconds: 0
-    });
-    const startsAt = fromZonedTime(localBase, "Europe/Kyiv");
-    const endsAt = new Date(startsAt.getTime() + 90 * 60_000);
     await client.query(
-      `
-        insert into bookings (
-          id, room_id, organizer_id, title, starts_at, ends_at,
-          participation_mode
-        )
-        values ($1, $2, $3, 'Планування релізу', $4, $5, 'OPEN')
-        on conflict (id) do nothing
-      `,
-      [
-        "20000000-0000-4000-8000-000000000001",
-        rooms[0][0],
-        USER_ID,
-        startsAt,
-        endsAt
-      ]
+      "delete from user_restrictions where user_id = any($1::uuid[])",
+      [[ADMIN_ID, USER_ID, SECOND_USER_ID]],
     );
+
+    const demoBookings = [
+      {
+        id: "20000000-0000-4000-8000-000000000001",
+        roomId: rooms[0][0],
+        organizerId: USER_ID,
+        title: "Планування релізу",
+        startsAt: demoInstant(1, 10, 0),
+        durationMinutes: 90,
+        participationMode: "OPEN",
+        participantId: SECOND_USER_ID,
+        participantStatus: "ACCEPTED",
+      },
+      {
+        id: "20000000-0000-4000-8000-000000000002",
+        roomId: rooms[1][0],
+        organizerId: ADMIN_ID,
+        title: "Синхронізація команди",
+        startsAt: demoInstant(2, 14, 0),
+        durationMinutes: 60,
+        participationMode: "INVITE_ONLY",
+        participantId: USER_ID,
+        participantStatus: "INVITED",
+      },
+      {
+        id: "20000000-0000-4000-8000-000000000003",
+        roomId: rooms[2][0],
+        organizerId: SECOND_USER_ID,
+        title: "Огляд дизайн-системи",
+        startsAt: demoInstant(3, 11, 30),
+        durationMinutes: 60,
+        participationMode: "INVITE_ONLY",
+        participantId: ADMIN_ID,
+        participantStatus: "ACCEPTED",
+      },
+    ] as const;
     await client.query(
-      `
-        insert into booking_participants
-          (booking_id, user_id, status, responded_at)
-        values ($1, $2, 'ACCEPTED', now())
-        on conflict (booking_id, user_id) do nothing
-      `,
-      ["20000000-0000-4000-8000-000000000001", SECOND_USER_ID]
+      "delete from bookings where id = any($1::uuid[])",
+      [demoBookings.map(({ id }) => id)],
     );
+
+    for (const booking of demoBookings) {
+      const endsAt = new Date(
+        booking.startsAt.getTime() + booking.durationMinutes * 60_000,
+      );
+      await client.query(
+        `
+          insert into bookings (
+            id, room_id, organizer_id, title, starts_at, ends_at,
+            participation_mode
+          )
+          values ($1, $2, $3, $4, $5, $6, $7)
+        `,
+        [
+          booking.id,
+          booking.roomId,
+          booking.organizerId,
+          booking.title,
+          booking.startsAt,
+          endsAt,
+          booking.participationMode,
+        ],
+      );
+      await client.query(
+        `
+          insert into booking_participants
+            (booking_id, user_id, status, responded_at)
+          values (
+            $1, $2, $3::varchar,
+            case when $3::varchar = 'INVITED' then null else now() end
+          )
+        `,
+        [
+          booking.id,
+          booking.participantId,
+          booking.participantStatus,
+        ],
+      );
+    }
 
     await client.query("commit");
     process.stdout.write("Seed data is ready\n");
@@ -143,6 +202,24 @@ async function seed(): Promise<void> {
   } finally {
     await client.end();
   }
+}
+
+function demoInstant(
+  workingDayOffset: number,
+  hours: number,
+  minutes: number,
+): Date {
+  let localDate = toZonedTime(new Date(), OFFICE_TIME_ZONE);
+  let remaining = workingDayOffset;
+  while (remaining > 0) {
+    localDate = addDays(localDate, 1);
+    const weekday = localDate.getDay();
+    if (weekday !== 0 && weekday !== 6) remaining -= 1;
+  }
+  return fromZonedTime(
+    set(localDate, { hours, minutes, seconds: 0, milliseconds: 0 }),
+    OFFICE_TIME_ZONE,
+  );
 }
 
 seed().catch((error: unknown) => {
