@@ -38,6 +38,7 @@ export default defineConfig({
       name: "desktop-compact",
       testIgnore: [
         /api-.*\.spec\.ts/,
+        /accessibility\.spec\.ts/,
         /auth-errors\.spec\.ts/,
         /mobile-booking\.spec\.ts/,
         /my-meetings-invitation\.spec\.ts/,
@@ -52,6 +53,7 @@ export default defineConfig({
       name: "tablet",
       testIgnore: [
         /api-.*\.spec\.ts/,
+        /accessibility\.spec\.ts/,
         /auth-errors\.spec\.ts/,
         /mobile-booking\.spec\.ts/,
         /my-meetings-invitation\.spec\.ts/,
@@ -66,6 +68,7 @@ export default defineConfig({
       name: "mobile",
       testIgnore: [
         /api-.*\.spec\.ts/,
+        /accessibility\.spec\.ts/,
         /auth-errors\.spec\.ts/,
         /my-meetings-invitation\.spec\.ts/,
         /timezone\.spec\.ts/,

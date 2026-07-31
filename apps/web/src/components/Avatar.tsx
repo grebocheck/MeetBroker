@@ -33,8 +33,9 @@ export function Avatar({
           ? { backgroundImage: `url(${JSON.stringify(url).slice(1, -1)})` }
           : presetPosition(preset)
       }
-      role="img"
-      aria-label={name}
+      role={name ? "img" : undefined}
+      aria-label={name || undefined}
+      aria-hidden={name ? undefined : true}
     />
   );
 }

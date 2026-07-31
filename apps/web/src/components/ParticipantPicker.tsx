@@ -81,7 +81,12 @@ export function ParticipantPicker({
         )}
       </label>
 
-      <div className="people-picker" role="listbox" aria-multiselectable="true">
+      <div
+        className="people-picker"
+        role="listbox"
+        aria-label={t("participants.search")}
+        aria-multiselectable="true"
+      >
         {filteredPeople.length === 0 ? (
           <div className="people-picker__empty">
             {t("participants.notFound", { query: query.trim() })}
