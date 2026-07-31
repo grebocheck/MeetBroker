@@ -25,19 +25,23 @@ import {
   UpdateBookingDto,
 } from "./bookings.dto";
 import { BookingCancellationsService } from "./booking-cancellations.service";
+import { BookingCreationService } from "./booking-creation.service";
+import { BookingImagesService } from "./booking-images.service";
 import { BookingInvitationsService } from "./booking-invitations.service";
 import { BookingQueriesService } from "./booking-queries.service";
-import { BookingsService } from "./bookings.service";
+import { BookingUpdatesService } from "./booking-updates.service";
 import { OpenEventsService } from "./open-events.service";
 
 @Approved()
 @Controller("api/bookings")
 export class BookingsController {
   constructor(
-    private readonly bookings: BookingsService,
     private readonly cancellations: BookingCancellationsService,
+    private readonly creation: BookingCreationService,
+    private readonly images: BookingImagesService,
     private readonly invitations: BookingInvitationsService,
     private readonly queries: BookingQueriesService,
+    private readonly updates: BookingUpdatesService,
     private readonly openEvents: OpenEventsService,
   ) {}
 
@@ -53,7 +57,7 @@ export class BookingsController {
 
   @Post()
   create(@Req() request: AuthenticatedRequest, @Body() dto: CreateBookingDto) {
-    return this.bookings.create(request.user, dto);
+    return this.creation.create(request.user, dto);
   }
 
   @Get("mine")
@@ -87,7 +91,7 @@ export class BookingsController {
     @Param("id") id: string,
     @Body() dto: UpdateBookingDto,
   ): Promise<void> {
-    await this.bookings.update(request.user, id, dto);
+    await this.updates.update(request.user, id, dto);
   }
 
   @Post(":id/image")
@@ -108,7 +112,7 @@ export class BookingsController {
         "Booking image is required or is too large to process",
       );
     }
-    return this.bookings.saveImage(request.user, id, file);
+    return this.images.save(request.user, id, file);
   }
 
   @Delete(":id/image")
@@ -117,7 +121,7 @@ export class BookingsController {
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
   ): Promise<void> {
-    await this.bookings.removeImage(request.user, id);
+    await this.images.remove(request.user, id);
   }
 
   @Get("open")

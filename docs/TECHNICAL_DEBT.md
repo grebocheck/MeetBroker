@@ -6,11 +6,16 @@
 Наведені модулі проходять чинні quality, smoke й browser gates; їх розмір є
 ризиком супроводу, але не прихованою функціональною прогалиною.
 
-## Зафіксовані hotspots
+## Залишкова локальна складність
+
+Монолітних cross-domain сервісів понад 500 рядків більше немає. Два
+command-сервіси нижче лишаються щільними, але кожен має одну предметну
+відповідальність і захищений unit, integration та smoke сценаріями.
 
 | Модуль | Поточний розмір | Наступна доречна межа |
 | --- | ---: | --- |
-| `BookingsService` | 837 рядків | Окремі create і update command services |
+| `BookingCreationService` | 406 рядків | Recurrence plan і persistence orchestration лише разом із новою поведінкою |
+| `BookingUpdatesService` | 453 рядки | Participant delta/notification fan-out після ширшого characterization шару |
 
 ## Уже зменшені ризики
 
@@ -21,6 +26,9 @@
 - ownership/capability policy, admin attribution, series scope, participant
   notifications та audit скасувань винесено в
   `BookingCancellationsService`;
+- створення й редагування мають окремі `BookingCreationService` та
+  `BookingUpdatesService`; колишній 1642-рядковий `BookingsService` повністю
+  видалено, а image endpoints напряму використовують `BookingImagesService`;
 - advisory locking, participant projection і конфлікти учасників винесено в
   `BookingAttendeesService`;
 - список, пошук, пагінацію та join/leave відкритих подій винесено в
