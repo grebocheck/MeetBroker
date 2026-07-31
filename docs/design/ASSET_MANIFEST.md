@@ -1,8 +1,9 @@
-# Маніфест дизайн-концептів
+# Маніфест візуальних асетів
 
 Дата генерації: 2026-07-29  
 Режим: вбудований `imagegen`  
-Призначення: дизайн-референси та production sprite sheet аватарів
+Призначення: історичні дизайн-референси, production avatar sheet і
+демонстраційні фотографії кімнат
 
 Усі перелічені тут згенеровані зображення передано під
 [CC0 1.0 Universal](../../LICENSES/CC0-1.0.txt): їх можна копіювати,
@@ -16,6 +17,30 @@
 | `assets/design-concepts/orbit-calendar.png` | 1586×992 | Контрастний технологічний календар |
 | `assets/design-concepts/dobra-calendar.png` | 1568×1003 | Теплий календар із карткою профілю |
 | `assets/avatar-concepts/editorial-avatar-sheet.png` | 1448×1086 | Production sprite sheet із 12 аватарами |
+
+Ранні calendar mockups збережені лише як історія дослідження. Чинний
+інтерфейс показаний у [`docs/screenshots`](../screenshots/README.md) і
+описаний в [актуальній дизайн-системі](DESIGN_DIRECTIONS.md).
+
+## Production-зображення кімнат
+
+| Файл | Призначення |
+|---|---|
+| `apps/web/public/rooms/gagarin.webp` | Demo-кімната «Гагарін» |
+| `apps/web/public/rooms/aquarium.webp` | Demo-кімната «Акваріум» |
+| `apps/web/public/rooms/dnipro.webp` | Demo-кімната «Дніпро» |
+| `apps/web/public/rooms/mars.webp` | Demo-кімната «Марс» |
+| `apps/web/public/rooms/sofia.webp` | Demo-кімната «Софія» |
+
+«Обрій» навмисно не має фотографії та демонструє канонічну дизайнерську
+заглушку.
+
+## Актуальні product screenshots
+
+Набір у `docs/screenshots/*.webp` генерується з реального DEMO-стека
+скриптом `node scripts/capture-doc-screenshots.mjs`. Це джерело для README,
+дизайн-документа й технічного DOCX; старі mockups для цього не
+використовуються.
 
 ## Нормалізовані промпти
 
