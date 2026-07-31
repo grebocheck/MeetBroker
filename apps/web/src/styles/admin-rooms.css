@@ -1,0 +1,530 @@
+.room-management {
+  display: grid;
+  gap: 16px;
+}
+
+.room-management__bar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 22px;
+  border: 1px solid var(--border);
+  border-radius: 4px 20px 4px 20px;
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.room-management__bar h2,
+.room-management__bar p {
+  margin: 0;
+}
+
+.room-management__bar h2 {
+  margin-top: 3px;
+}
+
+.room-management__bar p {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.room-management__workspace {
+  display: grid;
+  align-items: start;
+  grid-template-columns: minmax(270px, 340px) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.room-catalog {
+  position: sticky;
+  top: 20px;
+  padding: 14px;
+}
+
+.room-catalog__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 12px;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.room-catalog__heading > span {
+  display: grid;
+  min-width: 25px;
+  height: 25px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.room-catalog__list {
+  display: flex;
+  max-height: calc(100vh - 330px);
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 5px;
+  padding-right: 4px;
+}
+
+.room-catalog__item {
+  display: grid;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 74px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 3px 14px 3px 14px;
+  background: color-mix(
+    in srgb,
+    var(--surface-muted) 54%,
+    var(--surface-raised)
+  );
+  color: var(--text);
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 10px;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.room-catalog__item:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+  background: var(--surface-muted);
+  transform: translateX(2px);
+}
+
+.room-catalog__item.is-active {
+  border-color: var(--primary);
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--primary) 20%, var(--surface-muted)),
+    var(--surface-muted)
+  );
+  box-shadow: inset 3px 0 var(--accent);
+}
+
+.room-catalog__copy,
+.room-catalog__meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.room-catalog__copy strong,
+.room-catalog__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-catalog__copy small,
+.room-catalog__meta small {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+}
+
+.room-catalog__meta {
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.room-catalog__meta em {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--warning) 22%, var(--surface-strong));
+  color: var(--warning);
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.room-workspace {
+  display: grid;
+  min-width: 0;
+  padding: clamp(22px, 2.2vw, 34px);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+}
+
+.room-workspace__hero {
+  display: grid;
+  align-items: center;
+  padding: 4px 4px 24px;
+  border-bottom: 1px solid var(--border);
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 16px;
+}
+
+.room-workspace__hero .room-visual--hero {
+  width: 104px;
+  height: 78px;
+}
+
+.room-workspace__hero h2,
+.room-workspace__hero p {
+  margin: 0;
+}
+
+.room-workspace__hero p,
+.room-workspace__settings p {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.room-workspace__hero .room-image-actions {
+  justify-content: flex-end;
+}
+
+.room-workspace__settings {
+  display: grid;
+  align-items: start;
+  padding: 22px;
+  border: 1px solid color-mix(in srgb, var(--primary) 36%, var(--border));
+  border-radius: 3px 16px 3px 16px;
+  background:
+    linear-gradient(
+      125deg,
+      color-mix(in srgb, var(--primary) 10%, transparent),
+      transparent 48%
+    ),
+    var(--surface-raised);
+  gap: 16px;
+  container-name: room-settings;
+  container-type: inline-size;
+}
+
+.room-workspace__settings > div:first-child {
+  min-width: 0;
+}
+
+.room-workspace__settings h3,
+.room-workspace__settings p {
+  margin: 0;
+}
+
+.room-workspace__settings .room-hours-editor {
+  width: 100%;
+  grid-column: auto;
+}
+
+.room-workspace__blocks {
+  display: grid;
+  padding: 2px 4px 4px;
+  gap: 14px;
+}
+
+.room-workspace__section-heading,
+.room-workspace__form-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.room-workspace__section-heading h3,
+.room-workspace__form-heading h2,
+.room-workspace__form-heading h3 {
+  margin: 0;
+}
+
+.room-workspace__blocks .room-block-list {
+  max-height: none;
+  margin-top: 0;
+}
+
+.room-workspace__form {
+  width: min(620px, 100%);
+  margin: 0 auto;
+}
+
+.room-block-editor {
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--primary) 48%, var(--border));
+  border-radius: 3px 18px 3px 18px;
+  background: color-mix(
+    in srgb,
+    var(--surface-muted) 78%,
+    var(--surface-raised)
+  );
+}
+
+.room-block-editor__room {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.room-block-editor .form-grid,
+.room-block-editor .field,
+.room-block-editor input {
+  min-width: 0;
+}
+
+.room-block-editor input {
+  width: 100%;
+}
+
+.room-admin-list {
+  display: grid;
+  margin: 18px 0 24px;
+  gap: 10px;
+}
+
+.room-admin-row {
+  display: grid;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px 18px 4px 18px;
+  background: color-mix(
+    in srgb,
+    var(--surface-muted) 58%,
+    var(--surface-raised)
+  );
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 12px;
+  container-type: inline-size;
+}
+
+.room-admin-row__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.room-admin-row__copy span {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.room-hours-editor {
+  display: grid;
+  align-items: end;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 3px 14px 3px 14px;
+  background: var(--surface-muted);
+  grid-column: 2 / -1;
+  grid-template-columns: minmax(190px, 0.8fr) minmax(260px, 1.2fr) auto;
+  gap: 14px 18px;
+}
+
+.room-hours-editor__time {
+  display: grid;
+  align-items: end;
+  grid-template-columns: minmax(76px, 1fr) auto minmax(76px, 1fr);
+  gap: 8px;
+}
+
+.room-hours-editor__field {
+  display: grid;
+  gap: 6px;
+}
+
+.room-hours-editor__field > span,
+.working-day-picker legend {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.room-hours-editor__separator {
+  padding-bottom: 10px;
+  color: var(--text-muted);
+}
+
+.room-hours-editor input {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  border-radius: 3px 9px 3px 9px;
+  outline: none;
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  color-scheme: light dark;
+}
+
+.room-hours-editor > small {
+  grid-column: 1 / -1;
+}
+
+.working-day-picker {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.working-day-picker legend {
+  margin-bottom: 6px;
+}
+
+.working-day-picker > div {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.working-day-picker button {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px 10px 3px 10px;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 750;
+}
+
+.working-day-picker button:hover {
+  border-color: color-mix(in srgb, var(--primary) 58%, var(--border));
+  color: var(--text);
+}
+
+.working-day-picker button.is-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-contrast);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+@container room-settings (max-width: 620px) {
+  .room-hours-editor {
+    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .room-hours-editor > .button {
+    justify-self: start;
+  }
+}
+
+.room-block-list {
+  display: flex;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 18px;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.room-block-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 3px 14px 3px 14px;
+  background: var(--surface-muted);
+}
+
+.room-block-row > div {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.room-block-row .status-badge {
+  align-self: flex-start;
+}
+
+.room-block-row small {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+@container (max-width: 420px) {
+  .room-admin-row__copy {
+    grid-column: 2;
+  }
+
+  .room-image-actions {
+    grid-column: 2;
+  }
+
+  .room-hours-editor {
+    grid-column: 1 / -1;
+  }
+}
+
+.recurrence-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.weekday-picker {
+  display: flex;
+  padding: 0;
+  border: 0;
+  gap: 5px;
+}
+
+.weekday-picker legend {
+  margin-bottom: 7px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.weekday-picker button {
+  min-width: 38px;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 3px 10px 3px 10px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.weekday-picker button.is-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-contrast);
+}
+
+.room-image-action {
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.room-image-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 5px;
+}
+
+.room-image-action input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.admin-form {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
