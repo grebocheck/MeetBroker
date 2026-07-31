@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect } from "react";
 import { api, ApiError } from "./lib/api";
+import {
+  buildDocumentTitle,
+  type ApplicationState,
+} from "./lib/document-title";
 import { I18nProvider, resolveBrowserLocale, useI18n } from "./lib/i18n";
 import { navigate, usePath } from "./lib/router";
 import type { Locale, User } from "./types";
@@ -34,6 +38,16 @@ export function App() {
   const publicLocale: Locale = resolveBrowserLocale(
     window.localStorage.getItem("meetbroker.locale") ?? navigator.language,
   );
+  const applicationState: ApplicationState = auth.isLoading
+    ? "LOADING"
+    : !user
+      ? "ANONYMOUS"
+      : !user.emailVerified
+        ? "EMAIL_VERIFICATION"
+        : !user.approved
+          ? "APPROVAL"
+          : "READY";
+  const activeLocale = user?.locale ?? publicLocale;
 
   useEffect(() => {
     if (user && (path.startsWith("/login") || path.startsWith("/register"))) {
@@ -49,11 +63,12 @@ export function App() {
       : user.theme.toLowerCase()
     : null;
   useEffect(() => {
-    document.documentElement.lang = user?.locale ?? publicLocale;
+    document.documentElement.lang = activeLocale;
+    document.title = buildDocumentTitle(activeLocale, path, applicationState);
     if (resolvedTheme) {
       document.documentElement.dataset.theme = resolvedTheme;
     }
-  }, [publicLocale, resolvedTheme, user?.locale]);
+  }, [activeLocale, applicationState, path, resolvedTheme]);
 
   if (auth.isLoading) {
     return (
