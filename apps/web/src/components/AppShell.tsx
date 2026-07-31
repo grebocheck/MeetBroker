@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, type ComponentType, type SVGProps } from "react";
 import { api } from "../lib/api";
+import { currentRoute } from "../lib/document-title";
 import { localeOptions, useI18n } from "../lib/i18n";
 import { Link, navigate } from "../lib/router";
 import type { Capability, NotificationsResponse, User } from "../types";
@@ -61,10 +62,6 @@ interface NavItem {
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   admin?: boolean;
-}
-
-function currentRoute(path: string): string {
-  return path.split("?")[0];
 }
 
 const capabilityKeys: Record<Capability, MessageKey> = {

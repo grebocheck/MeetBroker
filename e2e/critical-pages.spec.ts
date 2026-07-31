@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
 
 const routes = [
-  "/my-calendar",
-  "/calendar",
-  "/bookings",
-  "/events",
-  "/notifications",
-  "/profile",
-  "/admin",
+  { path: "/my-calendar", title: "Мої зустрічі" },
+  { path: "/calendar", title: "Розклад" },
+  { path: "/bookings", title: "Мої бронювання" },
+  { path: "/events", title: "Відкриті події" },
+  { path: "/notifications", title: "Сповіщення" },
+  { path: "/profile", title: "Профіль" },
+  { path: "/admin", title: "Адміністрування" },
 ] as const;
 
 test.beforeEach(async ({ page }) => {
@@ -32,11 +32,12 @@ test("critical pages stay usable without horizontal viewport overflow", async ({
     if (message.type() === "error") runtimeErrors.push(message.text());
   });
 
-  for (const route of routes) {
-    await test.step(route, async () => {
-      await page.goto(route, { waitUntil: "domcontentloaded" });
+  for (const { path, title } of routes) {
+    await test.step(path, async () => {
+      await page.goto(path, { waitUntil: "domcontentloaded" });
       await expect(page.locator("#main-content")).toBeVisible();
       await expect(page.locator(".splash")).toHaveCount(0);
+      await expect(page).toHaveTitle(`${title} — MeetBroker`);
 
       const overflow = await page.evaluate(
         () =>
@@ -47,7 +48,7 @@ test("critical pages stay usable without horizontal viewport overflow", async ({
       );
       expect(
         overflow,
-        `${route} has horizontal viewport overflow`,
+        `${path} has horizontal viewport overflow`,
       ).toBeLessThanOrEqual(1);
 
       const clippedControls = await page
@@ -72,7 +73,7 @@ test("critical pages stay usable without horizontal viewport overflow", async ({
                 left < -1 || right > document.documentElement.clientWidth + 1,
             ),
         );
-      expect(clippedControls, `${route} has clipped controls`).toEqual([]);
+      expect(clippedControls, `${path} has clipped controls`).toEqual([]);
     });
   }
 

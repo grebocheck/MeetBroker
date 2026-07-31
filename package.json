@@ -15,6 +15,7 @@
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write \"apps/**/src/**/*.{ts,tsx,css}\" \"apps/*/package.json\" \"apps/web/index.html\" \"e2e/**/*.ts\" \"scripts/**/*.mjs\" \"*.{ts,json,yaml,yml,md}\" \".github/**/*.yml\"",
     "format:check": "prettier --check \"apps/**/src/**/*.{ts,tsx,css}\" \"apps/*/package.json\" \"apps/web/index.html\" \"e2e/**/*.ts\" \"scripts/**/*.mjs\" \"*.{ts,json,yaml,yml,md}\" \".github/**/*.yml\"",
+    "commits:check": "node scripts/check-commit-messages.mjs",
     "smoke": "node scripts/smoke.mjs",
     "test:integration": "node scripts/smoke.mjs",
     "test:e2e": "playwright test",

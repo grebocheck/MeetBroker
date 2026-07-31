@@ -99,7 +99,7 @@ NestJS API розділено на предметні модулі:
 | `auth` | Реєстрація, login/logout, email token, cookie sessions |
 | `users` | Профіль, avatar upload, email і пароль, каталог колег |
 | `rooms` | Доступний користувачу каталог переговорних |
-| `bookings` | Розклад, кімнатні/онлайн зустрічі, recurrence, учасники |
+| `bookings` | Розклад, кімнатні/онлайн зустрічі, recurrence; блокування й конфлікти учасників ізольовані в `BookingAttendeesService` |
 | `notifications` | Центр, preferences, channels, Telegram linking, worker |
 | `access-policies` | Capability-обмеження з початком і завершенням |
 | `admin` | Користувачі, бронювання, кімнати, недоступність, аудит |
