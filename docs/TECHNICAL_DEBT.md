@@ -10,7 +10,7 @@
 
 | Модуль | Поточний розмір | Наступна доречна межа |
 | --- | ---: | --- |
-| `BookingsService` | 1642 рядки | Окремі create/update/cancel command services |
+| `BookingsService` | 1466 рядків | Окремі create/update/cancel command services |
 | `AdminService` | 1276 рядків | Поділ command orchestration і read projections |
 | `schedule-and-overlays.css` | 1631 рядок | Calendar grid, drawer і modal sections |
 | `foundation.css` | 1523 рядки | Tokens/base, shell та canonical controls |
@@ -23,6 +23,8 @@
 - image lifecycle винесено в `BookingImagesService`;
 - advisory locking, participant projection і конфлікти учасників винесено в
   `BookingAttendeesService`;
+- список, пошук, пагінацію та join/leave відкритих подій винесено в
+  `OpenEventsService`;
 - адміністративні UI-вкладки та editor-компоненти вже мають предметні межі;
 - CSS розділено з колишнього єдиного файла на тематичні модулі.
 

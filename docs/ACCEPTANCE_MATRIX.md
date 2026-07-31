@@ -77,6 +77,7 @@
 | Обхід адміністративної межі | Employee отримує 403, HTTP role mutation відсутня, self-revoke адміністратора заборонено | `api-admin-security.spec.ts` | Auto |
 | Некоректний RSVP lifecycle | Accept/decline одноразові; повторна відповідь відхиляється; declined не потрапляє в календар | `api-rsvp.spec.ts`, `my-meetings-invitation.spec.ts` | Auto |
 | Небезпечне або надмірне зображення | Декодування, WebP-оптимізація, 12 МБ ceiling, ownership, admin-only room media і фізичне cleanup | `api-uploads.spec.ts`, `smoke.mjs` | Auto |
+| Необмежений список відкритих подій | Серверні search/page/limit, буквальні wildcard-символи, стабільний порядок та індекси | `api-open-events.spec.ts`, query-plan rehearsal | Auto |
 
 ## Розширення MeetBroker понад PDF
 
