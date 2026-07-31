@@ -6,6 +6,7 @@ import {
   NotificationMessage,
   NotificationRecipient
 } from "./notification-channel";
+import { renderEmailHtml } from "./email-template";
 
 @Injectable()
 export class EmailNotificationChannel extends NotificationChannel {
@@ -65,7 +66,8 @@ export class EmailNotificationChannel extends NotificationChannel {
       from: this.from,
       to: recipient.email,
       subject: message.title,
-      text: message.body
+      text: message.body,
+      html: renderEmailHtml(message, recipient.locale)
     });
   }
 }

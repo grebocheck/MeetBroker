@@ -1,3 +1,5 @@
+import type { Locale } from "../common/types";
+
 export const NOTIFICATION_CATEGORIES = [
   "INVITATIONS",
   "CHANGES",
@@ -24,6 +26,7 @@ export interface NotificationRecipient {
   userId: string;
   email: string;
   telegramChatId: string | null;
+  locale: Locale;
 }
 
 export interface NotificationMessage {

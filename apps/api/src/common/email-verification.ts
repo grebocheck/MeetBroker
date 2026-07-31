@@ -15,6 +15,7 @@ export class EmailVerificationPolicy {
   readonly required: boolean;
   private readonly appOrigin: string;
   private readonly smtpConfigured: boolean;
+  private readonly developmentLogEnabled: boolean;
 
   constructor(config: ConfigService) {
     this.required = parseBoolean(
@@ -24,10 +25,18 @@ export class EmailVerificationPolicy {
     this.appOrigin =
       config.get<string>("APP_ORIGIN") ?? "http://localhost:8080";
     this.smtpConfigured = Boolean(config.get<string>("SMTP_HOST")?.trim());
+    this.developmentLogEnabled =
+      config.get<string>("NODE_ENV") !== "production";
   }
 
   assertDeliveryConfigured(): void {
-    if (!this.required || this.smtpConfigured) return;
+    if (
+      !this.required ||
+      this.smtpConfigured ||
+      this.developmentLogEnabled
+    ) {
+      return;
+    }
     throw apiError(
       HttpStatus.SERVICE_UNAVAILABLE,
       "EMAIL_DELIVERY_UNAVAILABLE",

@@ -47,6 +47,9 @@ const messages = {
     emailChangeIntro: "Ви запросили зміну email-адреси в MeetBroker.",
     emailChangeAction: "Підтвердьте нову адресу протягом 24 годин: {url}",
     emailChangeAfter: "Якщо це були не ви, не переходьте за посиланням.",
+    emailOpenAction: "Відкрити MeetBroker",
+    emailFooter:
+      "Автоматичне повідомлення корпоративного простору MeetBroker.",
     online: "онлайн",
   },
   en: {
@@ -94,6 +97,8 @@ const messages = {
     emailChangeIntro: "You requested an email address change in MeetBroker.",
     emailChangeAction: "Verify the new address within 24 hours: {url}",
     emailChangeAfter: "If this was not you, do not open the link.",
+    emailOpenAction: "Open MeetBroker",
+    emailFooter: "An automated message from your MeetBroker workspace.",
     online: "online",
   },
   de: {
@@ -143,6 +148,9 @@ const messages = {
     emailChangeAction:
       "Bestätigen Sie die neue Adresse innerhalb von 24 Stunden: {url}",
     emailChangeAfter: "Wenn Sie das nicht waren, öffnen Sie den Link nicht.",
+    emailOpenAction: "MeetBroker öffnen",
+    emailFooter:
+      "Eine automatische Nachricht aus Ihrem MeetBroker-Arbeitsbereich.",
     online: "online",
   },
   es: {
@@ -190,6 +198,8 @@ const messages = {
     emailChangeAction:
       "Verifica la nueva dirección en un plazo de 24 horas: {url}",
     emailChangeAfter: "Si no fuiste tú, no abras el enlace.",
+    emailOpenAction: "Abrir MeetBroker",
+    emailFooter: "Un mensaje automático de tu espacio de MeetBroker.",
     online: "en línea",
   },
   fr: {
@@ -238,6 +248,9 @@ const messages = {
     emailChangeAction: "Vérifiez la nouvelle adresse sous 24 heures : {url}",
     emailChangeAfter:
       "Si vous n’êtes pas à l’origine de cette demande, n’ouvrez pas le lien.",
+    emailOpenAction: "Ouvrir MeetBroker",
+    emailFooter:
+      "Un message automatique de votre espace de travail MeetBroker.",
     online: "en ligne",
   },
   ja: {
@@ -283,6 +296,8 @@ const messages = {
     emailChangeIntro: "MeetBrokerでメールアドレスの変更が要求されました。",
     emailChangeAction: "24時間以内に新しいアドレスを確認してください: {url}",
     emailChangeAfter: "心当たりがない場合は、リンクを開かないでください。",
+    emailOpenAction: "MeetBrokerを開く",
+    emailFooter: "MeetBrokerワークスペースからの自動メッセージです。",
     online: "オンライン",
   },
 } satisfies Record<Locale, Record<string, string>>;

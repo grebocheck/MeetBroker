@@ -128,6 +128,7 @@ export class NotificationWorkerService {
     const targetRows = await this.database.orm
       .select({
         email: notificationUsers.email,
+        locale: notificationUsers.locale,
         telegramChatId: telegramConnections.chatId,
       })
       .from(notificationUsers)
@@ -169,6 +170,7 @@ export class NotificationWorkerService {
       userId: payload.userId,
       email: payload.recipientEmail ?? target.email,
       telegramChatId: target.telegramChatId,
+      locale: target.locale,
     };
     await Promise.all(
       enabledChannels.map(async (name) => {

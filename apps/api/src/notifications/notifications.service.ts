@@ -339,7 +339,12 @@ export class NotificationsService {
       .limit(1);
     try {
       await this.telegramChannel.deliver(
-        { userId, email: "", telegramChatId: chatId },
+        {
+          userId,
+          email: "",
+          telegramChatId: chatId,
+          locale: connectedUser?.locale ?? "uk",
+        },
         {
           title: "MeetBroker",
           body: localize(connectedUser?.locale ?? "uk", "telegramConnected"),

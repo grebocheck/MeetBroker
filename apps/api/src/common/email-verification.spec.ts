@@ -23,10 +23,21 @@ describe("EmailVerificationPolicy", () => {
     ).toThrow("EMAIL_VERIFICATION_REQUIRED must be true or false");
   });
 
-  it("requires SMTP when verification is enabled", () => {
-    expect(() => policy().assertDeliveryConfigured()).toThrow();
+  it("requires SMTP in production when verification is enabled", () => {
     expect(() =>
-      policy({ SMTP_HOST: "smtp.example.com" }).assertDeliveryConfigured()
+      policy({ NODE_ENV: "production" }).assertDeliveryConfigured(),
+    ).toThrow();
+    expect(() =>
+      policy({
+        NODE_ENV: "production",
+        SMTP_HOST: "smtp.example.com",
+      }).assertDeliveryConfigured(),
+    ).not.toThrow();
+  });
+
+  it("allows the development log transport without SMTP", () => {
+    expect(() =>
+      policy({ NODE_ENV: "development" }).assertDeliveryConfigured(),
     ).not.toThrow();
   });
 
