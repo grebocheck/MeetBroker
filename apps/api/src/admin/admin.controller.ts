@@ -27,6 +27,7 @@ import {
 } from "./admin.dto";
 import { AdminQueriesService } from "./admin-queries.service";
 import { AdminService } from "./admin.service";
+import { RoomAvailabilityService } from "./room-availability.service";
 
 @Approved()
 @AdminOnly()
@@ -35,6 +36,7 @@ export class AdminController {
   constructor(
     private readonly admin: AdminService,
     private readonly queries: AdminQueriesService,
+    private readonly roomAvailability: RoomAvailabilityService,
   ) {}
 
   @Get("users")
@@ -160,12 +162,12 @@ export class AdminController {
     @Req() request: AuthenticatedRequest,
     @Body() dto: CreateRoomBlockDto,
   ) {
-    return this.admin.createRoomBlock(request.user.id, dto);
+    return this.roomAvailability.create(request.user.id, dto);
   }
 
   @Get("room-blocks")
   async roomBlocks(@Query("roomId") roomId?: string) {
-    return { blocks: await this.admin.roomBlocks(roomId) };
+    return { blocks: await this.roomAvailability.list(roomId) };
   }
 
   @Delete("room-blocks/:id")
@@ -175,7 +177,7 @@ export class AdminController {
     @Param("id") id: string,
     @Query("scope") scope?: string,
   ): Promise<void> {
-    await this.admin.cancelRoomBlock(request.user.id, id, scope ?? "once");
+    await this.roomAvailability.cancel(request.user.id, id, scope ?? "once");
   }
 
   @Get("audit")
