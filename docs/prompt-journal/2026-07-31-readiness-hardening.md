@@ -192,7 +192,8 @@
 
 - API: 47 unit-тестів;
 - web: 51 unit-тест;
-- 9 цільових Playwright-сценаріїв для чотирьох viewport та invitation flow;
+- 9 цільових і 16/16 повних Playwright-сценаріїв для чотирьох viewport,
+  API integration, timezone, auth, mobile booking та invitation flow;
 - візуальна перевірка календаря на 823×900 і 390×844;
 - ESLint і повний typecheck.
 
