@@ -13,6 +13,7 @@
     "typecheck": "npm run typecheck --workspace @meetbroker/api && npm run typecheck --workspace @meetbroker/web",
     "smoke": "node scripts/smoke.mjs",
     "test:integration": "node scripts/smoke.mjs",
+    "test:e2e": "playwright test",
     "db:migrate": "npm run db:migrate --workspace @meetbroker/api",
     "db:migrate:status": "npm run db:migrate:status --workspace @meetbroker/api",
     "db:migrate:create": "npm run db:migrate:create --workspace @meetbroker/api --",
@@ -22,5 +23,8 @@
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
   }
 }

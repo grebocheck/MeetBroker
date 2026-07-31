@@ -85,6 +85,7 @@ export function CalendarPage({ user }: { user: User }) {
     return () => observer.disconnect();
   }, []);
   const visibleDayCount = layoutMode === "WEEK" ? 7 : fittedDayCount;
+  const compactWeekLabels = layoutMode === "WEEK" && fittedDayCount <= 4;
 
   const visibleDays = useMemo(
     () => officeDateWindow(reference, officeTimeZone, visibleDayCount),
@@ -419,7 +420,9 @@ export function CalendarPage({ user }: { user: User }) {
             <>
               <div className="calendar-scroll">
                 <div
-                  className="week-grid"
+                  className={`week-grid${
+                    compactWeekLabels ? " week-grid--compact-week" : ""
+                  }`}
                   style={
                     {
                       "--calendar-height": `${slots.length * CALENDAR_SLOT_HEIGHT}px`,
@@ -451,7 +454,9 @@ export function CalendarPage({ user }: { user: User }) {
                         <strong>
                           {new Intl.DateTimeFormat(dateLocale, {
                             day: "2-digit",
-                            month: "2-digit",
+                            ...(compactWeekLabels
+                              ? {}
+                              : { month: "2-digit" as const }),
                             timeZone: localTimeZone,
                           }).format(instant)}
                         </strong>

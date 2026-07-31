@@ -1599,6 +1599,7 @@ hr {
   min-height: 34px;
   padding: 7px 11px;
   font-size: 0.75rem;
+  white-space: nowrap;
 }
 
 .schedule-controls .compact-select select {
@@ -1944,6 +1945,28 @@ hr {
 
 .day-heading.is-closed {
   color: color-mix(in srgb, var(--text-muted) 72%, transparent);
+}
+
+.week-grid--compact-week .day-heading {
+  gap: 1px;
+}
+
+.week-grid--compact-week .day-heading span {
+  font-size: 0.52rem;
+  letter-spacing: 0;
+}
+
+.week-grid--compact-week .day-heading strong {
+  font-size: 0.72rem;
+}
+
+.week-grid--compact-week .day-heading.is-today strong {
+  padding-right: 3px;
+  padding-left: 3px;
+}
+
+.week-grid--compact-week .day-column__closed-label {
+  display: none;
 }
 
 .time-column {
@@ -3664,7 +3687,15 @@ hr {
 
 .upload-box input {
   position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  margin: -1px;
+  clip: rect(0 0 0 0);
   opacity: 0;
+  white-space: nowrap;
 }
 
 .preference-list {
