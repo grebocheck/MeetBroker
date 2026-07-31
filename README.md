@@ -280,3 +280,18 @@ browser regression сценарії. Міграції виконує той са
 - [Канонічні UI-компоненти](docs/design/UI_COMPONENTS.md)
 - [Маніфест дизайн-концептів](docs/design/ASSET_MANIFEST.md)
 - [Журнал промптів](docs/prompt-journal/README.md)
+
+## Ліцензії
+
+- код і документація MeetBroker поширюються за
+  [MIT License](LICENSE), зокрема для комерційного використання та змін;
+- власні й згенеровані в межах проєкту растрові та векторні асети в
+  `assets/` і `apps/web/public/` передано під
+  [CC0 1.0 Universal](LICENSES/CC0-1.0.txt), якщо біля конкретного файлу не
+  вказано інше;
+- Manrope Variable та Unbounded Variable залишаються під
+  [SIL Open Font License 1.1](LICENSES/OFL-1.1.txt);
+- `spec-uk.pdf` не перелицензовується проєктом.
+
+Повний перелік винятків і авторських повідомлень наведено у
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
