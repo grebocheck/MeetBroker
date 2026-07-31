@@ -347,8 +347,13 @@ docker compose up -d --build
 npm run smoke
 ```
 
-Health checks є в PostgreSQL, API, web і Nginx. Persistent дані зберігаються
-у volumes `postgres-data` та `uploads`.
+Health checks є в PostgreSQL, API, worker, web і Nginx. Persistent дані
+зберігаються у volumes `postgres-data` та `uploads`. Application-контейнери
+працюють без root, із read-only root filesystem, `cap_drop: ALL`,
+`no-new-privileges`, restart policy та контрольованим graceful shutdown.
+
+Production запуск накладає `compose.production.yaml`: він вимагає `.env`,
+примусово вимикає demo seed і встановлює production application mode.
 
 Для production потрібно:
 

@@ -3,6 +3,8 @@ name: meetbroker
 services:
   postgres:
     image: postgres:17-alpine
+    restart: unless-stopped
+    stop_grace_period: 30s
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-meetbroker}
       POSTGRES_USER: ${POSTGRES_USER:-meetbroker}
@@ -17,6 +19,14 @@ services:
 
   api:
     image: meetbroker-api:local
+    restart: unless-stopped
+    init: true
+    read_only: true
+    stop_grace_period: 30s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -57,11 +67,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 20
+      start_period: 10s
+    tmpfs:
+      - /tmp:size=64m,mode=1777
     volumes:
       - uploads:/app/storage/uploads
 
   worker:
     image: meetbroker-api:local
+    restart: unless-stopped
+    init: true
+    read_only: true
+    stop_grace_period: 30s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     command: npm run worker --workspace @meetbroker/api
     env_file:
       - path: .env
@@ -69,11 +90,30 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       DATABASE_URL: ${DATABASE_URL:-postgres://meetbroker:meetbroker@postgres:5432/meetbroker}
+      SMTP_HOST: ${SMTP_HOST:-}
+      TELEGRAM_UPDATE_MODE: ${TELEGRAM_UPDATE_MODE:-DISABLED}
     depends_on:
       api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "ps -o args | grep -q '[d]ist/worker.js'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    tmpfs:
+      - /tmp:size=64m,mode=1777
 
   web:
+    image: meetbroker-web:local
+    restart: unless-stopped
+    init: true
+    read_only: true
+    stop_grace_period: 15s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -90,16 +130,26 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+      start_period: 5s
     depends_on:
       api:
         condition: service_healthy
 
   nginx:
-    image: nginx:1.27-alpine
+    image: meetbroker-nginx:local
+    restart: unless-stopped
+    init: true
+    read_only: true
+    stop_grace_period: 15s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    build:
+      context: .
+      dockerfile: infra/nginx/Dockerfile
     ports:
-      - "8080:80"
-    volumes:
-      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - "${HTTP_PORT:-8080}:8080"
     depends_on:
       api:
         condition: service_healthy
@@ -109,11 +159,14 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -qO- http://127.0.0.1/ >/dev/null && wget -qO- http://127.0.0.1/api/health >/dev/null",
+          "wget -qO- http://127.0.0.1:8080/ >/dev/null && wget -qO- http://127.0.0.1:8080/api/health >/dev/null",
         ]
       interval: 5s
       timeout: 3s
       retries: 20
+      start_period: 5s
+    tmpfs:
+      - /tmp:size=32m,mode=1777
 
 volumes:
   postgres-data:

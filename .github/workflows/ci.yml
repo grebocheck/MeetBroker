@@ -56,7 +56,23 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: cp .env.example .env
+      - name: Validate production Compose override
+        run: >-
+          docker compose
+          -f compose.yaml
+          -f compose.production.yaml
+          config --quiet
       - run: docker compose up -d --build --wait --wait-timeout 180
+      - name: Verify container security boundaries
+        run: |
+          set -eu
+          for service in api worker web nginx; do
+            container_id="$(docker compose ps -q "$service")"
+            test -n "$container_id"
+            test "$(docker compose exec -T "$service" id -u)" != "0"
+            test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$container_id")" = "true"
+            test "$(docker inspect --format '{{json .HostConfig.CapDrop}}' "$container_id")" = '["ALL"]'
+          done
       - run: npm run smoke
       - run: npm run test:e2e
       - name: Container logs

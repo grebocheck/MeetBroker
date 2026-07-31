@@ -9,7 +9,8 @@ RUN npm run build --workspace @meetbroker/web
 
 FROM node:24-alpine
 WORKDIR /app
-COPY apps/web/server.mjs apps/web/server.mjs
-COPY --from=build /app/apps/web/dist apps/web/dist
+COPY --chown=node:node apps/web/server.mjs apps/web/server.mjs
+COPY --chown=node:node --from=build /app/apps/web/dist apps/web/dist
+USER node
 EXPOSE 4173
 CMD ["node", "apps/web/server.mjs"]

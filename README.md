@@ -49,6 +49,25 @@ npm run smoke
 адміністратор. Якщо змінна відсутня при запуску API поза Compose,
 використовується безпечний `PRODUCTION`.
 
+Для бойового запуску використовуйте окремий override після заміни
+демонстраційних паролів, `APP_ORIGIN`, `DATABASE_URL`, SMTP/Telegram secrets
+і встановлення HTTPS перед Nginx:
+
+```bash
+docker compose \
+  -f compose.yaml \
+  -f compose.production.yaml \
+  up -d --build --wait
+```
+
+Production override вимагає `.env`, примусово встановлює
+`NODE_ENV=production`, `APP_MODE=PRODUCTION` і `SEED_DEMO_DATA=false`.
+API/worker та web працюють як непривілейований `node`, Nginx — як
+непривілейований `nginx` на внутрішньому порту 8080. Їхні root filesystem
+read-only, Linux capabilities скинуті, увімкнено `no-new-privileges`,
+restart/health/stop policies; запис дозволено лише в uploads volume і
+обмежені `tmpfs`. Зовнішній порт можна змінити через `HTTP_PORT`.
+
 Демонстраційні облікові записи:
 
 | Рівень        | Email                    | Пароль       |

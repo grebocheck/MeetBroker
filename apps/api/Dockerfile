@@ -18,9 +18,10 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 RUN npm ci --omit=dev --workspace @meetbroker/api --include-workspace-root
-COPY --from=build /app/apps/api/dist apps/api/dist
-COPY apps/api/src/database/migrate.mjs apps/api/src/database/migrate.mjs
-COPY apps/api/src/database/migrations apps/api/src/database/migrations
-RUN mkdir -p storage/uploads
+COPY --chown=node:node --from=build /app/apps/api/dist apps/api/dist
+COPY --chown=node:node apps/api/src/database/migrate.mjs apps/api/src/database/migrate.mjs
+COPY --chown=node:node apps/api/src/database/migrations apps/api/src/database/migrations
+RUN mkdir -p storage/uploads && chown -R node:node storage
+USER node
 EXPOSE 3000
 CMD ["npm", "run", "start", "--workspace", "@meetbroker/api"]
