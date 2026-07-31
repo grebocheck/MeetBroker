@@ -1,17 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ComponentType, SVGProps } from "react";
+import { lazy, Suspense, type ComponentType, type SVGProps } from "react";
 import { api } from "../lib/api";
 import { localeOptions, useI18n } from "../lib/i18n";
 import { Link, navigate } from "../lib/router";
 import type { Capability, NotificationsResponse, User } from "../types";
 import type { MessageKey } from "../locales/uk";
-import { AdminPage } from "../pages/AdminPage";
-import { BookingListPage } from "../pages/BookingListPage";
-import { CalendarPage } from "../pages/CalendarPage";
-import { EventsPage } from "../pages/EventsPage";
-import { NotificationsPage } from "../pages/NotificationsPage";
-import { MyMeetingsPage } from "../pages/MyMeetingsPage";
-import { ProfilePage } from "../pages/ProfilePage";
 import { Avatar } from "./Avatar";
 import { BrandMark } from "./BrandMark";
 import {
@@ -26,6 +19,42 @@ import {
   SunIcon,
   UsersIcon,
 } from "./Icons";
+
+const AdminPage = lazy(() =>
+  import("../pages/AdminPage").then((module) => ({
+    default: module.AdminPage,
+  })),
+);
+const BookingListPage = lazy(() =>
+  import("../pages/BookingListPage").then((module) => ({
+    default: module.BookingListPage,
+  })),
+);
+const CalendarPage = lazy(() =>
+  import("../pages/CalendarPage").then((module) => ({
+    default: module.CalendarPage,
+  })),
+);
+const EventsPage = lazy(() =>
+  import("../pages/EventsPage").then((module) => ({
+    default: module.EventsPage,
+  })),
+);
+const NotificationsPage = lazy(() =>
+  import("../pages/NotificationsPage").then((module) => ({
+    default: module.NotificationsPage,
+  })),
+);
+const MyMeetingsPage = lazy(() =>
+  import("../pages/MyMeetingsPage").then((module) => ({
+    default: module.MyMeetingsPage,
+  })),
+);
+const ProfilePage = lazy(() =>
+  import("../pages/ProfilePage").then((module) => ({
+    default: module.ProfilePage,
+  })),
+);
 
 interface NavItem {
   href: string;
@@ -253,7 +282,15 @@ export function AppShell({ user, path }: { user: User; path: string }) {
             </div>
           </aside>
         )}
-        {content}
+        <Suspense
+          fallback={
+            <div className="state-panel route-loading" role="status">
+              <strong>{t("app.loadingWorkspace")}</strong>
+            </div>
+          }
+        >
+          {content}
+        </Suspense>
       </main>
     </div>
   );

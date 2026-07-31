@@ -1,13 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { api, ApiError } from "./lib/api";
 import { I18nProvider, resolveBrowserLocale, useI18n } from "./lib/i18n";
 import { navigate, usePath } from "./lib/router";
 import type { Locale, User } from "./types";
-import { AppShell } from "./components/AppShell";
-import { AuthPage } from "./pages/AuthPage";
-import { PendingApprovalPage } from "./pages/PendingApprovalPage";
 import { BrandMark } from "./components/BrandMark";
+
+const AppShell = lazy(() =>
+  import("./components/AppShell").then((module) => ({
+    default: module.AppShell,
+  })),
+);
+const AuthPage = lazy(() =>
+  import("./pages/AuthPage").then((module) => ({
+    default: module.AuthPage,
+  })),
+);
+const PendingApprovalPage = lazy(() =>
+  import("./pages/PendingApprovalPage").then((module) => ({
+    default: module.PendingApprovalPage,
+  })),
+);
 
 export function App() {
   const path = usePath();
@@ -59,19 +72,35 @@ export function App() {
   if (!user) {
     return (
       <I18nProvider locale={publicLocale}>
-        <AuthPage path={path} />
+        <Suspense fallback={<AppSplash />}>
+          <AuthPage path={path} />
+        </Suspense>
       </I18nProvider>
     );
   }
 
   return (
     <I18nProvider locale={user.locale}>
-      {!user.emailVerified || !user.approved ? (
-        <PendingApprovalPage user={user} />
-      ) : (
-        <AppShell user={user} path={path} />
-      )}
+      <Suspense fallback={<AppSplash />}>
+        {!user.emailVerified || !user.approved ? (
+          <PendingApprovalPage user={user} />
+        ) : (
+          <AppShell user={user} path={path} />
+        )}
+      </Suspense>
     </I18nProvider>
+  );
+}
+
+function AppSplash() {
+  return (
+    <div className="splash">
+      <BrandMark />
+      <div>
+        <strong>MeetBroker</strong>
+        <SplashMessage />
+      </div>
+    </div>
   );
 }
 
