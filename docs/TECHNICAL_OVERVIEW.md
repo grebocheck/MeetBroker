@@ -66,7 +66,8 @@ job на тому самому image.
 - TanStack Query для server state, інвалідації та pending/error станів;
 - `date-fns` і `date-fns-tz` для календарних операцій;
 - власний lightweight routing без зайвого framework overhead;
-- модульні CSS-файли, semantic tokens і спільні UI-компоненти.
+- модульні CSS-файли (tokens, app shell, controls, schedule, overlays,
+  administration surfaces), semantic tokens і спільні UI-компоненти.
 
 ### Основні екрани
 

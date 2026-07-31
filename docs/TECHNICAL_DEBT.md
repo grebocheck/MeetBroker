@@ -12,10 +12,6 @@
 | --- | ---: | --- |
 | `BookingsService` | 1090 рядків | Окремі create/update/cancel command services |
 | `AdminService` | 849 рядків | Room availability і media command boundaries |
-| `schedule-and-overlays.css` | 1631 рядок | Calendar grid, drawer і modal sections |
-| `foundation.css` | 1523 рядки | Tokens/base, shell та canonical controls |
-| `administration.css` | 1188 рядків | Users, bookings, rooms та audit surfaces |
-| `NotificationSettingsCard` | 374 рядки | Email і Telegram integration sections |
 
 ## Уже зменшені ризики
 
@@ -33,7 +29,10 @@
 - адміністративні UI-вкладки та editor-компоненти вже мають предметні межі;
 - `ProfilePage` зменшено з 712 до 28 рядків: identity, notification matrix,
   security і timezone data мають окремі компоненти/модулі;
-- CSS розділено з колишнього єдиного файла на тематичні модулі.
+- CSS розділено з колишнього єдиного файла на тематичні модулі;
+- `foundation`, `schedule-and-overlays` та `administration` механічно
+  розкладено на tokens, shell, controls, schedule, overlays, listings,
+  rooms і audit/deliveries; жоден stylesheet не перевищує 900 рядків.
 
 ## Правила подальшого рефакторингу
 

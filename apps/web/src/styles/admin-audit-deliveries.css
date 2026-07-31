@@ -1,0 +1,211 @@
+.audit-row {
+  display: grid;
+  align-items: center;
+  min-height: 54px;
+  padding: 8px 4px;
+  grid-template-columns: 145px 1fr 180px 100px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.74rem;
+}
+
+.audit-row__time,
+.audit-row span {
+  color: var(--text-muted);
+}
+
+.audit-row code {
+  font-size: 0.64rem;
+}
+
+.activity-toolbar {
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.activity-toolbar > div:first-child {
+  min-width: 250px;
+  flex: 1;
+}
+
+.activity-toolbar h2,
+.activity-toolbar p {
+  margin-bottom: 0;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.delivery-summary {
+  display: grid;
+  margin: 0 0 20px 22px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.delivery-summary > div {
+  display: flex;
+  min-height: 74px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 3px 12px 3px 12px;
+  background: var(--surface-raised);
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.delivery-summary span {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.delivery-summary strong {
+  font-family: "Unbounded Variable", sans-serif;
+  font-size: 1.25rem;
+}
+
+.delivery-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.delivery-row {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: 104px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+  border-radius: 3px 14px 3px 14px;
+  background: var(--surface-raised);
+  grid-template-columns: minmax(230px, 1fr) auto minmax(220px, 0.85fr) auto;
+  gap: 14px;
+}
+
+.delivery-row__main,
+.delivery-row__details {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.delivery-row__main > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delivery-row__main > span:not(.eyebrow),
+.delivery-row__details > span,
+.delivery-row__details > small {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.delivery-row__details > span {
+  overflow: hidden;
+  max-width: 40ch;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delivery-row > .form-error {
+  margin: 0;
+  grid-column: 1 / -1;
+}
+
+.status-badge--delivery-failed {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--border));
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface-raised));
+  color: var(--danger);
+}
+
+.status-badge--delivery-sent {
+  border-color: color-mix(in srgb, var(--success) 55%, var(--border));
+  background: color-mix(in srgb, var(--success) 12%, var(--surface-raised));
+  color: var(--success);
+}
+
+.status-badge--delivery-processing,
+.status-badge--delivery-pending {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface-raised));
+  color: var(--primary);
+}
+
+.activity-row {
+  display: grid;
+  align-items: center;
+  min-height: 72px;
+  padding: 12px 8px;
+  grid-template-columns: 165px minmax(220px, 1fr) auto;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-row > time {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.activity-row__main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activity-row__main > span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-details {
+  padding: 10px 0 2px;
+  grid-column: 2 / -1;
+}
+
+.activity-details summary {
+  width: fit-content;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.activity-details dl {
+  display: grid;
+  margin: 12px 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.activity-details dl > div {
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 3px 11px 3px 11px;
+  background: var(--surface-muted);
+}
+
+.activity-details dt {
+  margin-bottom: 3px;
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.activity-details dd {
+  overflow-wrap: anywhere;
+  margin: 0;
+  font-size: 0.7rem;
+}

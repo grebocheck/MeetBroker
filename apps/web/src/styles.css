@@ -1,6 +1,11 @@
 @import "./styles/foundation.css";
-@import "./styles/schedule-and-overlays.css";
+@import "./styles/app-shell.css";
+@import "./styles/editorial-controls.css";
+@import "./styles/schedule.css";
+@import "./styles/overlays.css";
 @import "./styles/content-components.css";
-@import "./styles/administration.css";
+@import "./styles/admin-shell-listings.css";
+@import "./styles/admin-rooms.css";
+@import "./styles/admin-audit-deliveries.css";
 @import "./styles/feature-pages.css";
 @import "./styles/responsive.css";
