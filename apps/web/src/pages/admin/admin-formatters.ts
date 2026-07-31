@@ -47,6 +47,7 @@ const AUDIT_ACTION_KEYS: Record<string, MessageKey> = {
   BOOKING_INVITATION_DECLINED: "audit.BOOKING_INVITATION_DECLINED",
   OPEN_EVENT_JOINED: "audit.OPEN_EVENT_JOINED",
   OPEN_EVENT_LEFT: "audit.OPEN_EVENT_LEFT",
+  NOTIFICATION_DELIVERY_RETRIED: "audit.NOTIFICATION_DELIVERY_RETRIED",
 };
 
 const DETAIL_KEYS: Record<string, MessageKey> = {
@@ -68,6 +69,8 @@ const DETAIL_KEYS: Record<string, MessageKey> = {
   recurrenceUntil: "admin.repeatUntil",
   occurrenceCount: "admin.createdIntervals",
   pendingEmail: "admin.pendingEmail",
+  eventType: "admin.eventType",
+  previousAttempts: "admin.previousAttempts",
 };
 
 export function humanizeAction(action: string, t: Translate): string {
@@ -82,6 +85,7 @@ export function humanizeTarget(target: string, t: Translate): string {
     ROOM: t("room"),
     ROOM_BLOCK: t("admin.targetRoomBlock"),
     ROOM_BLOCK_SERIES: t("admin.targetRoomBlockSeries"),
+    NOTIFICATION_DELIVERY: t("admin.targetNotificationDelivery"),
   };
   return targets[target] ?? target;
 }

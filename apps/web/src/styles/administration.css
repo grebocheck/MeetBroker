@@ -63,7 +63,7 @@
   border: 1px solid var(--border);
   border-radius: 3px 16px 3px 16px;
   background: color-mix(in srgb, var(--surface-muted) 82%, transparent);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
 }
 
@@ -210,7 +210,8 @@
 
 .admin-workspace:not(.admin-workspace--rooms) .admin-user-list,
 .admin-workspace:not(.admin-workspace--rooms) .admin-booking-list,
-.admin-workspace:not(.admin-workspace--rooms) .activity-list {
+.admin-workspace:not(.admin-workspace--rooms) .activity-list,
+.admin-workspace:not(.admin-workspace--rooms) .delivery-list {
   position: relative;
   padding-left: 22px;
   gap: 12px;
@@ -218,7 +219,8 @@
 
 .admin-workspace:not(.admin-workspace--rooms) .admin-user-list::before,
 .admin-workspace:not(.admin-workspace--rooms) .admin-booking-list::before,
-.admin-workspace:not(.admin-workspace--rooms) .activity-list::before {
+.admin-workspace:not(.admin-workspace--rooms) .activity-list::before,
+.admin-workspace:not(.admin-workspace--rooms) .delivery-list::before {
   position: absolute;
   top: 8px;
   bottom: 8px;
@@ -1113,6 +1115,106 @@
 .activity-list {
   display: flex;
   flex-direction: column;
+}
+
+.delivery-summary {
+  display: grid;
+  margin: 0 0 20px 22px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.delivery-summary > div {
+  display: flex;
+  min-height: 74px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 3px 12px 3px 12px;
+  background: var(--surface-raised);
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.delivery-summary span {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.delivery-summary strong {
+  font-family: "Unbounded Variable", sans-serif;
+  font-size: 1.25rem;
+}
+
+.delivery-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.delivery-row {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: 104px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+  border-radius: 3px 14px 3px 14px;
+  background: var(--surface-raised);
+  grid-template-columns: minmax(230px, 1fr) auto minmax(220px, 0.85fr) auto;
+  gap: 14px;
+}
+
+.delivery-row__main,
+.delivery-row__details {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.delivery-row__main > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delivery-row__main > span:not(.eyebrow),
+.delivery-row__details > span,
+.delivery-row__details > small {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.delivery-row__details > span {
+  overflow: hidden;
+  max-width: 40ch;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delivery-row > .form-error {
+  margin: 0;
+  grid-column: 1 / -1;
+}
+
+.status-badge--delivery-failed {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--border));
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface-raised));
+  color: var(--danger);
+}
+
+.status-badge--delivery-sent {
+  border-color: color-mix(in srgb, var(--success) 55%, var(--border));
+  background: color-mix(in srgb, var(--success) 12%, var(--surface-raised));
+  color: var(--success);
+}
+
+.status-badge--delivery-processing,
+.status-badge--delivery-pending {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface-raised));
+  color: var(--primary);
 }
 
 .activity-row {

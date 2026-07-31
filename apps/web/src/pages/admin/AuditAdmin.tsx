@@ -64,6 +64,7 @@ export function AuditAdmin() {
             ["booking", t("admin.bookings")],
             ["access", t("admin.access")],
             ["room", t("admin.rooms")],
+            ["notification", t("admin.deliveries")],
           ].map(([value, label]) => (
             <button
               key={value}
