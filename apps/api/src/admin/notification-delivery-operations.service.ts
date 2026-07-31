@@ -30,7 +30,7 @@ export class NotificationDeliveryOperationsService {
       filters.push(eq(notificationOutbox.status, normalizedStatus));
     }
     if (normalizedSearch) {
-      const pattern = `%${normalizedSearch.replace(/[%_]/g, "\\$&")}%`;
+      const pattern = `%${escapeLikePattern(normalizedSearch)}%`;
       filters.push(
         or(
           ilike(notificationOutbox.eventType, pattern),
@@ -163,4 +163,8 @@ export class NotificationDeliveryOperationsService {
       );
     });
   }
+}
+
+export function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, "\\$&");
 }
