@@ -7,7 +7,8 @@
 Playwright запускає `e2e/accessibility.spec.ts` на desktop-wide:
 
 - axe-core перевіряє WCAG 2.0/2.1 A та AA на всіх семи authenticated routes;
-- critical і serious violations блокують CI;
+- будь-який violation із цього WCAG-набору, включно з moderate/minor,
+  блокує CI;
 - окремо сканується booking modal;
 - перевіряється skip-link і передача фокуса до `main`;
 - на всіх основних viewport-проєктах уже перевіряються overflow і обрізані
