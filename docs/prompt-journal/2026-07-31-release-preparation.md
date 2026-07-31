@@ -58,3 +58,10 @@
 - PR #10 — `ci(actions): refresh setup and analysis actions`;
 - `1c9a128` — актуальні pinned revisions GitHub Actions.
 
+### Публікація
+
+- PR #11 із цим журналом пройшов усі required checks і був злитий;
+- post-merge CI та CodeQL успішно перевірили release SHA `2ad79cf`;
+- на перевіреному SHA створено annotated tag `v0.1.0`;
+- GitHub Release `MeetBroker v0.1.0` опубліковано як latest release:
+  <https://github.com/grebocheck/MeetBroker/releases/tag/v0.1.0>.

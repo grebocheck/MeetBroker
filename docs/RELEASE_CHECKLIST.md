@@ -45,5 +45,5 @@
 
 - [x] Release pull request злито в `main`.
 - [x] Фінальні CI та CodeQL зелені на release SHA.
-- [ ] Створено annotated tag `v0.1.0`.
-- [ ] Опубліковано GitHub Release `v0.1.0`.
+- [x] Створено annotated tag `v0.1.0`.
+- [x] Опубліковано GitHub Release `v0.1.0`.
