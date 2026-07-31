@@ -50,7 +50,7 @@ export class AuthController {
 
   @Public()
   @Throttle({
-    default: { limit: 20, ttl: 60_000, blockDuration: 5 * 60_000 },
+    default: { limit: 40, ttl: 5 * 60_000, blockDuration: 5 * 60_000 },
   })
   @Post("login")
   async login(
