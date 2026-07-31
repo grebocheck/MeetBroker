@@ -96,6 +96,15 @@ const DEFAULT_PRESENTATION = {
   ),
 };
 
+const DETAIL_HINTS = labels(
+  "Перегляньте деталі у MeetBroker",
+  "View details in MeetBroker",
+  "Details in MeetBroker ansehen",
+  "Ver detalles en MeetBroker",
+  "Voir les détails dans MeetBroker",
+  "MeetBrokerで詳細を確認",
+);
+
 export function renderTelegramMessage(
   message: NotificationMessage,
   locale: Locale,
@@ -103,13 +112,15 @@ export function renderTelegramMessage(
   const presentation =
     EVENT_PRESENTATION[message.eventType ?? ""] ?? DEFAULT_PRESENTATION;
   const label = presentation.labels[locale];
+  const title = escapeTelegramHtml(message.title.trim());
   const body = escapeTelegramHtml(message.body.trim());
 
   return [
-    `${presentation.emoji} <b>${escapeTelegramHtml(message.title.trim())}</b>`,
+    `<b>MEETBROKER</b>  •  ${presentation.emoji} <b>${escapeTelegramHtml(label)}</b>`,
+    `━━━━━━━━━━━━━━`,
+    `<b>${title}</b>`,
     body,
-    `────────────`,
-    `<i>MeetBroker · ${escapeTelegramHtml(label)}</i>`,
+    `↗️ <i>${escapeTelegramHtml(DETAIL_HINTS[locale])}</i>`,
   ]
     .filter(Boolean)
     .join("\n\n");

@@ -1,6 +1,6 @@
 # Release checklist
 
-Цільова версія: **MeetBroker v0.1.0**  
+Цільова версія: **MeetBroker v0.2.0**
 Дата підготовки: **31 липня 2026 року**
 
 ## Відповідність і документація
@@ -19,9 +19,9 @@
 - [x] ESLint і Prettier.
 - [x] API/web TypeScript typecheck.
 - [x] Production build.
-- [x] 112 unit-тестів.
+- [x] 159 unit-тестів: 98 API та 61 web.
 - [x] Docker Compose health і повний API smoke.
-- [x] 19 Playwright-сценаріїв.
+- [x] 34 Playwright-сценарії у 13 файлах.
 - [x] Responsive regression: 1440, 1024, 768 і 390 px.
 - [x] Accessibility scan і keyboard smoke.
 
@@ -43,7 +43,7 @@
 
 ## Публікація
 
-- [x] Release pull request злито в `main`.
-- [x] Фінальні CI та CodeQL зелені на release SHA.
-- [x] Створено annotated tag `v0.1.0`.
-- [x] Опубліковано GitHub Release `v0.1.0`.
+- [ ] Release pull request злито в `main`.
+- [ ] Фінальні CI та CodeQL зелені на release SHA.
+- [ ] Створено annotated tag `v0.2.0`.
+- [ ] Опубліковано GitHub Release `v0.2.0`.

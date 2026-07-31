@@ -6,6 +6,47 @@
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-07-31
+
+### Додано
+
+- серверний пошук і пагінацію відкритих подій та адміністративних списків;
+- операційну консоль notification outbox із контрольованим retry й аудитом;
+- backup/restore PostgreSQL та uploads із checksum і cold-stack rehearsal;
+- Firefox/WebKit smoke, просторову keyboard-навігацію та розширені API,
+  accessibility і responsive regression сценарії;
+- брендовані багатомовні Telegram-повідомлення з категоріями й емодзі.
+
+### Змінено
+
+- React SPA тепер збирається й віддається безпосередньо Nginx без зайвого
+  runtime-контейнера `web`; DEMO і production використовують один Compose;
+- `BookingsService` розділено на окремі query, creation, update,
+  invitation, cancellation, attendee, image та open-event boundaries;
+- адміністративні read projections, доступність кімнат і room media винесено
+  з монолітного `AdminService` до предметних сервісів;
+- великі Profile та CSS boundaries розкладено на менші модулі без зміни UI;
+- email/Telegram стали явним opt-in, а worker отримав heartbeat, reclaim
+  завислих задач і контрольований retry budget;
+- пошукові й list-запити отримали індекси та захист буквальних wildcard.
+
+### Безпека й експлуатація
+
+- контейнери API, worker і Nginx запускаються без root, із read-only root
+  filesystem, скинутими capabilities та `no-new-privileges`;
+- API виконує fail-fast перевірку production env, а pre-migration guard
+  блокує demo seed у production;
+- Telegram webhook secret передається в офіційному HTTP-заголовку;
+- auth endpoints мають окремі rate limits, uploads — узгоджений 12 МБ ліміт;
+- CI перевіряє container boundaries, production guard, smoke та браузери.
+
+### Якість
+
+- 159 unit-тестів і 34 Playwright-сценарії;
+- усі автоматизовані acceptance-посилання ведуть до наявних test-файлів;
+- CodeQL, GitGuardian, Dependabot security alerts і production audit — без
+  відомих проблем на момент підготовки релізу.
+
 ## [0.1.0] — 2026-07-31
 
 ### Додано
@@ -38,5 +79,6 @@
 - нуль відкритих CodeQL/Dependabot security alerts на момент релізу;
 - production `npm audit` без відомих вразливостей.
 
-[Unreleased]: https://github.com/grebocheck/MeetBroker/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/grebocheck/MeetBroker/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/grebocheck/MeetBroker/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/grebocheck/MeetBroker/releases/tag/v0.1.0
