@@ -1,5 +1,7 @@
 # MeetBroker
 
+[![CI](https://github.com/grebocheck/MeetBroker/actions/workflows/ci.yml/badge.svg)](https://github.com/grebocheck/MeetBroker/actions/workflows/ci.yml)
+
 Корпоративний застосунок для бронювання переговорних кімнат. MVP уже
 запускається як контейнеризований стек і придатний до наскрізного тестування.
 

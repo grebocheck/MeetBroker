@@ -219,3 +219,12 @@
   workspaces узгоджено з MIT;
 - конкурсний `spec-uk.pdf` явно виключено з ліцензій MeetBroker, оскільки
   проєкт не є власником прав на надане технічне завдання.
+
+### Публічна CI-перевірка
+
+- перший GitHub Actions run на публічному `main` успішно виконав quality job
+  і повний Docker/Playwright regression;
+- `actions/checkout` та `actions/setup-node` оновлено з Node 20-based v4 до
+  Node 24-based v6;
+- обидві Actions зафіксовано повними commit SHA з видимими коментарями
+  major-версій, щоб workflow не залежав від непомітного пересування тегів.
