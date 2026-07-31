@@ -19,7 +19,12 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "api-integration",
+      testMatch: /api-.*\.spec\.ts/,
+    },
+    {
       name: "desktop-wide",
+      testIgnore: /api-.*\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 1000 },
@@ -27,6 +32,7 @@ export default defineConfig({
     },
     {
       name: "desktop-compact",
+      testIgnore: /api-.*\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1024, height: 900 },
@@ -34,6 +40,7 @@ export default defineConfig({
     },
     {
       name: "tablet",
+      testIgnore: /api-.*\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 768, height: 1024 },
@@ -41,6 +48,7 @@ export default defineConfig({
     },
     {
       name: "mobile",
+      testIgnore: /api-.*\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 390, height: 844 },
