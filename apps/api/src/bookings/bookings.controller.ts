@@ -24,6 +24,7 @@ import {
   RespondToInvitationDto,
   UpdateBookingDto,
 } from "./bookings.dto";
+import { BookingInvitationsService } from "./booking-invitations.service";
 import { BookingQueriesService } from "./booking-queries.service";
 import { BookingsService } from "./bookings.service";
 import { OpenEventsService } from "./open-events.service";
@@ -33,6 +34,7 @@ import { OpenEventsService } from "./open-events.service";
 export class BookingsController {
   constructor(
     private readonly bookings: BookingsService,
+    private readonly invitations: BookingInvitationsService,
     private readonly queries: BookingQueriesService,
     private readonly openEvents: OpenEventsService,
   ) {}
@@ -138,7 +140,7 @@ export class BookingsController {
     @Param("id") id: string,
     @Body() dto: RespondToInvitationDto,
   ): Promise<void> {
-    await this.bookings.respond(request.user.id, id, dto);
+    await this.invitations.respond(request.user.id, id, dto);
   }
 
   @Post(":id/join")
