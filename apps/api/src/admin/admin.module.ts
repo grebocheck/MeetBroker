@@ -5,6 +5,7 @@ import { AdminService } from "./admin.service";
 import { NotificationDeliveryOperationsController } from "./notification-delivery-operations.controller";
 import { NotificationDeliveryOperationsService } from "./notification-delivery-operations.service";
 import { RoomAvailabilityService } from "./room-availability.service";
+import { RoomMediaService } from "./room-media.service";
 
 @Module({
   controllers: [AdminController, NotificationDeliveryOperationsController],
@@ -13,6 +14,7 @@ import { RoomAvailabilityService } from "./room-availability.service";
     AdminService,
     NotificationDeliveryOperationsService,
     RoomAvailabilityService,
+    RoomMediaService,
   ],
 })
 export class AdminModule {}

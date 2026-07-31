@@ -28,6 +28,7 @@ import {
 import { AdminQueriesService } from "./admin-queries.service";
 import { AdminService } from "./admin.service";
 import { RoomAvailabilityService } from "./room-availability.service";
+import { RoomMediaService } from "./room-media.service";
 
 @Approved()
 @AdminOnly()
@@ -37,6 +38,7 @@ export class AdminController {
     private readonly admin: AdminService,
     private readonly queries: AdminQueriesService,
     private readonly roomAvailability: RoomAvailabilityService,
+    private readonly roomMedia: RoomMediaService,
   ) {}
 
   @Get("users")
@@ -145,7 +147,7 @@ export class AdminController {
         "Room image is required or is too large to process",
       );
     }
-    return this.admin.saveRoomImage(request.user.id, id, file);
+    return this.roomMedia.save(request.user.id, id, file);
   }
 
   @Delete("rooms/:id/image")
@@ -154,7 +156,7 @@ export class AdminController {
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
   ): Promise<void> {
-    await this.admin.removeRoomImage(request.user.id, id);
+    await this.roomMedia.remove(request.user.id, id);
   }
 
   @Post("room-blocks")
