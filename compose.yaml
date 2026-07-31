@@ -35,6 +35,11 @@ services:
       - sh
       - -c
       - >-
+        if [ "$${APP_MODE}" = "PRODUCTION" ] &&
+        [ "$${SEED_DEMO_DATA}" = "true" ]; then
+          echo "SEED_DEMO_DATA must be false when APP_MODE=PRODUCTION" >&2;
+          exit 78;
+        fi &&
         npm run db:migrate:prod --workspace @meetbroker/api &&
         if [ "$${SEED_DEMO_DATA}" = "true" ]; then
           npm run db:seed:prod --workspace @meetbroker/api;
@@ -106,37 +111,6 @@ services:
     tmpfs:
       - /tmp:size=64m,mode=1777
 
-  web:
-    image: meetbroker-web:local
-    restart: unless-stopped
-    init: true
-    read_only: true
-    stop_grace_period: 15s
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-    environment:
-      PORT: 4173
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:4173').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
-        ]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 5s
-    depends_on:
-      api:
-        condition: service_healthy
-
   nginx:
     image: meetbroker-nginx:local
     restart: unless-stopped
@@ -154,8 +128,6 @@ services:
       - "${HTTP_PORT:-8080}:8080"
     depends_on:
       api:
-        condition: service_healthy
-      web:
         condition: service_healthy
     healthcheck:
       test:

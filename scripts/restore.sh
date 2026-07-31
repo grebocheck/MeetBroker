@@ -37,7 +37,7 @@ docker compose exec -T postgres sh -c \
   'exec pg_restore --list' < "$backup_directory/database.dump" >/dev/null
 
 echo "Stopping application and notification delivery..."
-docker compose stop worker nginx web api
+docker compose stop worker nginx api
 
 echo "Replacing the PostgreSQL database..."
 docker compose exec -T postgres sh -c \
@@ -53,7 +53,7 @@ docker compose run --rm -T --no-deps --entrypoint sh api -c \
   < "$backup_directory/uploads.tar.gz"
 
 echo "Starting the application without external notification delivery..."
-SEED_DEMO_DATA=false docker compose up -d --wait api web nginx
+SEED_DEMO_DATA=false docker compose up -d --wait api nginx
 
 echo "Restore completed. The worker remains stopped intentionally."
 echo "Review pending/failed deliveries in Administration, then start it with:"
