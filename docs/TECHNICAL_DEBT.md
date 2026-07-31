@@ -11,7 +11,7 @@
 | Модуль | Поточний розмір | Наступна доречна межа |
 | --- | ---: | --- |
 | `BookingsService` | 1090 рядків | Окремі create/update/cancel command services |
-| `AdminService` | 849 рядків | Room availability і media command boundaries |
+| `AdminService` | 513 рядків | Окремий room media command boundary |
 
 ## Уже зменшені ризики
 
@@ -26,6 +26,8 @@
   boundary;
 - списки користувачів, бронювань і журнал аудиту винесено в
   `AdminQueriesService` зі спільною нормалізацією пагінації;
+- разова й повторювана недоступність кімнат, timezone recurrence, list
+  projection і scope cancellation винесені в `RoomAvailabilityService`;
 - адміністративні UI-вкладки та editor-компоненти вже мають предметні межі;
 - `ProfilePage` зменшено з 712 до 28 рядків: identity, notification matrix,
   security і timezone data мають окремі компоненти/модулі;

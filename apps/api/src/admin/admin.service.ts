@@ -3,13 +3,10 @@ import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { addDays, differenceInCalendarDays } from "date-fns";
-import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import sharp from "sharp";
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
 import type {
-  CreateRoomBlockDto,
   CreateRoomDto,
   RestrictUserDto,
   UpdateRoomDto,
@@ -18,7 +15,6 @@ import type {
 @Injectable()
 export class AdminService {
   private readonly uploadDir: string;
-  private readonly officeTimeZone: string;
 
   constructor(
     private readonly database: DatabaseService,
@@ -27,8 +23,6 @@ export class AdminService {
     this.uploadDir =
       config.get<string>("UPLOAD_DIR") ??
       resolve(process.cwd(), "storage/uploads");
-    this.officeTimeZone =
-      config.get<string>("OFFICE_TIMEZONE") ?? "Europe/Kyiv";
   }
 
   async approve(actorId: string, userId: string): Promise<void> {
@@ -460,328 +454,6 @@ export class AdminService {
     await this.audit(actorId, "ROOM_IMAGE_REMOVED", "ROOM", roomId);
   }
 
-  async createRoomBlock(actorId: string, dto: CreateRoomBlockDto) {
-    const startsAt = new Date(dto.startsAt);
-    const endsAt = new Date(dto.endsAt);
-    if (
-      Number.isNaN(startsAt.getTime()) ||
-      Number.isNaN(endsAt.getTime()) ||
-      startsAt >= endsAt
-    ) {
-      throw apiError(
-        HttpStatus.BAD_REQUEST,
-        "INVALID_BLOCK_RANGE",
-        "Room block time is invalid",
-      );
-    }
-    const durationMs = endsAt.getTime() - startsAt.getTime();
-    if (durationMs > 24 * 60 * 60 * 1000) {
-      throw apiError(
-        HttpStatus.BAD_REQUEST,
-        "BLOCK_DURATION_TOO_LONG",
-        "A room unavailability interval cannot exceed 24 hours",
-      );
-    }
-    const recurrence = dto.recurrence ?? "NONE";
-    if (recurrence === "NONE") {
-      const id = randomUUID();
-      await this.database.query(
-        `
-          insert into room_blocks (
-            id, room_id, title, private_note, starts_at, ends_at, created_by
-          )
-          values ($1, $2, $3, $4, $5, $6, $7)
-        `,
-        [
-          id,
-          dto.roomId,
-          dto.title.trim(),
-          dto.privateNote?.trim() || null,
-          startsAt,
-          endsAt,
-          actorId,
-        ],
-      );
-      await this.audit(actorId, "ROOM_BLOCK_CREATED", "ROOM_BLOCK", id, {
-        roomId: dto.roomId,
-        recurrence: "NONE",
-        startsAt,
-        endsAt,
-      });
-      return { id, occurrenceCount: 1 };
-    }
-
-    if (!dto.recurrenceUntil) {
-      throw apiError(
-        HttpStatus.BAD_REQUEST,
-        "RECURRENCE_END_REQUIRED",
-        "Recurring room unavailability must have an end date",
-      );
-    }
-    const recurrenceInterval = dto.recurrenceInterval ?? 1;
-    const weekdays =
-      recurrence === "WEEKLY"
-        ? [...new Set(dto.weekdays ?? [])].sort((a, b) => a - b)
-        : null;
-    if (recurrence === "WEEKLY" && !weekdays?.length) {
-      throw apiError(
-        HttpStatus.BAD_REQUEST,
-        "RECURRENCE_WEEKDAYS_REQUIRED",
-        "Weekly recurrence must include at least one weekday",
-      );
-    }
-
-    const startLocal = toZonedTime(startsAt, this.officeTimeZone);
-    const startKey = this.localDateKey(startLocal);
-    const untilKey = dto.recurrenceUntil.slice(0, 10);
-    const untilLocal = new Date(`${untilKey}T12:00:00Z`);
-    const startDate = new Date(`${startKey}T12:00:00Z`);
-    const recurrenceDays = differenceInCalendarDays(untilLocal, startDate);
-    if (recurrenceDays < 0 || recurrenceDays > 366) {
-      throw apiError(
-        HttpStatus.BAD_REQUEST,
-        "INVALID_RECURRENCE_RANGE",
-        "Recurrence must end between its start date and one year later",
-      );
-    }
-
-    const time = `${String(startLocal.getHours()).padStart(2, "0")}:${String(
-      startLocal.getMinutes(),
-    ).padStart(2, "0")}:00`;
-    const occurrences: { startsAt: Date; endsAt: Date }[] = [];
-    for (let dayOffset = 0; dayOffset <= recurrenceDays; dayOffset += 1) {
-      const localDay = addDays(startLocal, dayOffset);
-      const eligible =
-        recurrence === "DAILY"
-          ? dayOffset % recurrenceInterval === 0
-          : Math.floor(dayOffset / 7) % recurrenceInterval === 0 &&
-            weekdays!.includes(localDay.getDay());
-      if (!eligible) continue;
-      const occurrenceStart = fromZonedTime(
-        `${this.localDateKey(localDay)}T${time}`,
-        this.officeTimeZone,
-      );
-      if (occurrenceStart < startsAt) continue;
-      occurrences.push({
-        startsAt: occurrenceStart,
-        endsAt: new Date(occurrenceStart.getTime() + durationMs),
-      });
-    }
-    if (!occurrences.length) {
-      throw apiError(
-        HttpStatus.BAD_REQUEST,
-        "EMPTY_RECURRENCE",
-        "Recurrence does not produce any room unavailability intervals",
-      );
-    }
-
-    const seriesId = randomUUID();
-    await this.database.transaction(async (client) => {
-      await client.query(
-        `
-          insert into room_block_series (
-            id, room_id, title, private_note, frequency,
-            recurrence_interval, weekdays, starts_at, ends_at,
-            recurrence_until, timezone, created_by
-          )
-          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        `,
-        [
-          seriesId,
-          dto.roomId,
-          dto.title.trim(),
-          dto.privateNote?.trim() || null,
-          recurrence,
-          recurrenceInterval,
-          weekdays,
-          startsAt,
-          endsAt,
-          untilKey,
-          this.officeTimeZone,
-          actorId,
-        ],
-      );
-      for (const [index, occurrence] of occurrences.entries()) {
-        await client.query(
-          `
-            insert into room_blocks (
-              id, room_id, title, private_note, starts_at, ends_at,
-              created_by, series_id, occurrence_index
-            )
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          `,
-          [
-            randomUUID(),
-            dto.roomId,
-            dto.title.trim(),
-            dto.privateNote?.trim() || null,
-            occurrence.startsAt,
-            occurrence.endsAt,
-            actorId,
-            seriesId,
-            index,
-          ],
-        );
-      }
-    });
-    await this.audit(
-      actorId,
-      "ROOM_BLOCK_SERIES_CREATED",
-      "ROOM_BLOCK_SERIES",
-      seriesId,
-      {
-        roomId: dto.roomId,
-        recurrence,
-        recurrenceInterval,
-        weekdays,
-        recurrenceUntil: untilKey,
-        occurrenceCount: occurrences.length,
-      },
-    );
-    return { id: seriesId, occurrenceCount: occurrences.length };
-  }
-
-  async roomBlocks(roomId?: string) {
-    const result = await this.database.query<{
-      id: string;
-      kind: "ONCE" | "SERIES";
-      room_id: string;
-      room_name: string;
-      title: string;
-      private_note: string | null;
-      starts_at: Date;
-      ends_at: Date;
-      frequency: "DAILY" | "WEEKLY" | null;
-      recurrence_interval: number | null;
-      weekdays: number[] | null;
-      recurrence_until: string | null;
-      occurrence_count: string;
-    }>(
-      `
-        select
-          rb.id,
-          'ONCE'::text as kind,
-          rb.room_id,
-          r.name as room_name,
-          rb.title,
-          rb.private_note,
-          rb.starts_at,
-          rb.ends_at,
-          null::text as frequency,
-          null::integer as recurrence_interval,
-          null::smallint[] as weekdays,
-          null::text as recurrence_until,
-          '1'::text as occurrence_count
-        from room_blocks rb
-        join rooms r on r.id = rb.room_id
-        where rb.series_id is null
-          and rb.cancelled_at is null
-          and rb.ends_at > now()
-          and ($1 = '' or rb.room_id::text = $1)
-        union all
-        select
-          s.id,
-          'SERIES'::text as kind,
-          s.room_id,
-          r.name,
-          s.title,
-          s.private_note,
-          s.starts_at,
-          s.ends_at,
-          s.frequency,
-          s.recurrence_interval,
-          s.weekdays,
-          s.recurrence_until::text,
-          count(rb.id) filter (
-            where rb.cancelled_at is null and rb.ends_at > now()
-          )::text
-        from room_block_series s
-        join rooms r on r.id = s.room_id
-        left join room_blocks rb on rb.series_id = s.id
-        where s.cancelled_at is null
-          and ($1 = '' or s.room_id::text = $1)
-        group by s.id, r.name
-        having count(rb.id) filter (
-          where rb.cancelled_at is null and rb.ends_at > now()
-        ) > 0
-        order by starts_at
-      `,
-      [roomId?.trim() ?? ""],
-    );
-    return result.rows.map((block) => ({
-      id: block.id,
-      kind: block.kind,
-      roomId: block.room_id,
-      roomName: block.room_name,
-      title: block.title,
-      privateNote: block.private_note,
-      startsAt: block.starts_at,
-      endsAt: block.ends_at,
-      frequency: block.frequency,
-      recurrenceInterval: block.recurrence_interval,
-      weekdays: block.weekdays,
-      recurrenceUntil: block.recurrence_until,
-      occurrenceCount: Number(block.occurrence_count),
-    }));
-  }
-
-  async cancelRoomBlock(
-    actorId: string,
-    id: string,
-    scope: string,
-  ): Promise<void> {
-    if (scope === "series") {
-      await this.database.transaction(async (client) => {
-        const series = await client.query(
-          `
-            update room_block_series
-            set cancelled_at = now(), cancelled_by = $2
-            where id = $1 and cancelled_at is null
-          `,
-          [id, actorId],
-        );
-        if (!series.rowCount) {
-          throw apiError(
-            HttpStatus.NOT_FOUND,
-            "ROOM_BLOCK_SERIES_NOT_FOUND",
-            "Room unavailability series was not found",
-          );
-        }
-        await client.query(
-          `
-            update room_blocks
-            set cancelled_at = now()
-            where series_id = $1 and cancelled_at is null and ends_at > now()
-          `,
-          [id],
-        );
-      });
-      await this.audit(
-        actorId,
-        "ROOM_BLOCK_SERIES_CANCELLED",
-        "ROOM_BLOCK_SERIES",
-        id,
-      );
-      return;
-    }
-    const result = await this.database.query(
-      `
-        update room_blocks
-        set cancelled_at = now()
-        where id = $1 and cancelled_at is null
-      `,
-      [id],
-    );
-    if (!result.rowCount) {
-      throw apiError(
-        HttpStatus.NOT_FOUND,
-        "ROOM_BLOCK_NOT_FOUND",
-        "Room unavailability interval was not found",
-      );
-    }
-    await this.audit(actorId, "ROOM_BLOCK_CANCELLED", "ROOM_BLOCK", id);
-  }
-
   private assertWorkHours(start: string, end: string): void {
     const validClock = (value: string) => {
       const match = /^(\d{2}):(\d{2})$/.exec(value);
@@ -813,14 +485,6 @@ export class AdminService {
         "Room must have at least one valid working day",
       );
     }
-  }
-
-  private localDateKey(date: Date): string {
-    return [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, "0"),
-      String(date.getDate()).padStart(2, "0"),
-    ].join("-");
   }
 
   private async audit(
