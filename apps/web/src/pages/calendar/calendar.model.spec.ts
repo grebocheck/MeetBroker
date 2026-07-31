@@ -16,7 +16,9 @@ describe("calendarDayCount", () => {
     [800, 5],
     [979, 5],
     [980, 6],
-    [1600, 6],
+    [1219, 6],
+    [1220, 7],
+    [1600, 7],
   ])("shows %i days at %ipx", (width, expected) => {
     expect(calendarDayCount(width)).toBe(expected);
   });

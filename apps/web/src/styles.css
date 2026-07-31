@@ -1583,6 +1583,24 @@ hr {
   flex-wrap: wrap;
 }
 
+.calendar-layout-toggle {
+  flex: 0 0 auto;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--primary) 26%, var(--border));
+  border-radius: 3px 12px 3px 12px;
+  background: color-mix(
+    in srgb,
+    var(--surface-muted) 70%,
+    var(--surface-raised)
+  );
+}
+
+.calendar-layout-toggle button {
+  min-height: 34px;
+  padding: 7px 11px;
+  font-size: 0.75rem;
+}
+
 .schedule-controls .compact-select select {
   border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
   border-radius: 3px 12px 3px 12px;

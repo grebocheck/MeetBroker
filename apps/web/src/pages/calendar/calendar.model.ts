@@ -7,7 +7,8 @@ export function calendarDayCount(width: number): number {
   if (width < 650) return 3;
   if (width < 800) return 4;
   if (width < 980) return 5;
-  return 6;
+  if (width < 1220) return 6;
+  return 7;
 }
 
 export function clockMinutes(value: string): number {

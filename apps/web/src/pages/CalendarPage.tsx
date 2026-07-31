@@ -38,7 +38,12 @@ export function CalendarPage({ user }: { user: User }) {
   })();
   const [reference, setReference] = useState(initialReference);
   const calendarCardRef = useRef<HTMLElement>(null);
-  const [visibleDayCount, setVisibleDayCount] = useState(6);
+  const [layoutMode, setLayoutMode] = useState<"WEEK" | "FIT">(() =>
+    window.localStorage.getItem("meetbroker.calendarLayout") === "FIT"
+      ? "FIT"
+      : "WEEK",
+  );
+  const [fittedDayCount, setFittedDayCount] = useState(7);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(
     initialParams.get("roomId"),
   );
@@ -71,7 +76,7 @@ export function CalendarPage({ user }: { user: User }) {
     if (!card) return;
 
     const updateDayCount = () => {
-      setVisibleDayCount(calendarDayCount(card.clientWidth));
+      setFittedDayCount(calendarDayCount(card.clientWidth));
     };
     updateDayCount();
 
@@ -79,6 +84,7 @@ export function CalendarPage({ user }: { user: User }) {
     observer.observe(card);
     return () => observer.disconnect();
   }, []);
+  const visibleDayCount = layoutMode === "WEEK" ? 7 : fittedDayCount;
 
   const visibleDays = useMemo(
     () => officeDateWindow(reference, officeTimeZone, visibleDayCount),
@@ -210,6 +216,40 @@ export function CalendarPage({ user }: { user: User }) {
           <div className="calendar-table-toolbar">
             <div className="schedule-controls">
               <div className="toolbar-actions">
+                <div
+                  className="segmented calendar-layout-toggle"
+                  role="group"
+                  aria-label={t("calendar.layout")}
+                >
+                  <button
+                    type="button"
+                    className={layoutMode === "WEEK" ? "is-active" : undefined}
+                    aria-pressed={layoutMode === "WEEK"}
+                    onClick={() => {
+                      setLayoutMode("WEEK");
+                      window.localStorage.setItem(
+                        "meetbroker.calendarLayout",
+                        "WEEK",
+                      );
+                    }}
+                  >
+                    {t("calendar.weekView")}
+                  </button>
+                  <button
+                    type="button"
+                    className={layoutMode === "FIT" ? "is-active" : undefined}
+                    aria-pressed={layoutMode === "FIT"}
+                    onClick={() => {
+                      setLayoutMode("FIT");
+                      window.localStorage.setItem(
+                        "meetbroker.calendarLayout",
+                        "FIT",
+                      );
+                    }}
+                  >
+                    {t("calendar.fitView")}
+                  </button>
+                </div>
                 <label className="compact-select capacity-filter">
                   <span className="sr-only">
                     {t("calendar.minimumCapacity")}
