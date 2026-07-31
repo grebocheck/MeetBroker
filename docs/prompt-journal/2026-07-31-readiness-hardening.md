@@ -284,3 +284,9 @@
 - офіційні умови UA-Skills не містять redistribution grant для PDF, тому
   файл прибрано з поточного Git tree, README посилається на офіційну сторінку,
   а рішення й межі історичного видалення задокументовано окремо.
+
+### Пов'язані коміти
+
+- `1223364` — Dependabot і CodeQL automation;
+- `079fb17` — axe/keyboard gate та виправлення accessible names;
+- `d4c5326` — acceptance-матриця й перевірка поширення PDF.
