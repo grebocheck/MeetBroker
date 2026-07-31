@@ -1,0 +1,851 @@
+@media (max-width: 1400px) {
+  .admin-hero__status {
+    display: none;
+  }
+
+  .calendar-table-toolbar {
+    grid-template-areas:
+      "navigation timezone"
+      "filters filters";
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .schedule-controls {
+    padding: 9px 0 0;
+    border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  }
+}
+
+@media (max-width: 1280px) {
+  .meetings-overview {
+    grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.8fr);
+  }
+
+  .admin-section-tabs {
+    width: min(980px, 100%);
+    margin-left: 0;
+  }
+
+  .admin-workspace .admin-card__toolbar {
+    align-items: stretch;
+  }
+
+  .admin-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1050px) {
+  .meetings-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-page .settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .meeting-stat {
+    min-height: 150px;
+  }
+
+  .app-layout {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+
+  .sidebar {
+    align-items: center;
+    padding-right: 12px;
+    padding-left: 12px;
+    overflow: visible;
+  }
+
+  .sidebar::before,
+  .sidebar::after {
+    display: none;
+  }
+
+  .brand > span:last-child,
+  .nav-caption,
+  .nav-item span,
+  .sidebar-profile__copy {
+    display: none;
+  }
+
+  .brand,
+  .nav-item {
+    padding: 0;
+  }
+
+  .nav-item {
+    justify-content: center;
+    width: 46px;
+  }
+
+  .nav-badge {
+    position: absolute;
+    top: 2px;
+    right: -5px;
+    min-width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0 4px;
+    font-size: 0.56rem;
+  }
+
+  .sidebar-utilities {
+    grid-template-columns: 1fr;
+  }
+
+  .utility-control {
+    width: 42px;
+    padding: 0;
+  }
+
+  .utility-control span {
+    display: none;
+  }
+
+  .language-control {
+    width: 42px;
+  }
+
+  .language-menu {
+    right: auto;
+    bottom: 0;
+    left: calc(100% + 8px);
+    transform: none;
+  }
+
+  .language-menu > span,
+  .language-menu button strong {
+    display: block;
+  }
+
+  .sidebar-profile {
+    flex-direction: column;
+  }
+
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-story {
+    display: none;
+  }
+
+  .admin-hero__status {
+    display: none;
+  }
+}
+
+@media (max-width: 1200px) {
+  .app-layout::after,
+  .app-main::after {
+    display: none;
+  }
+
+  .room-management__workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .room-catalog {
+    position: static;
+  }
+
+  .room-catalog__list {
+    display: grid;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-page {
+    padding-top: 68px;
+  }
+
+  .admin-hero {
+    min-height: auto;
+  }
+
+  .admin-hero h1 {
+    font-size: clamp(1.65rem, 7.8vw, 2.3rem);
+  }
+
+  .admin-section-tabs {
+    width: 100%;
+    margin-left: 0;
+    padding: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-section-tabs button {
+    min-height: 48px;
+    padding: 6px 10px;
+  }
+
+  .admin-section-tabs button > strong {
+    font-size: 0.58rem;
+    line-height: 1.2;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .admin-workspace {
+    padding: 0;
+    clip-path: none;
+  }
+
+  .admin-workspace__caption {
+    top: 10px;
+    right: 64px;
+    left: 18px;
+    font-size: 0.48rem;
+  }
+
+  .admin-workspace__caption strong {
+    display: none;
+  }
+
+  .admin-workspace::before {
+    right: -34%;
+    width: 100%;
+    opacity: 0.7;
+  }
+
+  .admin-workspace:not(.admin-workspace--rooms)
+    > .admin-workspace__content
+    > .admin-card {
+    padding: 0;
+  }
+
+  .admin-workspace:not(.admin-workspace--rooms) .admin-card__toolbar {
+    margin: 0 0 18px;
+    padding: 14px;
+  }
+
+  .meetings-calendar-header,
+  .meetings-calendar__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .calendar-toolbar {
+    min-height: auto;
+    padding-bottom: 20px;
+  }
+
+  .calendar-toolbar__word {
+    top: -26px;
+    right: 0;
+    max-width: 64%;
+    font-size: clamp(4.8rem, 10vw, 11.5rem);
+  }
+
+  .calendar-toolbar .room-identity {
+    gap: 12px;
+  }
+
+  .calendar-toolbar .room-visual--hero {
+    width: 72px;
+    height: 56px;
+    box-shadow:
+      0 12px 28px rgba(4, 66, 150, 0.24),
+      -4px 4px 0 color-mix(in srgb, var(--primary) 13%, transparent);
+  }
+
+  .calendar-toolbar .room-identity h1 {
+    font-size: clamp(1.7rem, 9vw, 2.3rem);
+  }
+
+  .schedule-controls {
+    padding: 10px 0 0;
+  }
+
+  .schedule-controls .toolbar-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .schedule-stage {
+    padding: 38px 7px 14px;
+    clip-path: polygon(
+      12px 0,
+      calc(100% - 58px) 0,
+      100% 34px,
+      100% calc(100% - 16px),
+      calc(100% - 18px) 100%,
+      22px 100%,
+      0 calc(100% - 24px),
+      0 12px
+    );
+  }
+
+  .schedule-stage__caption {
+    top: 10px;
+    right: 64px;
+    left: 18px;
+    font-size: 0.48rem;
+  }
+
+  .schedule-stage__caption strong {
+    display: none;
+  }
+
+  .schedule-stage::before {
+    right: -34%;
+    width: 100%;
+    opacity: 0.7;
+  }
+
+  .bookings-page .booking-list,
+  .notifications-page .notification-list {
+    padding-left: 14px;
+  }
+
+  .bookings-page .booking-list::before,
+  .notifications-page .notification-list::before {
+    left: 2px;
+  }
+
+  .meetings-next {
+    min-height: 260px;
+    padding: 24px 20px;
+  }
+
+  .agenda-stage {
+    padding: 38px 8px 14px;
+    clip-path: polygon(
+      12px 0,
+      calc(100% - 54px) 0,
+      100% 34px,
+      100% calc(100% - 16px),
+      calc(100% - 18px) 100%,
+      22px 100%,
+      0 calc(100% - 24px),
+      0 12px
+    );
+  }
+
+  .agenda-stage__caption {
+    top: 10px;
+    right: 62px;
+    left: 18px;
+    font-size: 0.5rem;
+  }
+
+  .agenda-stage::before {
+    right: -28%;
+    width: 90%;
+    opacity: 0.7;
+  }
+
+  .meetings-next::after {
+    right: -16%;
+    width: 50%;
+    opacity: 0.58;
+  }
+
+  .meetings-next h2 {
+    max-width: 100%;
+  }
+
+  .meetings-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .meeting-stat {
+    min-height: 132px;
+    padding: 16px;
+  }
+
+  .agenda-days {
+    padding: 0 12px 12px;
+  }
+
+  .agenda-day {
+    grid-template-columns: 68px minmax(0, 1fr);
+  }
+
+  .agenda-day__date {
+    padding: 20px 10px 18px 0;
+  }
+
+  .agenda-day__date > strong {
+    font-size: 1.4rem;
+  }
+
+  .agenda-day__date > small {
+    padding: 2px 5px;
+    font-size: 0.52rem;
+  }
+
+  .agenda-day__date::after {
+    top: 31px;
+  }
+
+  .agenda-day__meetings {
+    padding: 12px 0 12px 10px;
+  }
+
+  .agenda-meeting {
+    min-height: 92px;
+    padding-right: 34px;
+    grid-template-columns: 66px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .agenda-meeting__badges {
+    grid-column: 2;
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .agenda-meeting__arrow {
+    right: 10px;
+  }
+
+  .booking-image-picker {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .booking-image-picker__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-layout {
+    display: block;
+    padding-bottom: 70px;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: block;
+    width: 100%;
+    height: 68px;
+    padding: 8px;
+    overflow: visible;
+    border-top: 1px solid var(--border);
+    border-right: 0;
+  }
+
+  .sidebar > .brand,
+  .sidebar-profile {
+    display: none;
+  }
+
+  .sidebar::before,
+  .sidebar::after {
+    display: none;
+  }
+
+  .sidebar-utilities {
+    position: fixed;
+    top: 12px;
+    right: 14px;
+    display: flex;
+    margin: 0;
+    padding: 5px;
+    border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+    border-radius: 4px 14px 4px 14px;
+    background: color-mix(in srgb, var(--surface-sidebar) 92%, transparent);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .utility-control {
+    width: auto;
+    min-width: 42px;
+    padding: 0 9px;
+  }
+
+  .utility-control span {
+    display: block;
+  }
+
+  .language-control {
+    width: auto;
+  }
+
+  .language-menu {
+    top: calc(100% + 9px);
+    right: 0;
+    bottom: auto;
+    left: auto;
+    transform: none;
+  }
+
+  .main-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin: 0;
+    flex-direction: row;
+  }
+
+  .nav-item {
+    width: 44px;
+    min-height: 44px;
+  }
+
+  .nav-item:nth-child(n + 6) {
+    display: none;
+  }
+
+  .page {
+    min-height: calc(100vh - 68px);
+    padding: 68px 14px 40px;
+  }
+
+  .calendar-page {
+    padding-top: 68px;
+  }
+
+  .room-identity {
+    gap: 11px;
+  }
+
+  .room-visual--hero {
+    width: 60px;
+    height: 50px;
+  }
+
+  .room-identity h1 {
+    font-size: 1.8rem;
+  }
+
+  .calendar-table-toolbar {
+    padding: 12px 18px;
+    grid-template-areas:
+      "navigation"
+      "filters"
+      "timezone";
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .week-grid {
+    --time-column-width: 58px;
+  }
+
+  .time-column span {
+    right: 7px;
+  }
+
+  .calendar-legend {
+    min-width: 100%;
+    padding-right: 16px;
+    padding-left: 16px;
+    gap: 10px 16px;
+  }
+
+  .calendar-legend__hint {
+    display: none;
+  }
+
+  .page-header,
+  .calendar-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page-header__actions {
+    justify-content: flex-start;
+  }
+
+  .toolbar-actions {
+    justify-content: space-between;
+  }
+
+  .schedule-controls .toolbar-actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .schedule-controls .toolbar-actions > .button {
+    width: 100%;
+    justify-content: center;
+    grid-column: 1 / -1;
+  }
+
+  .compact-select {
+    flex: 1;
+  }
+
+  .compact-select select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .timezone-note {
+    align-items: flex-start;
+  }
+
+  .week-nav {
+    flex-wrap: wrap;
+  }
+
+  .week-nav strong {
+    width: 100%;
+    margin: 6px 0 0;
+  }
+
+  .form-grid,
+  .people-picker,
+  .recurrence-settings {
+    grid-template-columns: 1fr;
+  }
+
+  .access-notice {
+    margin: 68px 14px 0;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .modal-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modal-backdrop::before,
+  .modal-backdrop::after {
+    opacity: 0.56;
+  }
+
+  .modal {
+    --modal-pad: 20px;
+    max-height: 92vh;
+    border-radius: 0;
+    box-shadow:
+      0 -24px 70px rgba(0, 5, 24, 0.52),
+      inset 0 5px color-mix(in srgb, var(--primary) 72%, var(--cyan));
+  }
+
+  .modal__header {
+    min-height: 84px;
+    padding-top: calc(var(--modal-pad) + 8px);
+  }
+
+  .modal__header::before {
+    right: 54px;
+    font-size: clamp(2.5rem, 16vw, 4.2rem);
+  }
+
+  .modal__header h2 {
+    font-size: clamp(1.2rem, 6vw, 1.6rem);
+  }
+
+  .modal__actions {
+    justify-content: stretch;
+  }
+
+  .modal__actions .button {
+    flex: 1;
+  }
+
+  .access-dialog__danger {
+    grid-template-columns: 1fr;
+  }
+
+  .access-policy {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .booking-row {
+    grid-template-columns: 50px 1fr;
+  }
+
+  .booking-row__aside {
+    align-items: flex-start;
+    grid-column: 2;
+  }
+
+  .settings-card,
+  .admin-card {
+    padding: 18px;
+  }
+
+  .room-management__bar,
+  .room-workspace__hero,
+  .room-workspace__section-heading,
+  .room-workspace__form-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .room-management__bar {
+    padding: 16px;
+  }
+
+  .room-management__bar .button,
+  .room-workspace__section-heading .button {
+    width: 100%;
+  }
+
+  .room-workspace__hero {
+    display: flex;
+  }
+
+  .room-workspace__hero .room-image-actions {
+    justify-content: flex-start;
+  }
+
+  .room-workspace__settings {
+    grid-template-columns: 1fr;
+  }
+
+  .room-admin-row {
+    align-items: flex-start;
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .room-image-actions {
+    grid-column: 2;
+  }
+
+  .room-hours-editor {
+    width: 100%;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+  }
+
+  .room-hours-editor__time {
+    grid-template-columns: minmax(90px, 1fr) auto minmax(90px, 1fr);
+  }
+
+  .room-hours-editor input {
+    width: 100%;
+  }
+
+  .recurrence-segmented {
+    grid-template-columns: 1fr;
+  }
+
+  .weekday-picker {
+    flex-wrap: wrap;
+  }
+
+  .avatar-picker {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .notification-matrix__header {
+    display: none;
+  }
+
+  .notification-matrix__row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 12px 6px;
+  }
+
+  .notification-matrix__row > strong {
+    padding: 2px 8px 12px;
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  .notification-matrix__row label {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .notification-channel-label {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    font-weight: 600;
+  }
+
+  .admin-user-row {
+    grid-template-columns: 42px 1fr;
+  }
+
+  .tabs {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .tabs button {
+    flex: 0 0 auto;
+  }
+
+  .admin-booking-search,
+  .admin-booking-search .field {
+    width: 100%;
+  }
+
+  .admin-booking-search {
+    min-width: 100%;
+  }
+
+  .admin-booking-row {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .admin-booking-row > button {
+    justify-self: start;
+    grid-column: 2;
+  }
+
+  .admin-user-row__status,
+  .admin-user-row__actions {
+    grid-column: 2;
+  }
+
+  .audit-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 12px 0;
+  }
+
+  .activity-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .notification-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .notification-row__copy {
+    min-width: 0;
+  }
+
+  .notification-row__read {
+    flex-basis: 100%;
+  }
+
+  .notification-row__action {
+    margin-left: 21px;
+  }
+
+  .activity-row > time,
+  .activity-details {
+    grid-column: 1 / -1;
+  }
+
+  .auth-panel {
+    padding: 76px 18px 24px;
+  }
+
+  .auth-language-control {
+    top: 18px;
+    right: 18px;
+  }
+}
