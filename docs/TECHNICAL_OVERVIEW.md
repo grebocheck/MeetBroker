@@ -314,6 +314,10 @@ templates мають окремі типізовані каталоги. Тем�
 - password/email security events;
 - operator CLI actions.
 
+Read projections цих трьох адміністративних списків формує окремий
+`AdminQueriesService`; command-oriented `AdminService` не змішує їх із
+керуванням доступом, кімнатами й недоступністю.
+
 Користувацьке сповіщення окремо повідомляє, якщо зустріч змінив або скасував
 адміністратор.
 
@@ -342,9 +346,9 @@ npm run test:e2e
 
 Поточний набір містить:
 
-- 72 API unit-тести;
+- 76 API unit-тестів;
 - 61 web unit-тест;
-- 33 Playwright-сценарії у 13 файлах;
+- 34 Playwright-сценарії у 13 файлах;
 - API integration для транзакцій, дозволів, RSVP, upload policy,
   адміністративних меж, timezone і конкурентності;
 - browser regression для критичних маршрутів і чотирьох viewport;

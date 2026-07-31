@@ -59,6 +59,56 @@ test("prevents an administrator from revoking their own access", async () => {
   await expectApiError(response, "CANNOT_REVOKE_SELF");
 });
 
+test("serves normalized paginated administration projections", async () => {
+  const [usersResponse, bookingsResponse, auditResponse] = await Promise.all([
+    admin.get("/api/admin/users", {
+      params: {
+        status: "unknown",
+        search: "admin",
+        page: "0",
+        limit: "500",
+      },
+    }),
+    admin.get("/api/admin/bookings", {
+      params: { page: "1", limit: "1" },
+    }),
+    admin.get("/api/admin/audit", {
+      params: { page: "1", limit: "1" },
+    }),
+  ]);
+
+  expect(usersResponse.ok()).toBe(true);
+  expect(bookingsResponse.ok()).toBe(true);
+  expect(auditResponse.ok()).toBe(true);
+
+  const users = (await usersResponse.json()) as {
+    users: Array<{ email: string }>;
+    pagination: Pagination;
+  };
+  const bookings = (await bookingsResponse.json()) as {
+    bookings: unknown[];
+    pagination: Pagination;
+  };
+  const audit = (await auditResponse.json()) as {
+    logs: unknown[];
+    pagination: Pagination;
+  };
+
+  expect(users.users.some((entry) => entry.email.includes("admin"))).toBe(true);
+  expect(users.pagination).toMatchObject({ page: 1, limit: 100 });
+  expect(bookings.bookings.length).toBeLessThanOrEqual(1);
+  expect(bookings.pagination).toMatchObject({ page: 1, limit: 1 });
+  expect(audit.logs.length).toBeLessThanOrEqual(1);
+  expect(audit.pagination).toMatchObject({ page: 1, limit: 1 });
+});
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 async function authenticatedContext(
   email: string,
   password: string,

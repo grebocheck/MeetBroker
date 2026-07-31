@@ -11,7 +11,7 @@
 | Модуль | Поточний розмір | Наступна доречна межа |
 | --- | ---: | --- |
 | `BookingsService` | 1090 рядків | Окремі create/update/cancel command services |
-| `AdminService` | 1276 рядків | Поділ command orchestration і read projections |
+| `AdminService` | 849 рядків | Room availability і media command boundaries |
 | `schedule-and-overlays.css` | 1631 рядок | Calendar grid, drawer і modal sections |
 | `foundation.css` | 1523 рядки | Tokens/base, shell та canonical controls |
 | `administration.css` | 1188 рядків | Users, bookings, rooms та audit surfaces |
@@ -28,6 +28,8 @@
 - schedule, персональну історію та календарні проєкції винесено в
   `BookingQueriesService`, а спільну перевірку діапазону зведено до одного
   boundary;
+- списки користувачів, бронювань і журнал аудиту винесено в
+  `AdminQueriesService` зі спільною нормалізацією пагінації;
 - адміністративні UI-вкладки та editor-компоненти вже мають предметні межі;
 - CSS розділено з колишнього єдиного файла на тематичні модулі.
 
