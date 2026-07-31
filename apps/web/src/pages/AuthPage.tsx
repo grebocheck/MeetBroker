@@ -6,6 +6,7 @@ import { localeOptions, useI18n } from "../lib/i18n";
 import { Link, navigate } from "../lib/router";
 import type { User } from "../types";
 import { BrandMark } from "../components/BrandMark";
+import { authErrorTarget, type AuthField } from "./auth-error";
 
 export function AuthPage({ path }: { path: string }) {
   if (path.startsWith("/register")) return <Register />;
@@ -102,6 +103,13 @@ function Login() {
       navigate("/calendar", true);
     },
   });
+  const errorTarget = login.error
+    ? authErrorTarget(login.error, "login")
+    : undefined;
+  const fieldError =
+    errorTarget === "password"
+      ? errorMessage(login.error, t, "auth.loginError")
+      : undefined;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -118,28 +126,48 @@ function Login() {
               : t("auth.registeredReady")}
           </div>
         )}
-        <label className="field">
+        <label
+          className={`field${errorTarget === "email" ? " field--invalid" : ""}`}
+        >
           <span>Email</span>
           <input
             type="email"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              login.reset();
+            }}
             autoComplete="email"
+            aria-invalid={errorTarget === "email" || undefined}
             required
           />
         </label>
-        <label className="field">
+        <label className={`field${fieldError ? " field--invalid" : ""}`}>
           <span>{t("auth.password")}</span>
           <input
             type="password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              login.reset();
+            }}
             autoComplete="current-password"
+            aria-invalid={Boolean(fieldError) || undefined}
+            aria-describedby={fieldError ? "login-password-error" : undefined}
             minLength={8}
             required
           />
+          {fieldError && (
+            <small
+              className="field-error"
+              id="login-password-error"
+              role="alert"
+            >
+              {fieldError}
+            </small>
+          )}
         </label>
-        {login.error && (
+        {login.error && errorTarget === "form" && (
           <div className="form-error" role="alert">
             {errorMessage(login.error, t, "auth.loginError")}
           </div>
@@ -180,6 +208,9 @@ function Register() {
       );
     },
   });
+  const errorTarget = register.error
+    ? authErrorTarget(register.error, "register")
+    : undefined;
 
   return (
     <AuthFrame
@@ -193,28 +224,47 @@ function Register() {
           register.mutate();
         }}
       >
-        {(["name", "email", "password"] as const).map((field) => (
-          <label className="field" key={field}>
-            <span>
-              {field === "name"
-                ? t("auth.name")
-                : field === "email"
-                  ? "Email"
-                  : t("auth.password")}
-            </span>
-            <input
-              type={field === "password" ? "password" : field}
-              value={values[field]}
-              onChange={(event) =>
-                setValues({ ...values, [field]: event.target.value })
-              }
-              minLength={field === "password" ? 8 : undefined}
-              maxLength={field === "password" ? 72 : undefined}
-              required
-            />
-          </label>
-        ))}
-        {register.error && (
+        {(["name", "email", "password"] as const).map((field: AuthField) => {
+          const fieldError =
+            errorTarget === field
+              ? errorMessage(register.error, t, "auth.registerError")
+              : undefined;
+          const errorId = `register-${field}-error`;
+          return (
+            <label
+              className={`field${fieldError ? " field--invalid" : ""}`}
+              key={field}
+            >
+              <span>
+                {field === "name"
+                  ? t("auth.name")
+                  : field === "email"
+                    ? "Email"
+                    : t("auth.password")}
+              </span>
+              <input
+                type={field === "password" ? "password" : field}
+                value={values[field]}
+                onChange={(event) => {
+                  setValues({ ...values, [field]: event.target.value });
+                  register.reset();
+                }}
+                autoComplete={field === "password" ? "new-password" : field}
+                aria-invalid={Boolean(fieldError) || undefined}
+                aria-describedby={fieldError ? errorId : undefined}
+                minLength={field === "password" ? 8 : undefined}
+                maxLength={field === "password" ? 72 : undefined}
+                required
+              />
+              {fieldError && (
+                <small className="field-error" id={errorId} role="alert">
+                  {fieldError}
+                </small>
+              )}
+            </label>
+          );
+        })}
+        {register.error && errorTarget === "form" && (
           <div className="form-error" role="alert">
             {errorMessage(register.error, t, "auth.registerError")}
           </div>
