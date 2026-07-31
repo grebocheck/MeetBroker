@@ -25,13 +25,17 @@ import {
   RevokeAccessDto,
   UpdateRoomDto,
 } from "./admin.dto";
+import { AdminQueriesService } from "./admin-queries.service";
 import { AdminService } from "./admin.service";
 
 @Approved()
 @AdminOnly()
 @Controller("api/admin")
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly queries: AdminQueriesService,
+  ) {}
 
   @Get("users")
   async users(
@@ -40,7 +44,7 @@ export class AdminController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
-    return this.admin.users(status, search, Number(page), Number(limit));
+    return this.queries.users(status, search, Number(page), Number(limit));
   }
 
   @Get("bookings")
@@ -51,7 +55,7 @@ export class AdminController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
-    return this.admin.bookings(
+    return this.queries.bookings(
       status,
       search,
       roomId,
@@ -181,6 +185,11 @@ export class AdminController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
-    return this.admin.auditLogs(category, search, Number(page), Number(limit));
+    return this.queries.auditLogs(
+      category,
+      search,
+      Number(page),
+      Number(limit),
+    );
   }
 }
