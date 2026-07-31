@@ -24,7 +24,11 @@ export default defineConfig({
     },
     {
       name: "desktop-wide",
-      testIgnore: [/api-.*\.spec\.ts/, /timezone\.spec\.ts/],
+      testIgnore: [
+        /api-.*\.spec\.ts/,
+        /mobile-booking\.spec\.ts/,
+        /timezone\.spec\.ts/,
+      ],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 1000 },
@@ -32,7 +36,11 @@ export default defineConfig({
     },
     {
       name: "desktop-compact",
-      testIgnore: [/api-.*\.spec\.ts/, /timezone\.spec\.ts/],
+      testIgnore: [
+        /api-.*\.spec\.ts/,
+        /mobile-booking\.spec\.ts/,
+        /timezone\.spec\.ts/,
+      ],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1024, height: 900 },
@@ -40,7 +48,11 @@ export default defineConfig({
     },
     {
       name: "tablet",
-      testIgnore: [/api-.*\.spec\.ts/, /timezone\.spec\.ts/],
+      testIgnore: [
+        /api-.*\.spec\.ts/,
+        /mobile-booking\.spec\.ts/,
+        /timezone\.spec\.ts/,
+      ],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 768, height: 1024 },
