@@ -24,6 +24,7 @@ import {
   RespondToInvitationDto,
   UpdateBookingDto,
 } from "./bookings.dto";
+import { BookingQueriesService } from "./booking-queries.service";
 import { BookingsService } from "./bookings.service";
 import { OpenEventsService } from "./open-events.service";
 
@@ -32,6 +33,7 @@ import { OpenEventsService } from "./open-events.service";
 export class BookingsController {
   constructor(
     private readonly bookings: BookingsService,
+    private readonly queries: BookingQueriesService,
     private readonly openEvents: OpenEventsService,
   ) {}
 
@@ -42,7 +44,7 @@ export class BookingsController {
     @Query("from") from: string,
     @Query("to") to: string,
   ) {
-    return this.bookings.schedule(request.user.id, roomId, from, to);
+    return this.queries.schedule(request.user.id, roomId, from, to);
   }
 
   @Post()
@@ -58,7 +60,7 @@ export class BookingsController {
   ) {
     const section = sectionRaw === "past" ? "past" : "future";
     const offset = Number(offsetRaw ?? 0);
-    return this.bookings.mine(
+    return this.queries.mine(
       request.user.id,
       section,
       Number.isInteger(offset) ? offset : 0,
@@ -71,7 +73,7 @@ export class BookingsController {
     @Query("from") from: string,
     @Query("to") to: string,
   ) {
-    return this.bookings.myCalendar(request.user.id, from, to);
+    return this.queries.myCalendar(request.user.id, from, to);
   }
 
   @Patch(":id")
