@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { errorMessage } from "../lib/error-message";
 import { useI18n } from "../lib/i18n";
@@ -97,6 +97,30 @@ export function MyMeetingsPage({ user }: { user: User }) {
       queryClient.invalidateQueries({ queryKey: ["open-events"] }),
     ]);
   };
+  const respond = useMutation({
+    mutationFn: (bookingId: string) =>
+      api<void>(`/api/bookings/${bookingId}/respond`, {
+        method: "POST",
+        body: JSON.stringify({ status: "ACCEPTED" }),
+      }),
+    onSuccess: async (_, bookingId) => {
+      setSelected((meeting) =>
+        meeting?.id === bookingId
+          ? { ...meeting, participantStatus: "ACCEPTED" }
+          : meeting,
+      );
+      await invalidate();
+    },
+  });
+  const openDetails = (meeting: MyMeeting) => {
+    respond.reset();
+    setSelected(meeting);
+  };
+  const closeDetails = () => {
+    if (respond.isPending) return;
+    respond.reset();
+    setSelected(null);
+  };
 
   return (
     <div
@@ -154,7 +178,7 @@ export function MyMeetingsPage({ user }: { user: User }) {
               <Button
                 variant="secondary"
                 size="small"
-                onClick={() => setSelected(nextMeeting)}
+                onClick={() => openDetails(nextMeeting)}
               >
                 {t("meetings.details")}
               </Button>
@@ -266,7 +290,7 @@ export function MyMeetingsPage({ user }: { user: User }) {
                         dayMeetings.map((meeting) => (
                           <button
                             className={`agenda-meeting agenda-meeting--${meeting.meetingType.toLowerCase()}`}
-                            onClick={() => setSelected(meeting)}
+                            onClick={() => openDetails(meeting)}
                             key={meeting.id}
                           >
                             <span className="agenda-meeting__time">
@@ -316,8 +340,8 @@ export function MyMeetingsPage({ user }: { user: User }) {
       {selected && (
         <ModalLayer
           role="presentation"
-          onDismiss={() => setSelected(null)}
-          onMouseDown={() => setSelected(null)}
+          onDismiss={closeDetails}
+          onMouseDown={closeDetails}
         >
           <section
             className="modal meeting-details-modal"
@@ -337,8 +361,9 @@ export function MyMeetingsPage({ user }: { user: User }) {
               </div>
               <button
                 className="icon-button"
-                onClick={() => setSelected(null)}
+                onClick={closeDetails}
                 aria-label={t("close")}
+                disabled={respond.isPending}
               >
                 ×
               </button>
@@ -371,21 +396,42 @@ export function MyMeetingsPage({ user }: { user: User }) {
                 </span>
               </p>
             </div>
+            {respond.error && (
+              <div className="form-error" role="alert">
+                {errorMessage(respond.error, t, "meetings.acceptError")}
+              </div>
+            )}
             <div className="modal__actions">
-              <Button variant="secondary" onClick={() => setSelected(null)}>
+              <Button
+                variant="secondary"
+                onClick={closeDetails}
+                disabled={respond.isPending}
+              >
                 {t("close")}
               </Button>
               {selected.myRole === "ORGANIZER" && (
                 <Button
                   variant="secondary"
+                  disabled={respond.isPending}
                   onClick={() => {
                     setEditing(selected);
-                    setSelected(null);
+                    closeDetails();
                   }}
                 >
                   {t("meetings.edit")}
                 </Button>
               )}
+              {selected.myRole === "PARTICIPANT" &&
+                selected.participantStatus === "INVITED" &&
+                new Date(selected.endsAt) > new Date() && (
+                  <Button
+                    variant="primary"
+                    disabled={respond.isPending}
+                    onClick={() => respond.mutate(selected.id)}
+                  >
+                    {t("bookings.accept")}
+                  </Button>
+                )}
               {selected.meetingType === "ONLINE" && selected.meetingUrl && (
                 <a
                   className="button button--primary"

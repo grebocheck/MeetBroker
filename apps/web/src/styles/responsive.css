@@ -243,10 +243,11 @@
   }
 
   .calendar-toolbar__word {
-    top: -26px;
-    right: 0;
-    max-width: 64%;
-    font-size: clamp(4.8rem, 10vw, 11.5rem);
+    top: 2px;
+    right: 6px;
+    max-width: calc(100% - 32px);
+    font-size: clamp(2.75rem, 13vw, 5.8rem);
+    line-height: 0.88;
   }
 
   .calendar-toolbar .room-identity {

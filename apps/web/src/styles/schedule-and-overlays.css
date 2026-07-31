@@ -43,17 +43,19 @@
   position: absolute;
   z-index: -1;
   top: 16px;
-  right: 0;
-  overflow: hidden;
-  max-width: 64%;
+  right: clamp(6px, 1.5vw, 22px);
+  width: max-content;
+  overflow: visible;
+  max-width: calc(100% - 120px);
   color: var(--page-mark-color);
   font-family: "Unbounded Variable", sans-serif;
-  font-size: clamp(4.8rem, 10vw, 11.5rem);
+  font-size: clamp(4.4rem, 9.5vw, 10.5rem);
   font-style: italic;
   font-weight: 850;
   letter-spacing: -0.09em;
   line-height: 0.82;
   pointer-events: none;
+  text-align: right;
   text-transform: uppercase;
   white-space: nowrap;
 }
