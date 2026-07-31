@@ -54,7 +54,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium firefox webkit
       - run: cp .env.example .env
       - name: Validate production Compose override
         run: >-
@@ -74,6 +74,10 @@ jobs:
             test "$(docker inspect --format '{{json .HostConfig.CapDrop}}' "$container_id")" = '["ALL"]'
           done
       - run: npm run smoke
+      - name: Reset in-memory guards before browser suite
+        run: |
+          docker compose restart api
+          docker compose up -d --wait --wait-timeout 60
       - run: npm run test:e2e
       - name: Container logs
         if: failure()
