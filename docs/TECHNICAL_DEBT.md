@@ -15,7 +15,7 @@
 | `schedule-and-overlays.css` | 1631 рядок | Calendar grid, drawer і modal sections |
 | `foundation.css` | 1523 рядки | Tokens/base, shell та canonical controls |
 | `administration.css` | 1188 рядків | Users, bookings, rooms та audit surfaces |
-| `ProfilePage` | 712 рядків | Identity, integrations і security cards |
+| `NotificationSettingsCard` | 374 рядки | Email і Telegram integration sections |
 
 ## Уже зменшені ризики
 
@@ -31,6 +31,8 @@
 - списки користувачів, бронювань і журнал аудиту винесено в
   `AdminQueriesService` зі спільною нормалізацією пагінації;
 - адміністративні UI-вкладки та editor-компоненти вже мають предметні межі;
+- `ProfilePage` зменшено з 712 до 28 рядків: identity, notification matrix,
+  security і timezone data мають окремі компоненти/модулі;
 - CSS розділено з колишнього єдиного файла на тематичні модулі.
 
 ## Правила подальшого рефакторингу
