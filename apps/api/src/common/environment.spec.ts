@@ -75,4 +75,22 @@ describe("validateEnvironment", () => {
       }),
     ).toThrow("SMTP_HOST");
   });
+
+  it("rejects demo mode and demo seed in production", () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnvironment,
+        NODE_ENV: "production",
+        SMTP_HOST: "smtp.example.com",
+      }),
+    ).toThrow("APP_MODE must be PRODUCTION");
+
+    expect(() =>
+      validateEnvironment({
+        ...validEnvironment,
+        APP_MODE: "PRODUCTION",
+        SEED_DEMO_DATA: "true",
+      }),
+    ).toThrow("SEED_DEMO_DATA must be false");
+  });
 });
