@@ -749,6 +749,8 @@ export const de = {
   "errors.EVENT_FULL": "Der Raum hat keine verbleibende Kapazität.",
   "errors.INTERNAL_ERROR":
     "Ein Serverfehler ist aufgetreten. Bitte versuchen Sie es später noch einmal.",
+  "errors.PAYLOAD_TOO_LARGE":
+    "Die Datei ist zu groß. Wählen Sie ein Bild mit bis zu 12 MB.",
   "errors.INVALID_BLOCK_RANGE": "Der nicht verfügbare Zeitraum ist ungültig.",
   "errors.INVALID_CREDENTIALS":
     "Die E-Mail-Adresse oder das Passwort ist falsch.",

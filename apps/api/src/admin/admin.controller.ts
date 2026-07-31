@@ -13,10 +13,10 @@ import {
   UploadedFile,
   UseInterceptors,
 } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AdminOnly, Approved } from "../auth/auth.decorators";
 import { apiError } from "../common/http-error";
+import { MAX_UPLOAD_BYTES } from "../common/upload-policy";
 import type { AuthenticatedRequest } from "../common/types";
 import {
   CreateRoomBlockDto,
@@ -31,16 +31,7 @@ import { AdminService } from "./admin.service";
 @AdminOnly()
 @Controller("api/admin")
 export class AdminController {
-  private readonly maxRoomImageBytes: number;
-
-  constructor(
-    private readonly admin: AdminService,
-    config: ConfigService,
-  ) {
-    this.maxRoomImageBytes = Number(
-      config.get("MAX_ROOM_IMAGE_BYTES") ?? 12_582_912,
-    );
-  }
+  constructor(private readonly admin: AdminService) {}
 
   @Get("users")
   async users(
@@ -133,7 +124,7 @@ export class AdminController {
   @Post("rooms/:id/image")
   @UseInterceptors(
     FileInterceptor("image", {
-      limits: { fileSize: 12_582_912, files: 1 },
+      limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },
     }),
   )
   uploadRoomImage(
@@ -141,7 +132,7 @@ export class AdminController {
     @Param("id") id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file || file.size > this.maxRoomImageBytes) {
+    if (!file) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "ROOM_IMAGE_REQUIRED",

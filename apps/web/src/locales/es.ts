@@ -731,6 +731,8 @@ export const es = {
   "errors.EVENT_FULL": "La sala no tiene capacidad restante.",
   "errors.INTERNAL_ERROR":
     "Se produjo un error en el servidor. Inténtelo de nuevo más tarde.",
+  "errors.PAYLOAD_TOO_LARGE":
+    "El archivo es demasiado grande. Elija una imagen de hasta 12 MB.",
   "errors.INVALID_BLOCK_RANGE": "El período no disponible no es válido.",
   "errors.INVALID_CREDENTIALS":
     "La dirección de correo electrónico o la contraseña son incorrectas.",
