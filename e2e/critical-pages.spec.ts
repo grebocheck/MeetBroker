@@ -89,6 +89,23 @@ test("calendar defaults to seven days and offers fitted mode", async ({
   await expect(modeButtons).toHaveCount(2);
   await expect(modeButtons.first()).toHaveAttribute("aria-pressed", "true");
   await expect(modeButtons.first()).toContainText("7");
+  await expect(modeButtons.nth(1)).toContainText("Авто");
+
+  const pageMark = await page
+    .locator(".calendar-toolbar__word")
+    .evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return {
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        left: bounds.left,
+        right: bounds.right,
+        viewportWidth: document.documentElement.clientWidth,
+      };
+    });
+  expect(pageMark.scrollWidth).toBeLessThanOrEqual(pageMark.clientWidth + 1);
+  expect(pageMark.left).toBeGreaterThanOrEqual(-1);
+  expect(pageMark.right).toBeLessThanOrEqual(pageMark.viewportWidth + 1);
 
   await modeButtons.nth(1).click();
   await expect(modeButtons.nth(1)).toHaveAttribute("aria-pressed", "true");

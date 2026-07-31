@@ -40,6 +40,7 @@ export default defineConfig({
         /api-.*\.spec\.ts/,
         /auth-errors\.spec\.ts/,
         /mobile-booking\.spec\.ts/,
+        /my-meetings-invitation\.spec\.ts/,
         /timezone\.spec\.ts/,
       ],
       use: {
@@ -53,6 +54,7 @@ export default defineConfig({
         /api-.*\.spec\.ts/,
         /auth-errors\.spec\.ts/,
         /mobile-booking\.spec\.ts/,
+        /my-meetings-invitation\.spec\.ts/,
         /timezone\.spec\.ts/,
       ],
       use: {
@@ -65,6 +67,7 @@ export default defineConfig({
       testIgnore: [
         /api-.*\.spec\.ts/,
         /auth-errors\.spec\.ts/,
+        /my-meetings-invitation\.spec\.ts/,
         /timezone\.spec\.ts/,
       ],
       use: {
