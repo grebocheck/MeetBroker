@@ -137,9 +137,26 @@ TELEGRAM_UPDATE_MODE=POLLING
 `getUpdates`, тому `localhost` не потребує публічного HTTPS webhook.
 `WEBHOOK` призначений для production із доступним з інтернету
 `APP_ORIGIN`; webhook треба зареєструвати на
-`/api/notifications/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>`.
+`/api/notifications/telegram/webhook`, а секрет передати Telegram як
+`secret_token`. Тоді Telegram надсилатиме його в заголовку
+`X-Telegram-Bot-Api-Secret-Token`, і значення не потраплятиме в URL та
+access logs:
+
+```bash
+curl --request POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
+  --form "url=https://meetbroker.example/api/notifications/telegram/webhook" \
+  --form "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+```
+
 `DISABLED` повністю вимикає отримання команд ботом. Polling і webhook не
 можуть працювати для одного бота одночасно.
+
+Під час запуску API централізовано перевіряє критичні env-значення:
+PostgreSQL URL, origin, порти, boolean-прапорці, IANA timezone, Telegram
+режим і production SMTP. Некоректна або неповна конфігурація завершує
+startup із назвою проблемної змінної замість прихованого частково робочого
+стану. `login`, `register` і підтвердження email мають окремі захисні
+ліміти, а решта API — ширший загальний ліміт.
 
 Підключення з профілю створює одноразовий token на 10 хвилин і показує
 керований діалог: прямий `tg://` deep link для встановленого застосунку,

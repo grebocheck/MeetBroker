@@ -34,7 +34,7 @@ export class TelegramPollingService {
   ) {
     this.token = config.get<string>("TELEGRAM_BOT_TOKEN") || undefined;
     this.mode = parseUpdateMode(
-      config.get<string>("TELEGRAM_UPDATE_MODE") ?? "WEBHOOK",
+      config.get<string>("TELEGRAM_UPDATE_MODE") ?? "DISABLED",
     );
   }
 

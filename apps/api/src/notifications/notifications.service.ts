@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import type { PoolClient } from "pg";
 import { DatabaseService } from "../database/database.service";
 import {
@@ -42,7 +42,8 @@ export interface NotificationEvent {
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private readonly botUsername: string | undefined;
-  private readonly webhookSecret: string;
+  private readonly webhookSecret: string | undefined;
+  private readonly webhookEnabled: boolean;
 
   constructor(
     private readonly database: DatabaseService,
@@ -53,7 +54,9 @@ export class NotificationsService {
       config.get<string>("TELEGRAM_BOT_USERNAME"),
     );
     this.webhookSecret =
-      config.get<string>("TELEGRAM_WEBHOOK_SECRET") ?? "change-me";
+      config.get<string>("TELEGRAM_WEBHOOK_SECRET") || undefined;
+    this.webhookEnabled =
+      config.get<string>("TELEGRAM_UPDATE_MODE") === "WEBHOOK";
   }
 
   async enqueue(client: PoolClient, event: NotificationEvent): Promise<void> {
@@ -289,14 +292,25 @@ export class NotificationsService {
   }
 
   async handleTelegramStart(
-    secret: string,
+    secret: string | undefined,
     text: string | undefined,
     chatId: string | undefined,
   ): Promise<{ connected: boolean; chatId?: string }> {
-    if (secret !== this.webhookSecret || !chatId) {
+    if (!this.validWebhookSecret(secret) || !chatId) {
       throw apiError(HttpStatus.NOT_FOUND, "NOT_FOUND", "Webhook not found");
     }
     return this.connectTelegramStart(text, chatId);
+  }
+
+  private validWebhookSecret(candidate: string | undefined): boolean {
+    if (!this.webhookEnabled || !this.webhookSecret || !candidate) {
+      return false;
+    }
+    const expected = Buffer.from(this.webhookSecret);
+    const provided = Buffer.from(candidate);
+    return (
+      expected.length === provided.length && timingSafeEqual(expected, provided)
+    );
   }
 
   async connectTelegramStart(
