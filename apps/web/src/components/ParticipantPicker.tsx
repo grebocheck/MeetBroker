@@ -7,7 +7,7 @@ export function ParticipantPicker({
   people,
   selectedIds,
   maxSelected,
-  onChange
+  onChange,
 }: {
   people: Person[];
   selectedIds: string[];
@@ -20,7 +20,7 @@ export function ParticipantPicker({
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectedPeople = people.filter((person) => selectedSet.has(person.id));
   const filteredPeople = people.filter((person) =>
-    person.name.toLocaleLowerCase(locale).includes(normalizedQuery)
+    person.name.toLocaleLowerCase(locale).includes(normalizedQuery),
   );
   const limitReached = selectedIds.length >= maxSelected;
 
@@ -119,7 +119,7 @@ export function ParticipantPicker({
         {limitReached
           ? t("participants.capacityReached")
           : t("participants.seatsAvailable", {
-              count: Math.max(0, maxSelected - selectedIds.length)
+              count: Math.max(0, maxSelected - selectedIds.length),
             })}
       </small>
     </div>

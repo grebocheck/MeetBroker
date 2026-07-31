@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  dateKeyInZone,
-  officeDateWindow,
-  officeLocalToInstant,
-} from "./date";
+import { dateKeyInZone, officeDateWindow, officeLocalToInstant } from "./date";
 
 describe("officeDateWindow", () => {
   it("starts on the reference day and returns six consecutive dates", () => {

@@ -15,8 +15,19 @@ export function BrandMark() {
           strokeLinejoin="round"
           strokeWidth="3.4"
         />
-        <path className="brand-mark__current" d="M6 32h28" stroke="currentColor" strokeWidth="2" />
-        <circle className="brand-mark__signal" cx="31" cy="8" r="3" fill="currentColor" />
+        <path
+          className="brand-mark__current"
+          d="M6 32h28"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <circle
+          className="brand-mark__signal"
+          cx="31"
+          cy="8"
+          r="3"
+          fill="currentColor"
+        />
       </svg>
     </span>
   );

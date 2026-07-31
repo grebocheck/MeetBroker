@@ -1,9 +1,4 @@
-import {
-  AnchorHTMLAttributes,
-  MouseEvent,
-  useEffect,
-  useState
-} from "react";
+import { AnchorHTMLAttributes, MouseEvent, useEffect, useState } from "react";
 
 export function navigate(path: string, replace = false): void {
   if (replace) window.history.replaceState({}, "", path);
@@ -13,7 +8,7 @@ export function navigate(path: string, replace = false): void {
 
 export function usePath(): string {
   const [path, setPath] = useState(
-    window.location.pathname + window.location.search
+    window.location.pathname + window.location.search,
   );
   useEffect(() => {
     const listener = () =>

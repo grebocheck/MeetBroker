@@ -91,9 +91,7 @@ export function RoomBlockDrawer({
           <strong>{room.name}</strong>
           {recurrence && (
             <>
-              <span className="detail-label">
-                {t("calendar.recurrence")}
-              </span>
+              <span className="detail-label">{t("calendar.recurrence")}</span>
               <strong>{recurrence}</strong>
               {recurrenceUntil && (
                 <p className="drawer__meta">

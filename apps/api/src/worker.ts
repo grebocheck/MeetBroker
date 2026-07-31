@@ -6,7 +6,7 @@ import { TelegramPollingService } from "./notifications/telegram-polling.service
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.createApplicationContext(AppModule, {
-    logger: ["log", "warn", "error"]
+    logger: ["log", "warn", "error"],
   });
   const worker = app.get(NotificationWorkerService);
   const telegramPolling = app.get(TelegramPollingService);
@@ -22,20 +22,20 @@ async function bootstrap(): Promise<void> {
   while (!stopping) {
     const [processed] = await Promise.all([
       worker.processBatch(),
-      telegramPolling.processUpdates()
+      telegramPolling.processUpdates(),
     ]);
     await new Promise((resolveWait) =>
       setTimeout(
         resolveWait,
-        processed > 0 ? 250 : telegramPolling.isEnabled() ? 0 : 2_000
-      )
+        processed > 0 ? 250 : telegramPolling.isEnabled() ? 0 : 2_000,
+      ),
     );
   }
 }
 
 bootstrap().catch((error: unknown) => {
   process.stderr.write(
-    `${error instanceof Error ? error.stack : String(error)}\n`
+    `${error instanceof Error ? error.stack : String(error)}\n`,
   );
   process.exitCode = 1;
 });

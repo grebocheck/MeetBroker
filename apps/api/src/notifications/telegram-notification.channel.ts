@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import {
   NotificationChannel,
   NotificationMessage,
-  NotificationRecipient
+  NotificationRecipient,
 } from "./notification-channel";
 
 @Injectable()
@@ -26,7 +26,7 @@ export class TelegramNotificationChannel extends NotificationChannel {
 
   async deliver(
     recipient: NotificationRecipient,
-    message: NotificationMessage
+    message: NotificationMessage,
   ): Promise<void> {
     if (!this.token || !recipient.telegramChatId) return;
     const response = await fetch(
@@ -36,10 +36,10 @@ export class TelegramNotificationChannel extends NotificationChannel {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           chat_id: recipient.telegramChatId,
-          text: `${message.title}\n\n${message.body}`
+          text: `${message.title}\n\n${message.body}`,
         }),
-        signal: AbortSignal.timeout(10_000)
-      }
+        signal: AbortSignal.timeout(10_000),
+      },
     );
     if (!response.ok) {
       throw new Error(`Telegram returned ${response.status}`);

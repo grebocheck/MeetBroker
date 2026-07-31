@@ -23,12 +23,12 @@ async function status(): Promise<void> {
 
   try {
     const historyExists = await client.query<{ exists: boolean }>(
-      "select to_regclass('public.pgmigrations') is not null as exists"
+      "select to_regclass('public.pgmigrations') is not null as exists",
     );
     const applied = historyExists.rows[0]?.exists
       ? (
           await client.query<{ name: string }>(
-            "select name from pgmigrations order by run_on, id"
+            "select name from pgmigrations order by run_on, id",
           )
         ).rows.map((row) => row.name)
       : [];
@@ -36,7 +36,7 @@ async function status(): Promise<void> {
     for (const file of files) {
       const name = basename(file, ".sql");
       process.stdout.write(
-        `${applied.includes(name) ? "[applied]" : "[pending]"} ${file}\n`
+        `${applied.includes(name) ? "[applied]" : "[pending]"} ${file}\n`,
       );
     }
     const knownNames = files.map((file) => basename(file, ".sql"));
@@ -52,7 +52,7 @@ async function status(): Promise<void> {
 
 status().catch((error: unknown) => {
   process.stderr.write(
-    `${error instanceof Error ? error.stack : String(error)}\n`
+    `${error instanceof Error ? error.stack : String(error)}\n`,
   );
   process.exitCode = 1;
 });

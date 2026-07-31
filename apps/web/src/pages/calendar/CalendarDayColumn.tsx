@@ -105,12 +105,8 @@ export function CalendarDayColumn({
               block.seriesId ? " booking-block--recurring" : ""
             }`}
             style={{
-              top:
-                ((minutes - startMinutes) / 30) * CALENDAR_SLOT_HEIGHT + 2,
-              height: Math.max(
-                28,
-                (duration / 30) * CALENDAR_SLOT_HEIGHT - 4,
-              ),
+              top: ((minutes - startMinutes) / 30) * CALENDAR_SLOT_HEIGHT + 2,
+              height: Math.max(28, (duration / 30) * CALENDAR_SLOT_HEIGHT - 4),
             }}
             key={block.id}
             onClick={() => onBlock(block)}
@@ -144,12 +140,8 @@ export function CalendarDayColumn({
               booking.imageUrl ? " booking-block--image" : ""
             }`}
             style={{
-              top:
-                ((minutes - startMinutes) / 30) * CALENDAR_SLOT_HEIGHT + 2,
-              height: Math.max(
-                28,
-                (duration / 30) * CALENDAR_SLOT_HEIGHT - 4,
-              ),
+              top: ((minutes - startMinutes) / 30) * CALENDAR_SLOT_HEIGHT + 2,
+              height: Math.max(28, (duration / 30) * CALENDAR_SLOT_HEIGHT - 4),
               ...(booking.imageUrl
                 ? {
                     backgroundImage: `linear-gradient(90deg, rgba(2, 15, 39, .9), rgba(2, 24, 56, .48)), url("${booking.imageUrl}")`,

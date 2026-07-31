@@ -38,9 +38,7 @@ export function BookingDrawer({
                   aria-hidden="true"
                 />
                 <span>
-                  {booking.seriesId
-                    ? `${t("calendar.seriesEvent")} · `
-                    : ""}
+                  {booking.seriesId ? `${t("calendar.seriesEvent")} · ` : ""}
                   {booking.participationMode === "OPEN"
                     ? t("calendar.openEvent")
                     : t("calendar.invitationEvent")}
@@ -78,9 +76,7 @@ export function BookingDrawer({
           </div>
           {booking.participants.length > 0 && (
             <>
-              <span className="detail-label">
-                {t("calendar.participants")}
-              </span>
+              <span className="detail-label">{t("calendar.participants")}</span>
               <div className="avatar-stack">
                 {booking.participants.slice(0, 8).map((person) => (
                   <Avatar

@@ -8,8 +8,7 @@ import {
 import { addDays, set } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 
-const baseURL =
-  process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:8080";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:8080";
 const officeTimeZone = "Europe/Kyiv";
 
 let owner: APIRequestContext;
@@ -18,10 +17,7 @@ let roomId: string;
 
 test.beforeAll(async () => {
   owner = await authenticatedContext("user@meetbroker.local", "User12345!");
-  colleague = await authenticatedContext(
-    "anna@meetbroker.local",
-    "User12345!",
-  );
+  colleague = await authenticatedContext("anna@meetbroker.local", "User12345!");
   const roomsResponse = await owner.get("/api/rooms");
   expect(roomsResponse.ok()).toBe(true);
   const rooms = (await roomsResponse.json()) as {

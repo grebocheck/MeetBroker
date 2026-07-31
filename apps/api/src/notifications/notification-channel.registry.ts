@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   ExternalNotificationChannelName,
-  NotificationChannel
+  NotificationChannel,
 } from "./notification-channel";
 import { EmailNotificationChannel } from "./email-notification.channel";
 import { TelegramNotificationChannel } from "./telegram-notification.channel";
@@ -15,14 +15,14 @@ export class NotificationChannelRegistry {
 
   constructor(
     email: EmailNotificationChannel,
-    telegram: TelegramNotificationChannel
+    telegram: TelegramNotificationChannel,
   ) {
     this.channels = new Map<
       ExternalNotificationChannelName,
       NotificationChannel
     >([
       [email.name, email],
-      [telegram.name, telegram]
+      [telegram.name, telegram],
     ]);
   }
 
@@ -32,7 +32,7 @@ export class NotificationChannelRegistry {
 
   available(): NotificationChannel[] {
     return [...this.channels.values()].filter((channel) =>
-      channel.isAvailable()
+      channel.isAvailable(),
     );
   }
 }

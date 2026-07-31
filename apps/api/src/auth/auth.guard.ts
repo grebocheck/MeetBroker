@@ -2,7 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   HttpStatus,
-  Injectable
+  Injectable,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Reflector } from "@nestjs/core";
@@ -15,14 +15,10 @@ import type {
   CurrentUser,
   Locale,
   Role,
-  Theme
+  Theme,
 } from "../common/types";
 import { hashToken } from "../common/crypto";
-import {
-  IS_PUBLIC,
-  REQUIRE_ADMIN,
-  REQUIRE_APPROVED
-} from "./auth.decorators";
+import { IS_PUBLIC, REQUIRE_ADMIN, REQUIRE_APPROVED } from "./auth.decorators";
 
 interface AuthRow {
   session_id: string;
@@ -50,7 +46,7 @@ export class AuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly database: DatabaseService,
     private readonly accessPolicies: AccessPoliciesService,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.cookieName =
       config.get<string>("SESSION_COOKIE_NAME") ?? "meetbroker_session";
@@ -59,7 +55,7 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
       context.getHandler(),
-      context.getClass()
+      context.getClass(),
     ]);
     if (isPublic) return true;
 
@@ -69,7 +65,7 @@ export class AuthGuard implements CanActivate {
       throw apiError(
         HttpStatus.UNAUTHORIZED,
         "UNAUTHENTICATED",
-        "Authentication is required"
+        "Authentication is required",
       );
     }
 
@@ -97,7 +93,7 @@ export class AuthGuard implements CanActivate {
           and s.revoked_at is null
           and s.expires_at > now()
       `,
-      [hashToken(token)]
+      [hashToken(token)],
     );
 
     const row = result.rows[0];
@@ -105,7 +101,7 @@ export class AuthGuard implements CanActivate {
       throw apiError(
         HttpStatus.UNAUTHORIZED,
         "SESSION_EXPIRED",
-        "Session has expired"
+        "Session has expired",
       );
     }
 
@@ -123,7 +119,7 @@ export class AuthGuard implements CanActivate {
       timezone: row.timezone,
       emailVerified: Boolean(row.email_verified_at),
       approved: Boolean(row.approved_at),
-      accessRevoked: Boolean(row.access_revoked_at)
+      accessRevoked: Boolean(row.access_revoked_at),
     };
     user.activeRestrictions = await this.accessPolicies.listActive(user.id);
 
@@ -131,7 +127,7 @@ export class AuthGuard implements CanActivate {
       throw apiError(
         HttpStatus.FORBIDDEN,
         "ACCESS_REVOKED",
-        "Corporate access has been revoked"
+        "Corporate access has been revoked",
       );
     }
     this.accessPolicies.assertRestrictionsAllowed(
@@ -141,25 +137,25 @@ export class AuthGuard implements CanActivate {
 
     const requireApproved = this.reflector.getAllAndOverride<boolean>(
       REQUIRE_APPROVED,
-      [context.getHandler(), context.getClass()]
+      [context.getHandler(), context.getClass()],
     );
     if (requireApproved && (!user.emailVerified || !user.approved)) {
       throw apiError(
         HttpStatus.FORBIDDEN,
         "APPROVAL_REQUIRED",
-        "Corporate approval is required"
+        "Corporate approval is required",
       );
     }
 
     const requireAdmin = this.reflector.getAllAndOverride<boolean>(
       REQUIRE_ADMIN,
-      [context.getHandler(), context.getClass()]
+      [context.getHandler(), context.getClass()],
     );
     if (requireAdmin && user.role !== "ADMIN") {
       throw apiError(
         HttpStatus.FORBIDDEN,
         "ADMIN_REQUIRED",
-        "Administrator access is required"
+        "Administrator access is required",
       );
     }
 

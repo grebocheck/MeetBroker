@@ -3,7 +3,7 @@ import {
   Catch,
   ExceptionFilter,
   HttpException,
-  HttpStatus
+  HttpStatus,
 } from "@nestjs/common";
 import type { Response } from "express";
 
@@ -30,7 +30,7 @@ export class ApiErrorFilter implements ExceptionFilter {
 
     if (!(exception instanceof HttpException)) {
       process.stderr.write(
-        `${exception instanceof Error ? exception.stack : String(exception)}\n`
+        `${exception instanceof Error ? exception.stack : String(exception)}\n`,
       );
     }
 
@@ -38,8 +38,8 @@ export class ApiErrorFilter implements ExceptionFilter {
       error: {
         code: payload.code ?? this.defaultCode(status),
         message: payload.message ?? "Request failed",
-        details: payload.details
-      }
+        details: payload.details,
+      },
     });
   }
 

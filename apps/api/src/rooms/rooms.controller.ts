@@ -12,8 +12,8 @@ export class RoomsController {
     const parsed = minCapacity ? Number(minCapacity) : undefined;
     return {
       rooms: await this.rooms.list(
-        Number.isInteger(parsed) && Number(parsed) > 0 ? parsed : undefined
-      )
+        Number.isInteger(parsed) && Number(parsed) > 0 ? parsed : undefined,
+      ),
     };
   }
 }

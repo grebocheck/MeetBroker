@@ -22,7 +22,7 @@ import {
   CancelBookingDto,
   CreateBookingDto,
   RespondToInvitationDto,
-  UpdateBookingDto
+  UpdateBookingDto,
 } from "./bookings.dto";
 import { BookingsService } from "./bookings.service";
 
@@ -33,10 +33,10 @@ export class BookingsController {
 
   constructor(
     private readonly bookings: BookingsService,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.maxBookingImageBytes = Number(
-      config.get("MAX_BOOKING_IMAGE_BYTES") ?? 12_582_912
+      config.get("MAX_BOOKING_IMAGE_BYTES") ?? 12_582_912,
     );
   }
 
@@ -45,16 +45,13 @@ export class BookingsController {
     @Req() request: AuthenticatedRequest,
     @Query("roomId") roomId: string,
     @Query("from") from: string,
-    @Query("to") to: string
+    @Query("to") to: string,
   ) {
     return this.bookings.schedule(request.user.id, roomId, from, to);
   }
 
   @Post()
-  create(
-    @Req() request: AuthenticatedRequest,
-    @Body() dto: CreateBookingDto
-  ) {
+  create(@Req() request: AuthenticatedRequest, @Body() dto: CreateBookingDto) {
     return this.bookings.create(request.user, dto);
   }
 
@@ -62,14 +59,14 @@ export class BookingsController {
   async mine(
     @Req() request: AuthenticatedRequest,
     @Query("section") sectionRaw?: string,
-    @Query("offset") offsetRaw?: string
+    @Query("offset") offsetRaw?: string,
   ) {
     const section = sectionRaw === "past" ? "past" : "future";
     const offset = Number(offsetRaw ?? 0);
     return this.bookings.mine(
       request.user.id,
       section,
-      Number.isInteger(offset) ? offset : 0
+      Number.isInteger(offset) ? offset : 0,
     );
   }
 
@@ -77,7 +74,7 @@ export class BookingsController {
   myCalendar(
     @Req() request: AuthenticatedRequest,
     @Query("from") from: string,
-    @Query("to") to: string
+    @Query("to") to: string,
   ) {
     return this.bookings.myCalendar(request.user.id, from, to);
   }
@@ -87,7 +84,7 @@ export class BookingsController {
   async update(
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
-    @Body() dto: UpdateBookingDto
+    @Body() dto: UpdateBookingDto,
   ): Promise<void> {
     await this.bookings.update(request.user, id, dto);
   }
@@ -95,19 +92,19 @@ export class BookingsController {
   @Post(":id/image")
   @UseInterceptors(
     FileInterceptor("image", {
-      limits: { fileSize: 12_582_912, files: 1 }
-    })
+      limits: { fileSize: 12_582_912, files: 1 },
+    }),
   )
   uploadImage(
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
-    @UploadedFile() file: Express.Multer.File
+    @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file || file.size > this.maxBookingImageBytes) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "BOOKING_IMAGE_REQUIRED",
-        "Booking image is required or is too large to process"
+        "Booking image is required or is too large to process",
       );
     }
     return this.bookings.saveImage(request.user, id, file);
@@ -117,7 +114,7 @@ export class BookingsController {
   @HttpCode(204)
   async removeImage(
     @Req() request: AuthenticatedRequest,
-    @Param("id") id: string
+    @Param("id") id: string,
   ): Promise<void> {
     await this.bookings.removeImage(request.user, id);
   }
@@ -125,7 +122,7 @@ export class BookingsController {
   @Get("open")
   async openEvents(@Req() request: AuthenticatedRequest) {
     return {
-      events: await this.bookings.openEvents(request.user.id)
+      events: await this.bookings.openEvents(request.user.id),
     };
   }
 
@@ -134,7 +131,7 @@ export class BookingsController {
   async respond(
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
-    @Body() dto: RespondToInvitationDto
+    @Body() dto: RespondToInvitationDto,
   ): Promise<void> {
     await this.bookings.respond(request.user.id, id, dto);
   }
@@ -143,7 +140,7 @@ export class BookingsController {
   @HttpCode(204)
   async join(
     @Req() request: AuthenticatedRequest,
-    @Param("id") id: string
+    @Param("id") id: string,
   ): Promise<void> {
     await this.bookings.joinOpenEvent(request.user.id, id);
   }
@@ -152,7 +149,7 @@ export class BookingsController {
   @HttpCode(204)
   async leave(
     @Req() request: AuthenticatedRequest,
-    @Param("id") id: string
+    @Param("id") id: string,
   ): Promise<void> {
     await this.bookings.leaveOpenEvent(request.user.id, id);
   }
@@ -162,7 +159,7 @@ export class BookingsController {
   async cancel(
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
-    @Body() dto: CancelBookingDto
+    @Body() dto: CancelBookingDto,
   ): Promise<void> {
     await this.bookings.cancel(request.user, id, dto);
   }

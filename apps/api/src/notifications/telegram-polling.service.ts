@@ -30,11 +30,11 @@ export class TelegramPollingService {
 
   constructor(
     private readonly notifications: NotificationsService,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.token = config.get<string>("TELEGRAM_BOT_TOKEN") || undefined;
     this.mode = parseUpdateMode(
-      config.get<string>("TELEGRAM_UPDATE_MODE") ?? "WEBHOOK"
+      config.get<string>("TELEGRAM_UPDATE_MODE") ?? "WEBHOOK",
     );
   }
 
@@ -47,16 +47,16 @@ export class TelegramPollingService {
     try {
       const params = new URLSearchParams({
         timeout: "2",
-        allowed_updates: JSON.stringify(["message"])
+        allowed_updates: JSON.stringify(["message"]),
       });
       if (this.offset) params.set("offset", String(this.offset));
       const response = await fetch(
-        `https://api.telegram.org/bot${this.token}/getUpdates?${params}`
+        `https://api.telegram.org/bot${this.token}/getUpdates?${params}`,
       );
       const body = (await response.json()) as TelegramUpdatesResponse;
       if (!response.ok || !body.ok) {
         throw new Error(
-          body.description ?? `Telegram getUpdates returned ${response.status}`
+          body.description ?? `Telegram getUpdates returned ${response.status}`,
         );
       }
 
@@ -67,7 +67,7 @@ export class TelegramPollingService {
         const chatId = update.message?.chat?.id;
         const result = await this.notifications.connectTelegramStart(
           update.message?.text,
-          chatId === undefined ? undefined : String(chatId)
+          chatId === undefined ? undefined : String(chatId),
         );
         if (result.connected) connected += 1;
       }
@@ -77,8 +77,7 @@ export class TelegramPollingService {
       }
       return connected;
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
       if (message !== this.lastError) {
         this.logger.warn(`Telegram polling unavailable: ${message}`);
         this.lastError = message;
@@ -97,7 +96,5 @@ function parseUpdateMode(value: string): TelegramUpdateMode {
   ) {
     return normalized;
   }
-  throw new Error(
-    "TELEGRAM_UPDATE_MODE must be WEBHOOK, POLLING or DISABLED"
-  );
+  throw new Error("TELEGRAM_UPDATE_MODE must be WEBHOOK, POLLING or DISABLED");
 }

@@ -44,8 +44,8 @@ describe("intervalsOverlap", () => {
         new Date("2026-08-10T07:00:00Z"),
         new Date("2026-08-10T08:00:00Z"),
         new Date("2026-08-10T08:00:00Z"),
-        new Date("2026-08-10T09:00:00Z")
-      )
+        new Date("2026-08-10T09:00:00Z"),
+      ),
     ).toBe(false);
   });
 
@@ -55,8 +55,8 @@ describe("intervalsOverlap", () => {
         new Date("2026-08-10T07:00:00Z"),
         new Date("2026-08-10T08:00:00Z"),
         new Date("2026-08-10T07:30:00Z"),
-        new Date("2026-08-10T08:30:00Z")
-      )
+        new Date("2026-08-10T08:30:00Z"),
+      ),
     ).toBe(true);
   });
 
@@ -72,8 +72,8 @@ describe("intervalsOverlap", () => {
         new Date("2026-08-10T07:00:00Z"),
         new Date("2026-08-10T08:00:00Z"),
         new Date("2026-08-11T07:00:00Z"),
-        new Date("2026-08-11T08:00:00Z")
-      )
+        new Date("2026-08-11T08:00:00Z"),
+      ),
     ).toBe(false);
   });
 });
@@ -88,8 +88,8 @@ describe("validateBookingRules", () => {
         officeTimeZone: "Europe/Kyiv",
         workStart: "09:00",
         workEnd: "19:00",
-        workingDays: [1, 2, 3, 4, 5]
-      })
+        workingDays: [1, 2, 3, 4, 5],
+      }),
     ).toBeNull();
   });
 
@@ -102,8 +102,8 @@ describe("validateBookingRules", () => {
         officeTimeZone: "Europe/Kyiv",
         workStart: "09:00",
         workEnd: "19:00",
-        workingDays: [1, 2, 3, 4, 5]
-      })
+        workingDays: [1, 2, 3, 4, 5],
+      }),
     ).toBe("OUTSIDE_WORKING_HOURS");
   });
 
@@ -116,8 +116,8 @@ describe("validateBookingRules", () => {
         officeTimeZone: "Europe/Kyiv",
         workStart: "09:00",
         workEnd: "19:00",
-        workingDays: [1, 2, 3, 4, 5]
-      })
+        workingDays: [1, 2, 3, 4, 5],
+      }),
     ).toBe("OUTSIDE_WORKING_DAYS");
   });
 });

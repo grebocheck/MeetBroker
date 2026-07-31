@@ -209,8 +209,7 @@ async function verifyRoomAvailabilityRules(adminCookie, room) {
       (block) =>
         block.recurrence === "DAILY" &&
         block.recurrenceInterval === 2 &&
-        block.recurrenceUntil ===
-          dateKey(recurrenceUntil, officeTimeZone) &&
+        block.recurrenceUntil === dateKey(recurrenceUntil, officeTimeZone) &&
         !Object.hasOwn(block, "privateNote"),
     ),
     "Public schedule does not expose safe recurrence details",
@@ -451,11 +450,7 @@ async function createUpdateAndCancelBooking(
   throw new Error("Could not find an available weekday smoke-test slot");
 }
 
-async function verifyCriticalBookingGuards(
-  ownerCookie,
-  otherCookie,
-  room,
-) {
+async function verifyCriticalBookingGuards(ownerCookie, otherCookie, room) {
   const postBooking = (cookie, startsAt, endsAt, title) =>
     fetch(`${baseUrl}/api/bookings`, {
       method: "POST",
@@ -553,17 +548,14 @@ async function verifyCriticalBookingGuards(
     const winner = created[0];
     const nonOwnerCookie =
       winner.cookie === ownerCookie ? otherCookie : ownerCookie;
-    const forbidden = await fetch(
-      `${baseUrl}/api/bookings/${winner.body.id}`,
-      {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-          cookie: nonOwnerCookie,
-        },
-        body: JSON.stringify({ reason: "Must not be allowed" }),
+    const forbidden = await fetch(`${baseUrl}/api/bookings/${winner.body.id}`, {
+      method: "DELETE",
+      headers: {
+        "content-type": "application/json",
+        cookie: nonOwnerCookie,
       },
-    );
+      body: JSON.stringify({ reason: "Must not be allowed" }),
+    });
     const forbiddenBody = await forbidden.json();
     check(
       forbidden.status === 403 &&
@@ -591,19 +583,16 @@ async function verifyCapabilityPolicies({
 }) {
   const restrictions = [];
   const createRestriction = async (capability, reason, roomId) => {
-    const created = await request(
-      `/api/admin/users/${userId}/restrictions`,
-      {
-        method: "POST",
-        headers: { cookie: adminCookie },
-        body: JSON.stringify({
-          capability,
-          roomId,
-          expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),
-          reason,
-        }),
-      },
-    );
+    const created = await request(`/api/admin/users/${userId}/restrictions`, {
+      method: "POST",
+      headers: { cookie: adminCookie },
+      body: JSON.stringify({
+        capability,
+        roomId,
+        expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+        reason,
+      }),
+    });
     check(created.body?.id, `${capability} restriction was not created`);
     restrictions.push(created.body.id);
     return created.body.id;
@@ -699,7 +688,10 @@ async function verifyCapabilityPolicies({
       });
       const body = await response.json();
       if (response.status === 409) continue;
-      check(response.status === 201, `Policy fixture booking failed: ${JSON.stringify(body)}`);
+      check(
+        response.status === 201,
+        `Policy fixture booking failed: ${JSON.stringify(body)}`,
+      );
       ownedBooking = body;
       break;
     }

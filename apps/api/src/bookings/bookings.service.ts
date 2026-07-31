@@ -280,9 +280,7 @@ export class BookingsService {
     const endsAt = new Date(dto.endsAt);
     const meetingType = dto.meetingType ?? "ROOM";
     const meetingUrl =
-      meetingType === "ONLINE"
-        ? normalizeMeetingUrl(dto.meetingUrl)
-        : null;
+      meetingType === "ONLINE" ? normalizeMeetingUrl(dto.meetingUrl) : null;
     if (meetingType === "ROOM" && !dto.roomId) {
       throw apiError(
         HttpStatus.BAD_REQUEST,

@@ -13,7 +13,7 @@ export function PendingApprovalPage({ user }: { user: User }) {
     onSuccess: () => {
       queryClient.clear();
       navigate("/login", true);
-    }
+    },
   });
   return (
     <div className="status-page">
@@ -21,14 +21,10 @@ export function PendingApprovalPage({ user }: { user: User }) {
         <span className="status-icon">✓</span>
         <span className="eyebrow">{t("auth.corporateAccess")}</span>
         <h1>
-          {user.emailVerified
-            ? t("approval.title")
-            : t("approval.verifyTitle")}
+          {user.emailVerified ? t("approval.title") : t("approval.verifyTitle")}
         </h1>
         <p>
-          {user.emailVerified
-            ? t("approval.body")
-            : t("approval.verifyBody")}
+          {user.emailVerified ? t("approval.body") : t("approval.verifyBody")}
         </p>
         <div className="status-card__meta">
           <span>{user.name}</span>

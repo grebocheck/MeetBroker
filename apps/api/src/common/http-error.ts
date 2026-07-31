@@ -4,7 +4,7 @@ export function apiError(
   status: HttpStatus,
   code: string,
   message: string,
-  details?: unknown
+  details?: unknown,
 ): HttpException {
   return new HttpException({ code, message, details }, status);
 }

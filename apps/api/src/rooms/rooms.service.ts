@@ -33,7 +33,7 @@ export class RoomsService {
           and ($1::integer is null or capacity >= $1)
         order by floor, name
       `,
-      [minCapacity ?? null]
+      [minCapacity ?? null],
     );
 
     return result.rows.map((room) => ({
@@ -46,7 +46,7 @@ export class RoomsService {
       workingDays: room.working_days,
       imageUrl: room.image_path
         ? `/uploads/${room.image_path}`
-        : room.image_url
+        : room.image_url,
     }));
   }
 }

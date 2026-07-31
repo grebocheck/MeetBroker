@@ -1,7 +1,7 @@
 import {
   Injectable,
   OnApplicationShutdown,
-  OnModuleInit
+  OnModuleInit,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -31,7 +31,7 @@ export class DatabaseService implements OnModuleInit, OnApplicationShutdown {
     this.pool = new Pool({
       connectionString,
       max: 15,
-      idleTimeoutMillis: 30_000
+      idleTimeoutMillis: 30_000,
     });
     this.orm = drizzle(this.pool, { schema });
   }
@@ -46,7 +46,7 @@ export class DatabaseService implements OnModuleInit, OnApplicationShutdown {
 
   query<T extends QueryResultRow = QueryResultRow>(
     text: string,
-    values: unknown[] = []
+    values: unknown[] = [],
   ): Promise<QueryResult<T>> {
     return this.pool.query<T>(text, values);
   }
@@ -56,7 +56,7 @@ export class DatabaseService implements OnModuleInit, OnApplicationShutdown {
   }
 
   async transaction<T>(
-    callback: (client: PoolClient) => Promise<T>
+    callback: (client: PoolClient) => Promise<T>,
   ): Promise<T> {
     const client = await this.pool.connect();
     try {

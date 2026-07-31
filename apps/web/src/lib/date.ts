@@ -4,11 +4,11 @@ import { fromZonedTime, toZonedTime } from "date-fns-tz";
 export function officeDateWindow(
   reference: Date,
   officeTimeZone: string,
-  dayCount = 6
+  dayCount = 6,
 ): Date[] {
   const firstDay = startOfDay(toZonedTime(reference, officeTimeZone));
   return Array.from({ length: dayCount }, (_, index) =>
-    addDays(firstDay, index)
+    addDays(firstDay, index),
   );
 }
 
@@ -16,7 +16,7 @@ export function officeLocalToInstant(
   officeDate: Date,
   hours: number,
   minutes: number,
-  officeTimeZone: string
+  officeTimeZone: string,
 ): Date {
   const local = new Date(
     officeDate.getFullYear(),
@@ -25,7 +25,7 @@ export function officeLocalToInstant(
     hours,
     minutes,
     0,
-    0
+    0,
   );
   return fromZonedTime(local, officeTimeZone);
 }
@@ -41,6 +41,6 @@ export function dateKeyInZone(date: Date, timeZone: string): string {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    timeZone
+    timeZone,
   }).format(date);
 }

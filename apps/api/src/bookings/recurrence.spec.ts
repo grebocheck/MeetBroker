@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
-import {
-  buildRecurrenceOccurrences,
-  RecurrenceError,
-} from "./recurrence";
+import { buildRecurrenceOccurrences, RecurrenceError } from "./recurrence";
 
 describe("buildRecurrenceOccurrences", () => {
   it("preserves the selected wall-clock time across daylight saving changes", () => {
@@ -25,8 +22,9 @@ describe("buildRecurrenceOccurrences", () => {
         toZonedTime(occurrence.startsAt, timeZone).getHours(),
       ),
     ).toEqual([10, 10, 10]);
-    expect(occurrences.map((occurrence) => occurrence.startsAt.getUTCHours()))
-      .toEqual([8, 7, 7]);
+    expect(
+      occurrences.map((occurrence) => occurrence.startsAt.getUTCHours()),
+    ).toEqual([8, 7, 7]);
   });
 
   it("rejects a series that exceeds the configured occurrence limit", () => {

@@ -55,7 +55,7 @@ function parseClock(value: string): number {
 }
 
 export function validateBookingRules(
-  input: BookingRuleInput
+  input: BookingRuleInput,
 ): BookingRuleError | null {
   const {
     startsAt,
@@ -70,7 +70,7 @@ export function validateBookingRules(
     startsAt,
     endsAt,
     now,
-    officeTimeZone
+    officeTimeZone,
   });
   if (commonError) return commonError;
 
@@ -137,7 +137,7 @@ export function intervalsOverlap(
   firstStart: Date,
   firstEnd: Date,
   secondStart: Date,
-  secondEnd: Date
+  secondEnd: Date,
 ): boolean {
   return firstStart < secondEnd && firstEnd > secondStart;
 }

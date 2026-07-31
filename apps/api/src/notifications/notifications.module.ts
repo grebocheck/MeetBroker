@@ -15,12 +15,12 @@ import { TelegramPollingService } from "./telegram-polling.service";
     EmailNotificationChannel,
     TelegramNotificationChannel,
     TelegramPollingService,
-    NotificationChannelRegistry
+    NotificationChannelRegistry,
   ],
   exports: [
     NotificationsService,
     NotificationWorkerService,
-    TelegramPollingService
-  ]
+    TelegramPollingService,
+  ],
 })
 export class NotificationsModule {}

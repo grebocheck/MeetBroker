@@ -13,19 +13,19 @@ async function bootstrap(): Promise<void> {
   app.use(cookieParser());
   app.enableCors({
     origin: process.env.APP_ORIGIN ?? "http://localhost:5173",
-    credentials: true
+    credentials: true,
   });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
-      transform: true
-    })
+      transform: true,
+    }),
   );
   app.useGlobalFilters(new ApiErrorFilter());
   app.useStaticAssets(
     process.env.UPLOAD_DIR ?? resolve(process.cwd(), "storage/uploads"),
-    { prefix: "/uploads/" }
+    { prefix: "/uploads/" },
   );
   app.enableShutdownHooks();
 
@@ -34,7 +34,7 @@ async function bootstrap(): Promise<void> {
 
 bootstrap().catch((error: unknown) => {
   process.stderr.write(
-    `${error instanceof Error ? error.stack : String(error)}\n`
+    `${error instanceof Error ? error.stack : String(error)}\n`,
   );
   process.exitCode = 1;
 });

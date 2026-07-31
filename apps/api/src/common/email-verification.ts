@@ -30,11 +30,7 @@ export class EmailVerificationPolicy {
   }
 
   assertDeliveryConfigured(): void {
-    if (
-      !this.required ||
-      this.smtpConfigured ||
-      this.developmentLogEnabled
-    ) {
+    if (!this.required || this.smtpConfigured || this.developmentLogEnabled) {
       return;
     }
     throw apiError(

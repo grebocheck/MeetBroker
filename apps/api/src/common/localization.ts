@@ -48,8 +48,7 @@ const messages = {
     emailChangeAction: "Підтвердьте нову адресу протягом 24 годин: {url}",
     emailChangeAfter: "Якщо це були не ви, не переходьте за посиланням.",
     emailOpenAction: "Відкрити MeetBroker",
-    emailFooter:
-      "Автоматичне повідомлення корпоративного простору MeetBroker.",
+    emailFooter: "Автоматичне повідомлення корпоративного простору MeetBroker.",
     online: "онлайн",
   },
   en: {

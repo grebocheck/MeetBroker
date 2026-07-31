@@ -4,7 +4,7 @@ import nodemailer, { Transporter } from "nodemailer";
 import {
   NotificationChannel,
   NotificationMessage,
-  NotificationRecipient
+  NotificationRecipient,
 } from "./notification-channel";
 import { renderEmailHtml } from "./email-template";
 
@@ -22,8 +22,7 @@ export class EmailNotificationChannel extends NotificationChannel {
     this.from =
       config.get<string>("SMTP_FROM") ??
       "MeetBroker <notifications@example.com>";
-    this.allowDevelopmentLog =
-      config.get<string>("NODE_ENV") !== "production";
+    this.allowDevelopmentLog = config.get<string>("NODE_ENV") !== "production";
     this.transporter = smtpHost
       ? nodemailer.createTransport({
           host: smtpHost,
@@ -32,11 +31,11 @@ export class EmailNotificationChannel extends NotificationChannel {
           auth: config.get<string>("SMTP_USER")
             ? {
                 user: config.get<string>("SMTP_USER"),
-                pass: config.get<string>("SMTP_PASSWORD")
+                pass: config.get<string>("SMTP_PASSWORD"),
               }
             : undefined,
           disableFileAccess: true,
-          disableUrlAccess: true
+          disableUrlAccess: true,
         })
       : null;
   }
@@ -51,14 +50,14 @@ export class EmailNotificationChannel extends NotificationChannel {
 
   async deliver(
     recipient: NotificationRecipient,
-    message: NotificationMessage
+    message: NotificationMessage,
   ): Promise<void> {
     if (!this.transporter) {
       if (!this.allowDevelopmentLog) {
         throw new Error("SMTP delivery is not configured");
       }
       this.logger.log(
-        `[dev-email] ${recipient.email}: ${message.title} — ${message.body}`
+        `[dev-email] ${recipient.email}: ${message.title} — ${message.body}`,
       );
       return;
     }
@@ -67,7 +66,7 @@ export class EmailNotificationChannel extends NotificationChannel {
       to: recipient.email,
       subject: message.title,
       text: message.body,
-      html: renderEmailHtml(message, recipient.locale)
+      html: renderEmailHtml(message, recipient.locale),
     });
   }
 }

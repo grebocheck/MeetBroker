@@ -2,7 +2,7 @@ import type { Room } from "../types";
 
 export function RoomVisual({
   room,
-  size = "hero"
+  size = "hero",
 }: {
   room: Pick<Room, "name" | "imageUrl">;
   size?: "hero" | "compact";

@@ -9,7 +9,7 @@ import {
   Query,
   Req,
   UploadedFile,
-  UseInterceptors
+  UseInterceptors,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -19,7 +19,7 @@ import { Approved } from "../auth/auth.decorators";
 import {
   ChangeEmailDto,
   ChangePasswordDto,
-  UpdateProfileDto
+  UpdateProfileDto,
 } from "./users.dto";
 import { UsersService } from "./users.service";
 
@@ -29,7 +29,7 @@ export class UsersController {
 
   constructor(
     private readonly users: UsersService,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.maxAvatarBytes = Number(config.get("MAX_AVATAR_BYTES") ?? 12_582_912);
   }
@@ -37,17 +37,17 @@ export class UsersController {
   @Patch("me")
   async updateProfile(
     @Req() request: AuthenticatedRequest,
-    @Body() dto: UpdateProfileDto
+    @Body() dto: UpdateProfileDto,
   ) {
     return {
-      user: await this.users.updateProfile(request.user.id, dto)
+      user: await this.users.updateProfile(request.user.id, dto),
     };
   }
 
   @Post("me/email-change")
   requestEmailChange(
     @Req() request: AuthenticatedRequest,
-    @Body() dto: ChangeEmailDto
+    @Body() dto: ChangeEmailDto,
   ) {
     return this.users.requestEmailChange(request.user.id, dto);
   }
@@ -56,30 +56,26 @@ export class UsersController {
   @HttpCode(204)
   async changePassword(
     @Req() request: AuthenticatedRequest,
-    @Body() dto: ChangePasswordDto
+    @Body() dto: ChangePasswordDto,
   ): Promise<void> {
-    await this.users.changePassword(
-      request.user.id,
-      request.sessionId,
-      dto
-    );
+    await this.users.changePassword(request.user.id, request.sessionId, dto);
   }
 
   @Post("me/avatar")
   @UseInterceptors(
     FileInterceptor("avatar", {
-      limits: { fileSize: 12_582_912, files: 1 }
-    })
+      limits: { fileSize: 12_582_912, files: 1 },
+    }),
   )
   uploadAvatar(
     @Req() request: AuthenticatedRequest,
-    @UploadedFile() file: Express.Multer.File
+    @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file || file.size > this.maxAvatarBytes) {
       throw apiError(
         HttpStatus.BAD_REQUEST,
         "AVATAR_REQUIRED",
-        "Avatar file is required or is too large to process"
+        "Avatar file is required or is too large to process",
       );
     }
     return this.users.saveAvatar(request.user.id, file);
@@ -89,10 +85,10 @@ export class UsersController {
   @Get("colleagues")
   async listColleagues(
     @Req() request: AuthenticatedRequest,
-    @Query("search") search?: string
+    @Query("search") search?: string,
   ) {
     return {
-      users: await this.users.listColleagues(request.user.id, search)
+      users: await this.users.listColleagues(request.user.id, search),
     };
   }
 }

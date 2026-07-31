@@ -4,7 +4,7 @@ export interface TelegramConnectLinks {
 }
 
 export function normalizeTelegramBotUsername(
-  value: string | undefined
+  value: string | undefined,
 ): string | undefined {
   const trimmed = value?.trim();
   if (!trimmed) return undefined;
@@ -26,7 +26,7 @@ export function normalizeTelegramBotUsername(
 
 export function telegramConnectLinks(
   botUsername: string,
-  token: string
+  token: string,
 ): TelegramConnectLinks {
   const app = new URL("tg://resolve");
   app.searchParams.set("domain", botUsername);

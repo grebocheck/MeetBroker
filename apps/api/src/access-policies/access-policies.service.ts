@@ -1,9 +1,6 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import { apiError } from "../common/http-error";
-import type {
-  ActiveRestriction,
-  Capability,
-} from "../common/types";
+import type { ActiveRestriction, Capability } from "../common/types";
 import type { SqlExecutor } from "../database/database.service";
 import { DatabaseService } from "../database/database.service";
 

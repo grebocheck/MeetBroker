@@ -5,7 +5,7 @@ import {
   HttpCode,
   Post,
   Req,
-  Res
+  Res,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Response } from "express";
@@ -21,7 +21,7 @@ export class AuthController {
 
   constructor(
     private readonly auth: AuthService,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.cookieName =
       config.get<string>("SESSION_COOKIE_NAME") ?? "meetbroker_session";
@@ -45,7 +45,7 @@ export class AuthController {
   @Post("login")
   async login(
     @Body() dto: LoginDto,
-    @Res({ passthrough: true }) response: Response
+    @Res({ passthrough: true }) response: Response,
   ) {
     const session = await this.auth.login(dto);
     response.cookie(this.cookieName, session.token, {
@@ -53,7 +53,7 @@ export class AuthController {
       sameSite: "lax",
       secure: this.secureCookie,
       expires: session.expiresAt,
-      path: "/"
+      path: "/",
     });
     return { user: session.user };
   }
@@ -62,7 +62,7 @@ export class AuthController {
   @HttpCode(204)
   async logout(
     @Req() request: AuthenticatedRequest,
-    @Res({ passthrough: true }) response: Response
+    @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     await this.auth.logout(request.sessionId);
     response.clearCookie(this.cookieName, { path: "/" });

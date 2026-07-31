@@ -3,7 +3,7 @@ import {
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CHANNELS,
   NotificationCategory,
-  NotificationChannelName
+  NotificationChannelName,
 } from "./notification-channel";
 
 export class UpdateNotificationPreferencesDto {

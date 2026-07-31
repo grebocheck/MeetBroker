@@ -3,10 +3,14 @@ import { ApiError } from "./api";
 import { errorMessage } from "./error-message";
 import { translate } from "./i18n";
 
-const en = (key: Parameters<typeof translate>[1], variables?: Record<string, string | number>) =>
-  translate("en", key, variables);
-const uk = (key: Parameters<typeof translate>[1], variables?: Record<string, string | number>) =>
-  translate("uk", key, variables);
+const en = (
+  key: Parameters<typeof translate>[1],
+  variables?: Record<string, string | number>,
+) => translate("en", key, variables);
+const uk = (
+  key: Parameters<typeof translate>[1],
+  variables?: Record<string, string | number>,
+) => translate("uk", key, variables);
 
 describe("errorMessage", () => {
   it("localizes known API errors instead of exposing server text", () => {
@@ -25,12 +29,9 @@ describe("errorMessage", () => {
   });
 
   it("includes a restriction reason supplied by the API", () => {
-    const error = new ApiError(
-      "CAPABILITY_RESTRICTED",
-      "Restricted",
-      403,
-      { reason: "Repeated misuse" },
-    );
+    const error = new ApiError("CAPABILITY_RESTRICTED", "Restricted", 403, {
+      reason: "Repeated misuse",
+    });
 
     expect(errorMessage(error, en)).toContain("Repeated misuse");
   });
@@ -39,8 +40,8 @@ describe("errorMessage", () => {
     expect(errorMessage(new TypeError("Failed to fetch"), en)).toBe(
       translate("en", "errors.network"),
     );
-    expect(
-      errorMessage(new Error("Sensitive implementation detail"), uk),
-    ).toBe(translate("uk", "errors.generic"));
+    expect(errorMessage(new Error("Sensitive implementation detail"), uk)).toBe(
+      translate("uk", "errors.generic"),
+    );
   });
 });

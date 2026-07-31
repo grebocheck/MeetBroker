@@ -12,15 +12,15 @@ describe("EmailVerificationPolicy", () => {
   });
 
   it("allows an installation to disable verification explicitly", () => {
-    expect(
-      policy({ EMAIL_VERIFICATION_REQUIRED: "false" }).required
-    ).toBe(false);
+    expect(policy({ EMAIL_VERIFICATION_REQUIRED: "false" }).required).toBe(
+      false,
+    );
   });
 
   it("rejects an ambiguous setting", () => {
-    expect(() =>
-      policy({ EMAIL_VERIFICATION_REQUIRED: "sometimes" })
-    ).toThrow("EMAIL_VERIFICATION_REQUIRED must be true or false");
+    expect(() => policy({ EMAIL_VERIFICATION_REQUIRED: "sometimes" })).toThrow(
+      "EMAIL_VERIFICATION_REQUIRED must be true or false",
+    );
   });
 
   it("requires SMTP in production when verification is enabled", () => {
@@ -44,12 +44,12 @@ describe("EmailVerificationPolicy", () => {
   it("builds an absolute, expiring verification link message", () => {
     const message = policy({
       APP_ORIGIN: "https://meet.example.com",
-      SMTP_HOST: "smtp.example.com"
+      SMTP_HOST: "smtp.example.com",
     }).message("CHANGE_EMAIL", "test token");
 
     expect(message.title).toContain("email");
     expect(message.body).toContain(
-      "https://meet.example.com/verify-email?token=test+token"
+      "https://meet.example.com/verify-email?token=test+token",
     );
     expect(message.body).toContain("24");
   });
