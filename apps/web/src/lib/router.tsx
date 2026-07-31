@@ -1,4 +1,10 @@
-import { AnchorHTMLAttributes, MouseEvent, useEffect, useState } from "react";
+import {
+  AnchorHTMLAttributes,
+  MouseEvent,
+  startTransition,
+  useEffect,
+  useState,
+} from "react";
 
 export function navigate(path: string, replace = false): void {
   if (replace) window.history.replaceState({}, "", path);
@@ -11,8 +17,10 @@ export function usePath(): string {
     window.location.pathname + window.location.search,
   );
   useEffect(() => {
-    const listener = () =>
-      setPath(window.location.pathname + window.location.search);
+    const listener = () => {
+      const nextPath = window.location.pathname + window.location.search;
+      startTransition(() => setPath(nextPath));
+    };
     window.addEventListener("popstate", listener);
     return () => window.removeEventListener("popstate", listener);
   }, []);
