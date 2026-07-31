@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  escapeLikePattern,
-  NotificationDeliveryOperationsService,
-} from "./notification-delivery-operations.service";
+import { NotificationDeliveryOperationsService } from "./notification-delivery-operations.service";
 
 function serviceFor(
   delivery:
@@ -88,13 +85,5 @@ describe("NotificationDeliveryOperationsService retry", () => {
       response: { code: "NOTIFICATION_DELIVERY_NOT_FAILED" },
     });
     expect(updateSet).not.toHaveBeenCalled();
-  });
-});
-
-describe("escapeLikePattern", () => {
-  it("escapes every PostgreSQL LIKE metacharacter", () => {
-    expect(escapeLikePattern(String.raw`room\\name_100%`)).toBe(
-      String.raw`room\\\\name\_100\%`,
-    );
   });
 });

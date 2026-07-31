@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from "@nestjs/common";
 import { and, asc, desc, eq, ilike, or, SQL, sql } from "drizzle-orm";
 import { apiError } from "../common/http-error";
 import { recordActivity } from "../common/record-activity";
+import { escapeLikePattern } from "../common/sql-pattern";
 import { DatabaseService } from "../database/database.service";
 import { notificationOutbox } from "../database/schema";
 
@@ -163,8 +164,4 @@ export class NotificationDeliveryOperationsService {
       );
     });
   }
-}
-
-export function escapeLikePattern(value: string): string {
-  return value.replace(/[\\%_]/g, "\\$&");
 }

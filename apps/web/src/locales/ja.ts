@@ -430,6 +430,12 @@ export const ja = {
   "events.subtitle":
     "ミーティング、プレゼンテーション、ディスカッションはチーム全体に開かれています。",
   "events.loadError": "イベントをロードできませんでした",
+  "events.search": "検索",
+  "events.searchPlaceholder": "タイトル、会議室、主催者",
+  "events.count": "{count} 件",
+  "events.itemLabel": "件のイベント",
+  "events.emptySearchTitle": "一致するイベントはありません",
+  "events.emptySearchBody": "別の短いキーワードで検索してください。",
   "events.emptyTitle": "新たに開催中のイベントはありません",
   "events.emptyBody":
     "同僚によって作成されたオープンな会議がここに表示されます。",

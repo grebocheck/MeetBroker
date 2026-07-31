@@ -25,11 +25,15 @@ import {
   UpdateBookingDto,
 } from "./bookings.dto";
 import { BookingsService } from "./bookings.service";
+import { OpenEventsService } from "./open-events.service";
 
 @Approved()
 @Controller("api/bookings")
 export class BookingsController {
-  constructor(private readonly bookings: BookingsService) {}
+  constructor(
+    private readonly bookings: BookingsService,
+    private readonly openEvents: OpenEventsService,
+  ) {}
 
   @Get("schedule")
   schedule(
@@ -111,10 +115,18 @@ export class BookingsController {
   }
 
   @Get("open")
-  async openEvents(@Req() request: AuthenticatedRequest) {
-    return {
-      events: await this.bookings.openEvents(request.user.id),
-    };
+  async listOpenEvents(
+    @Req() request: AuthenticatedRequest,
+    @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.openEvents.list(
+      request.user.id,
+      search,
+      Number(page),
+      Number(limit),
+    );
   }
 
   @Post(":id/respond")
@@ -133,7 +145,7 @@ export class BookingsController {
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
   ): Promise<void> {
-    await this.bookings.joinOpenEvent(request.user.id, id);
+    await this.openEvents.join(request.user.id, id);
   }
 
   @Delete(":id/join")
@@ -142,7 +154,7 @@ export class BookingsController {
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
   ): Promise<void> {
-    await this.bookings.leaveOpenEvent(request.user.id, id);
+    await this.openEvents.leave(request.user.id, id);
   }
 
   @Delete(":id")
