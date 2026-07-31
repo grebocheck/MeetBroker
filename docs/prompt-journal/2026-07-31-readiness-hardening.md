@@ -150,8 +150,9 @@
 
 - API: 47 unit-тестів;
 - web: 51 unit-тест;
-- browser: timezone acceptance, 2 auth acceptance, mobile booking і
-  9 адаптивних сценаріїв;
+- Playwright: 15 сценаріїв — 3 API integration, timezone acceptance,
+  2 auth acceptance, mobile booking і 8 перевірок адаптивного календаря та
+  критичних сторінок;
 - ESLint, typecheck, production web build і перевірка CSS cascade;
 - критичні viewport 1440, 1024, 768 та 390 px без горизонтального
   переповнення.
@@ -163,6 +164,6 @@
 - `ce795a5` — idempotency та cancellation warning pipeline;
 - `c38e2b3`, `3568b20` — доступні польові помилки авторизації та E2E;
 - `c6758a1` — реальний мобільний booking flow;
-- `1103826` — модульний CSS;
+- `1103826`, `bb0893d` — модульний CSS і нормалізація меж секцій;
 - `2261b9a`, `321ef27` — предметний поділ адмінки;
 - `fd05803` — окремий сервіс зображень бронювання та спільний аудит.
