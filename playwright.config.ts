@@ -38,6 +38,7 @@ export default defineConfig({
       name: "desktop-compact",
       testIgnore: [
         /api-.*\.spec\.ts/,
+        /auth-errors\.spec\.ts/,
         /mobile-booking\.spec\.ts/,
         /timezone\.spec\.ts/,
       ],
@@ -50,6 +51,7 @@ export default defineConfig({
       name: "tablet",
       testIgnore: [
         /api-.*\.spec\.ts/,
+        /auth-errors\.spec\.ts/,
         /mobile-booking\.spec\.ts/,
         /timezone\.spec\.ts/,
       ],
@@ -60,7 +62,11 @@ export default defineConfig({
     },
     {
       name: "mobile",
-      testIgnore: [/api-.*\.spec\.ts/, /timezone\.spec\.ts/],
+      testIgnore: [
+        /api-.*\.spec\.ts/,
+        /auth-errors\.spec\.ts/,
+        /timezone\.spec\.ts/,
+      ],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 390, height: 844 },
