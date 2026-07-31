@@ -43,7 +43,7 @@
 
 ## Публікація
 
-- [ ] Release pull request злито в `main`.
-- [ ] Фінальні CI та CodeQL зелені на release SHA.
-- [ ] Створено annotated tag `v0.2.0`.
-- [ ] Опубліковано GitHub Release `v0.2.0`.
+- [x] Release pull request #31 злито в `main`.
+- [x] Фінальні CI та CodeQL зелені на release SHA `98d3ee1`.
+- [x] Створено annotated tag `v0.2.0`.
+- [x] Опубліковано GitHub Release `v0.2.0` із технічним DOCX asset.
