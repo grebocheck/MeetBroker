@@ -9,7 +9,7 @@ import { AccessPoliciesService } from "../access-policies/access-policies.servic
 import { DatabaseService } from "../database/database.service";
 import { apiError } from "../common/http-error";
 import type { CurrentUser, Locale } from "../common/types";
-import { intlLocale, localize } from "../common/localization";
+import { localize } from "../common/localization";
 import { NotificationsService } from "../notifications/notifications.service";
 import type {
   CancelBookingDto,
@@ -24,6 +24,11 @@ import {
   validateBookingRules,
   validateMeetingRules,
 } from "./booking-rules";
+import {
+  bookingChangeCopy,
+  bookingInvitationCopy,
+  bookingRemovalCopy,
+} from "./booking-notification-copy";
 import {
   buildRecurrenceOccurrences,
   RecurrenceError,
@@ -535,12 +540,13 @@ export class BookingsService {
             `,
             [bookingId, participant.id],
           );
-          const invitation = this.invitationCopy(
+          const invitation = bookingInvitationCopy(
             user.name,
             title,
             room?.name ?? null,
             occurrence.startsAt,
             participant,
+            this.officeTimeZone,
           );
           await this.notifications.enqueue(client, {
             eventKey: `booking:${bookingId}:invite:${participant.id}`,
@@ -890,11 +896,12 @@ export class BookingsService {
       const editId = randomUUID();
       const locationName = booking.room_name;
       for (const participant of retained) {
-        const copy = this.changeCopy(
+        const copy = bookingChangeCopy(
           title,
           locationName,
           startsAt,
           participant,
+          this.officeTimeZone,
         );
         await this.notifications.enqueue(client, {
           eventKey: `booking:${bookingId}:update:${editId}:${participant.id}`,
@@ -916,7 +923,7 @@ export class BookingsService {
         });
       }
       for (const participant of removed) {
-        const copy = this.removalCopy(title, participant);
+        const copy = bookingRemovalCopy(title, participant);
         await this.notifications.enqueue(client, {
           eventKey: `booking:${bookingId}:removed:${editId}:${participant.id}`,
           userId: participant.id,
@@ -936,12 +943,13 @@ export class BookingsService {
         });
       }
       for (const participant of added) {
-        const copy = this.invitationCopy(
+        const copy = bookingInvitationCopy(
           user.name,
           title,
           locationName,
           startsAt,
           participant,
+          this.officeTimeZone,
         );
         await this.notifications.enqueue(client, {
           eventKey: `booking:${bookingId}:invite:${editId}:${participant.id}`,
@@ -1912,73 +1920,6 @@ export class BookingsService {
         JSON.stringify(details),
       ],
     );
-  }
-
-  private changeCopy(
-    bookingTitle: string,
-    roomName: string | null,
-    startsAt: Date,
-    participant: ParticipantRow,
-  ): { title: string; body: string } {
-    const date = new Intl.DateTimeFormat(intlLocale(participant.locale), {
-      dateStyle: "full",
-      timeStyle: "short",
-      timeZone: participant.timezone ?? this.officeTimeZone,
-    }).format(startsAt);
-    return {
-      title: localize(participant.locale, "changedTitle"),
-      body: roomName
-        ? localize(participant.locale, "changedRoom", {
-            title: bookingTitle,
-            room: roomName,
-            date,
-          })
-        : localize(participant.locale, "changedOnline", {
-            title: bookingTitle,
-            date,
-          }),
-    };
-  }
-
-  private removalCopy(
-    bookingTitle: string,
-    participant: ParticipantRow,
-  ): { title: string; body: string } {
-    return {
-      title: localize(participant.locale, "removedTitle"),
-      body: localize(participant.locale, "removedBody", {
-        title: bookingTitle,
-      }),
-    };
-  }
-
-  private invitationCopy(
-    organizer: string,
-    bookingTitle: string,
-    roomName: string | null,
-    startsAt: Date,
-    participant: ParticipantRow,
-  ): { title: string; body: string } {
-    const date = new Intl.DateTimeFormat(intlLocale(participant.locale), {
-      dateStyle: "full",
-      timeStyle: "short",
-      timeZone: participant.timezone ?? this.officeTimeZone,
-    }).format(startsAt);
-    return {
-      title: localize(participant.locale, "invitationTitle"),
-      body: roomName
-        ? localize(participant.locale, "invitationRoom", {
-            organizer,
-            title: bookingTitle,
-            room: roomName,
-            date,
-          })
-        : localize(participant.locale, "invitationOnline", {
-            organizer,
-            title: bookingTitle,
-            date,
-          }),
-    };
   }
 
   private ruleException(code: BookingRuleError) {
