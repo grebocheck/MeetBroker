@@ -31,13 +31,13 @@ echo "Validating backup checksums..."
 (cd "$backup_directory" && sha256sum -c SHA256SUMS)
 
 echo "Validating archive formats..."
+tar -tzf "$backup_directory/uploads.tar.gz" >/dev/null
+docker compose up -d --wait postgres
 docker compose exec -T postgres sh -c \
   'exec pg_restore --list' < "$backup_directory/database.dump" >/dev/null
-tar -tzf "$backup_directory/uploads.tar.gz" >/dev/null
 
 echo "Stopping application and notification delivery..."
 docker compose stop worker nginx web api
-docker compose up -d --wait postgres
 
 echo "Replacing the PostgreSQL database..."
 docker compose exec -T postgres sh -c \
