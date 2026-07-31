@@ -34,7 +34,7 @@ Browser
   |
   v
 Nginx :8080
-  |-- /             -> React web :4173
+  |-- /             -> compiled React SPA
   |-- /api/*        -> NestJS API :3000
   `-- /uploads/*    -> NestJS media endpoint
 
@@ -44,9 +44,8 @@ Notification worker -> SMTP / Telegram Bot API
 ```
 
 | Компонент | Технологія | Відповідальність |
-|---|---|---|
-| `nginx` | Nginx 1.27 Alpine | Єдина зовнішня точка, reverse proxy, базові security headers |
-| `web` | React 19, TypeScript, Vite | SPA, календар, форми, адміністративний UI |
+| --- | --- | --- |
+| `nginx` | Nginx 1.27 Alpine + compiled React 19/Vite SPA | Єдина зовнішня точка, статичний frontend, reverse proxy, базові security headers |
 | `api` | NestJS 11, Node.js 24 | HTTP API, правила предметної області, транзакції |
 | `worker` | Той самий API image | Outbox, повторні спроби, email і Telegram |
 | `postgres` | PostgreSQL 17 | Дані, інваріанти, аудит, черга outbox |
@@ -55,7 +54,8 @@ API та worker не збирають два різні application images. Во
 різні entry points одного образу. У single-instance Compose API застосовує
 міграції та опційний demo seed до старту NestJS; worker очікує його health
 check. У multi-replica production міграції мають бути окремим deployment
-job на тому самому image.
+job на тому самому image. Frontend також не потребує окремого runtime:
+multi-stage Nginx image збирає Vite SPA й копіює лише готову статику.
 
 ## 3. Frontend
 
@@ -372,15 +372,18 @@ docker compose up -d --build
 npm run smoke
 ```
 
-Health checks є в PostgreSQL, API, worker, web і Nginx. Worker health
+Health checks є в PostgreSQL, API, worker і Nginx. Worker health
 перевіряє свіжий атомарний heartbeat, а не лише існування процесу.
 Persistent дані
 зберігаються у volumes `postgres-data` та `uploads`. Application-контейнери
 працюють без root, із read-only root filesystem, `cap_drop: ALL`,
 `no-new-privileges`, restart policy та контрольованим graceful shutdown.
 
-Production запуск накладає `compose.production.yaml`: він вимагає `.env`,
-примусово вимикає demo seed і встановлює production application mode.
+DEMO і production використовують один `compose.yaml`. Режим визначається
+через `.env`: для production потрібні `NODE_ENV=production`,
+`APP_MODE=PRODUCTION` і `SEED_DEMO_DATA=false`. API fail-fast перевіряє
+поєднання режимів, а pre-migration guard не дозволяє виконати demo seed у
+production.
 
 Для production потрібно:
 
