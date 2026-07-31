@@ -704,6 +704,7 @@ export const en = {
   "errors.INTERNAL_ERROR": "A server error occurred. Please try again later.",
   "errors.PAYLOAD_TOO_LARGE":
     "The file is too large. Choose an image up to 12 MB.",
+  "errors.TOO_MANY_REQUESTS": "Too many requests. Wait a moment and try again.",
   "errors.INVALID_BLOCK_RANGE": "The unavailable period is invalid.",
   "errors.INVALID_CREDENTIALS": "The email address or password is incorrect.",
   "errors.INVALID_IMAGE": "The file is not a supported image.",

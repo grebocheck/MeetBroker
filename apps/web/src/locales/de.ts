@@ -751,6 +751,8 @@ export const de = {
     "Ein Serverfehler ist aufgetreten. Bitte versuchen Sie es später noch einmal.",
   "errors.PAYLOAD_TOO_LARGE":
     "Die Datei ist zu groß. Wählen Sie ein Bild mit bis zu 12 MB.",
+  "errors.TOO_MANY_REQUESTS":
+    "Zu viele Anfragen. Warten Sie kurz und versuchen Sie es erneut.",
   "errors.INVALID_BLOCK_RANGE": "Der nicht verfügbare Zeitraum ist ungültig.",
   "errors.INVALID_CREDENTIALS":
     "Die E-Mail-Adresse oder das Passwort ist falsch.",

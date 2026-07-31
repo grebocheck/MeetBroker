@@ -704,6 +704,8 @@ export const ja = {
     "サーバー エラーが発生しました。後でもう一度試してください。",
   "errors.PAYLOAD_TOO_LARGE":
     "ファイルが大きすぎます。12 MB 以下の画像を選択してください。",
+  "errors.TOO_MANY_REQUESTS":
+    "リクエストが多すぎます。少し待ってからもう一度お試しください。",
   "errors.INVALID_BLOCK_RANGE": "利用できない期間が無効です。",
   "errors.INVALID_CREDENTIALS":
     "電子メール アドレスまたはパスワードが間違っています。",

@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   Patch,
@@ -88,9 +89,9 @@ export class NotificationsController {
   }
 
   @Public()
-  @Post("telegram/webhook/:secret")
+  @Post("telegram/webhook")
   async telegramWebhook(
-    @Param("secret") secret: string,
+    @Headers("x-telegram-bot-api-secret-token") secret: string | undefined,
     @Body() dto: TelegramWebhookDto,
   ) {
     const chatId = dto.message?.chat?.id;

@@ -50,6 +50,7 @@ export class ApiErrorFilter implements ExceptionFilter {
     if (status === 404) return "NOT_FOUND";
     if (status === 409) return "CONFLICT";
     if (status === 413) return "PAYLOAD_TOO_LARGE";
+    if (status === 429) return "TOO_MANY_REQUESTS";
     return "INTERNAL_ERROR";
   }
 }

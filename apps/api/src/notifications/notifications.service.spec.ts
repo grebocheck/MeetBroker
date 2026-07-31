@@ -54,3 +54,48 @@ describe("NotificationsService enqueue idempotency", () => {
     expect(insert).toHaveBeenCalledTimes(3);
   });
 });
+
+describe("NotificationsService Telegram webhook", () => {
+  const secret = "telegram_webhook_secret_with_32_chars";
+
+  function serviceFor(mode: string, configuredSecret = secret) {
+    const values: Record<string, string> = {
+      TELEGRAM_UPDATE_MODE: mode,
+      TELEGRAM_WEBHOOK_SECRET: configuredSecret,
+    };
+    return new NotificationsService(
+      {} as never,
+      {} as never,
+      { get: (key: string) => values[key] } as never,
+    );
+  }
+
+  it("accepts the configured Telegram header secret in webhook mode", async () => {
+    const service = serviceFor("WEBHOOK");
+    const connect = vi
+      .spyOn(service, "connectTelegramStart")
+      .mockResolvedValue({ connected: true, chatId: "42" });
+
+    await expect(
+      service.handleTelegramStart(secret, "/start token", "42"),
+    ).resolves.toEqual({ connected: true, chatId: "42" });
+    expect(connect).toHaveBeenCalledWith("/start token", "42");
+  });
+
+  it("hides the endpoint for invalid secrets and non-webhook modes", async () => {
+    await expect(
+      serviceFor("WEBHOOK").handleTelegramStart(
+        "incorrect-secret-of-the-same-length",
+        "/start token",
+        "42",
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "NOT_FOUND" },
+    });
+    await expect(
+      serviceFor("POLLING").handleTelegramStart(secret, "/start token", "42"),
+    ).rejects.toMatchObject({
+      response: { code: "NOT_FOUND" },
+    });
+  });
+});

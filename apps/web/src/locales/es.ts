@@ -733,6 +733,8 @@ export const es = {
     "Se produjo un error en el servidor. Inténtelo de nuevo más tarde.",
   "errors.PAYLOAD_TOO_LARGE":
     "El archivo es demasiado grande. Elija una imagen de hasta 12 MB.",
+  "errors.TOO_MANY_REQUESTS":
+    "Demasiadas solicitudes. Espere un momento e inténtelo de nuevo.",
   "errors.INVALID_BLOCK_RANGE": "El período no disponible no es válido.",
   "errors.INVALID_CREDENTIALS":
     "La dirección de correo electrónico o la contraseña son incorrectas.",
