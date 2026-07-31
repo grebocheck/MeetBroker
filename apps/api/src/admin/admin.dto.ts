@@ -3,7 +3,6 @@ import {
   ArrayUnique,
   IsArray,
   IsDateString,
-  IsEmail,
   IsIn,
   IsInt,
   IsOptional,

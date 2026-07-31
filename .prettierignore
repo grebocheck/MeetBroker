@@ -1,0 +1,12 @@
+**/dist
+**/node_modules
+coverage
+playwright-report
+test-results
+blob-report
+.codebase-memory
+storage
+apps/web/public
+apps/api/src/database/migrations
+docs
+package-lock.json

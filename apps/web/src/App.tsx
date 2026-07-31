@@ -28,6 +28,20 @@ export function App() {
     }
   }, [path, user]);
 
+  const resolvedTheme = user
+    ? user.theme === "SYSTEM"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : user.theme.toLowerCase()
+    : null;
+  useEffect(() => {
+    document.documentElement.lang = user?.locale ?? publicLocale;
+    if (resolvedTheme) {
+      document.documentElement.dataset.theme = resolvedTheme;
+    }
+  }, [publicLocale, resolvedTheme, user?.locale]);
+
   if (auth.isLoading) {
     return (
       <I18nProvider locale={publicLocale}>
@@ -43,22 +57,12 @@ export function App() {
   }
 
   if (!user) {
-    document.documentElement.lang = publicLocale;
     return (
       <I18nProvider locale={publicLocale}>
         <AuthPage path={path} />
       </I18nProvider>
     );
   }
-
-  const resolvedTheme =
-    user.theme === "SYSTEM"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-      : user.theme.toLowerCase();
-  document.documentElement.dataset.theme = resolvedTheme;
-  document.documentElement.lang = user.locale;
 
   return (
     <I18nProvider locale={user.locale}>

@@ -11,6 +11,9 @@
     "dev:web": "npm run dev --workspace @meetbroker/web",
     "test": "npm run test --workspace @meetbroker/api && npm run test --workspace @meetbroker/web",
     "typecheck": "npm run typecheck --workspace @meetbroker/api && npm run typecheck --workspace @meetbroker/web",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write \"apps/**/src/**/*.{ts,tsx,css}\" \"apps/*/package.json\" \"apps/web/index.html\" \"e2e/**/*.ts\" \"scripts/**/*.mjs\" \"*.{ts,json,yaml,yml,md}\" \".github/**/*.yml\"",
+    "format:check": "prettier --check \"apps/**/src/**/*.{ts,tsx,css}\" \"apps/*/package.json\" \"apps/web/index.html\" \"e2e/**/*.ts\" \"scripts/**/*.mjs\" \"*.{ts,json,yaml,yml,md}\" \".github/**/*.yml\"",
     "smoke": "node scripts/smoke.mjs",
     "test:integration": "node scripts/smoke.mjs",
     "test:e2e": "playwright test",
@@ -25,6 +28,14 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1"
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.8.0",
+    "prettier": "^3.9.6",
+    "typescript-eslint": "^8.65.0"
   }
 }

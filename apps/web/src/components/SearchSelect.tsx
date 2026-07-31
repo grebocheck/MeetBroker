@@ -4,7 +4,7 @@ import {
   useId,
   useMemo,
   useRef,
-  useState
+  useState,
 } from "react";
 import { useI18n } from "../lib/i18n";
 
@@ -19,7 +19,7 @@ export function SearchSelect({
   onChange,
   placeholder,
   searchPlaceholder,
-  emptyText
+  emptyText,
 }: {
   value: string;
   options: SearchSelectOption[];
@@ -43,7 +43,7 @@ export function SearchSelect({
     const needle = query.trim().toLocaleLowerCase();
     if (!needle) return options;
     return options.filter((option) =>
-      `${option.label} ${option.value}`.toLocaleLowerCase().includes(needle)
+      `${option.label} ${option.value}`.toLocaleLowerCase().includes(needle),
     );
   }, [options, query]);
 
@@ -57,10 +57,6 @@ export function SearchSelect({
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, []);
-
-  useEffect(() => {
-    setHighlighted(0);
-  }, [query]);
 
   const choose = (option: SearchSelectOption) => {
     onChange(option.value);
@@ -79,7 +75,7 @@ export function SearchSelect({
       setOpen(true);
       const direction = event.key === "ArrowDown" ? 1 : -1;
       setHighlighted((current) =>
-        Math.max(0, Math.min(filtered.length - 1, current + direction))
+        Math.max(0, Math.min(filtered.length - 1, current + direction)),
       );
       return;
     }
@@ -102,15 +98,17 @@ export function SearchSelect({
               ? `${listId}-${highlighted}`
               : undefined
           }
-          value={open ? query : selected?.label ?? value}
+          value={open ? query : (selected?.label ?? value)}
           placeholder={open ? resolvedSearchPlaceholder : resolvedPlaceholder}
           onFocus={() => {
             setOpen(true);
             setQuery("");
+            setHighlighted(0);
           }}
           onChange={(event) => {
             setOpen(true);
             setQuery(event.target.value);
+            setHighlighted(0);
           }}
           onKeyDown={handleKeyDown}
         />
@@ -121,6 +119,7 @@ export function SearchSelect({
           onClick={() => {
             setOpen((current) => !current);
             setQuery("");
+            setHighlighted(0);
           }}
         >
           <span aria-hidden="true">⌄</span>
@@ -144,7 +143,9 @@ export function SearchSelect({
                 onClick={() => choose(option)}
               >
                 <span>{option.label}</span>
-                {option.value === value && <strong>{t("select.selected")}</strong>}
+                {option.value === value && (
+                  <strong>{t("select.selected")}</strong>
+                )}
               </button>
             ))
           ) : (

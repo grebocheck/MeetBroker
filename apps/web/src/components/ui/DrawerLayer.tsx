@@ -22,7 +22,9 @@ export function DrawerLayer({
   const closingRef = useRef(false);
   const closeTimer = useRef<number | null>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const close = useCallback((afterClose?: () => void) => {
     if (closingRef.current) return;

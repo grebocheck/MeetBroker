@@ -1,5 +1,4 @@
 import "reflect-metadata";
-import { randomUUID } from "node:crypto";
 import * as argon2 from "argon2";
 import { addDays, set } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
@@ -16,7 +15,7 @@ const rooms = [
   ["10000000-0000-4000-8000-000000000003", "Гагарін", 2, 6],
   ["10000000-0000-4000-8000-000000000004", "Дніпро", 4, 12],
   ["10000000-0000-4000-8000-000000000005", "Софія", 6, 4],
-  ["10000000-0000-4000-8000-000000000006", "Обрій", 7, 16]
+  ["10000000-0000-4000-8000-000000000006", "Обрій", 7, 16],
 ] as const;
 
 async function seed(): Promise<void> {
@@ -28,7 +27,7 @@ async function seed(): Promise<void> {
   try {
     const [adminHash, userHash] = await Promise.all([
       argon2.hash("Admin123!"),
-      argon2.hash("User12345!")
+      argon2.hash("User12345!"),
     ]);
     await client.query("begin");
 
@@ -62,7 +61,7 @@ async function seed(): Promise<void> {
           access_revoked_at = null,
           updated_at = now()
       `,
-      [ADMIN_ID, adminHash, USER_ID, userHash, SECOND_USER_ID]
+      [ADMIN_ID, adminHash, USER_ID, userHash, SECOND_USER_ID],
     );
 
     for (const [id, name, floor, capacity] of rooms) {
@@ -76,7 +75,7 @@ async function seed(): Promise<void> {
             capacity = excluded.capacity,
             updated_at = now()
         `,
-        [id, name, floor, capacity]
+        [id, name, floor, capacity],
       );
     }
 
@@ -87,7 +86,7 @@ async function seed(): Promise<void> {
           values ($1)
           on conflict (user_id) do nothing
         `,
-        [userId]
+        [userId],
       );
       await client.query(
         `
@@ -106,7 +105,7 @@ async function seed(): Promise<void> {
           ) as channels(channel)
           on conflict (user_id, category, channel) do nothing
         `,
-        [userId]
+        [userId],
       );
     }
 
@@ -150,10 +149,9 @@ async function seed(): Promise<void> {
         participantStatus: "ACCEPTED",
       },
     ] as const;
-    await client.query(
-      "delete from bookings where id = any($1::uuid[])",
-      [demoBookings.map(({ id }) => id)],
-    );
+    await client.query("delete from bookings where id = any($1::uuid[])", [
+      demoBookings.map(({ id }) => id),
+    ]);
 
     for (const booking of demoBookings) {
       const endsAt = new Date(
@@ -186,11 +184,7 @@ async function seed(): Promise<void> {
             case when $3::varchar = 'INVITED' then null else now() end
           )
         `,
-        [
-          booking.id,
-          booking.participantId,
-          booking.participantStatus,
-        ],
+        [booking.id, booking.participantId, booking.participantStatus],
       );
     }
 
@@ -224,7 +218,7 @@ function demoInstant(
 
 seed().catch((error: unknown) => {
   process.stderr.write(
-    `${error instanceof Error ? error.stack : String(error)}\n`
+    `${error instanceof Error ? error.stack : String(error)}\n`,
   );
   process.exitCode = 1;
 });

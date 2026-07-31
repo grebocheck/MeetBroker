@@ -487,7 +487,7 @@ export function CalendarPage({ user }: { user: User }) {
                       );
                     })}
                   </div>
-                  {visibleDays.map((day, index) => {
+                  {visibleDays.map((day) => {
                     const isoWeekday = day.getDay() === 0 ? 7 : day.getDay();
                     return (
                       <CalendarDayColumn

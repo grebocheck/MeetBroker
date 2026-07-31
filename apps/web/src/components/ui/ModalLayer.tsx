@@ -27,6 +27,7 @@ export function ModalLayer({
   );
 
   useEffect(() => {
+    const focusToRestore = previousFocus.current;
     const layer = layerRef.current;
     const initial =
       layer?.querySelector<HTMLElement>("[autofocus]") ??
@@ -38,7 +39,7 @@ export function ModalLayer({
     });
     return () => {
       window.cancelAnimationFrame(frame);
-      previousFocus.current?.focus();
+      focusToRestore?.focus();
     };
   }, []);
 
