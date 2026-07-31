@@ -33,6 +33,14 @@
   .admin-columns {
     grid-template-columns: 1fr;
   }
+
+  .delivery-row {
+    grid-template-columns: minmax(220px, 1fr) auto;
+  }
+
+  .delivery-row__details {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 1050px) {
@@ -229,6 +237,24 @@
   .admin-workspace:not(.admin-workspace--rooms) .admin-card__toolbar {
     margin: 0 0 18px;
     padding: 14px;
+  }
+
+  .delivery-summary {
+    margin-left: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .delivery-row {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .delivery-row__details {
+    grid-column: auto;
+  }
+
+  .delivery-row > .button {
+    width: 100%;
   }
 
   .meetings-calendar-header,

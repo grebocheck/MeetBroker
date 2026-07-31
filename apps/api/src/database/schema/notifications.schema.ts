@@ -150,12 +150,18 @@ export const notificationOutbox = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     unique("notification_outbox_event_key_key").on(table.eventKey),
     index("notification_outbox_pending_idx")
       .on(table.nextAttemptAt)
       .where(sql`${table.status} in ('PENDING', 'FAILED')`),
+    index("notification_outbox_processing_idx")
+      .on(table.updatedAt)
+      .where(sql`${table.status} = 'PROCESSING'`),
   ],
 );
 

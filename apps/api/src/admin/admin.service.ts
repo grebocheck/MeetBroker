@@ -1106,9 +1106,12 @@ export class AdminService {
   }
 
   async auditLogs(category?: string, search?: string, page = 1, limit = 25) {
-    const normalizedCategory = ["booking", "access", "room"].includes(
-      category ?? "",
-    )
+    const normalizedCategory = [
+      "booking",
+      "access",
+      "room",
+      "notification",
+    ].includes(category ?? "")
       ? category
       : "";
     const normalizedPage = Number.isFinite(page)
@@ -1163,6 +1166,10 @@ export class AdminService {
             or (
               $1 = 'room'
               and a.target_type in ('ROOM', 'ROOM_BLOCK', 'ROOM_BLOCK_SERIES')
+            )
+            or (
+              $1 = 'notification'
+              and a.target_type = 'NOTIFICATION_DELIVERY'
             )
           )
           and (

@@ -66,6 +66,7 @@
 | Інтеграційні API-тести | Create/update/list/cancel/validation/ownership/concurrency | `api-bookings.spec.ts` | Auto |
 | Фільтр місткості | Toolbar schedule filter | demo walkthrough | Manual |
 | Повноцінний mobile flow | Adaptive calendar і booking dialog | `mobile-booking.spec.ts` | Auto |
+| Операційне відновлення | PostgreSQL/uploads backup із checksum, cold-stack restore та worker heartbeat | ізольований restore rehearsal, heartbeat unit/runtime checks | Auto + operator |
 
 ## Розширення MeetBroker понад PDF
 

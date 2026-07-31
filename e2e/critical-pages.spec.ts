@@ -110,8 +110,10 @@ test("calendar defaults to seven days and offers fitted mode", async ({
 
   await modeButtons.nth(1).click();
   await expect(modeButtons.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(() => page.locator(".day-heading").count())
+    .toBeGreaterThanOrEqual(2);
   const fittedCount = await page.locator(".day-heading").count();
-  expect(fittedCount).toBeGreaterThanOrEqual(2);
   expect(fittedCount).toBeLessThanOrEqual(7);
 
   const calendarOverflow = await page

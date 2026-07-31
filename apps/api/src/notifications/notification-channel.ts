@@ -26,6 +26,7 @@ export interface NotificationRecipient {
 export interface NotificationMessage {
   title: string;
   body: string;
+  eventType?: string;
 }
 
 export abstract class NotificationChannel {

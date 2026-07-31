@@ -35,6 +35,13 @@ export function validateEnvironment(source: Environment): Environment {
     1_440,
     10,
   );
+  environment.WORKER_HEARTBEAT_MAX_AGE_SECONDS = integerValue(
+    source,
+    "WORKER_HEARTBEAT_MAX_AGE_SECONDS",
+    10,
+    600,
+    45,
+  );
   environment.SMTP_PORT = integerValue(source, "SMTP_PORT", 1, 65_535, 587);
   environment.EMAIL_VERIFICATION_REQUIRED = booleanValue(
     source,

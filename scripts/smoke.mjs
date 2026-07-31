@@ -987,6 +987,19 @@ async function main() {
       searchedUsers.body.pagination?.total === 1,
     "Admin user search and pagination are inconsistent",
   );
+  const deliveries = await request(
+    "/api/admin/notification-deliveries?page=1&limit=3",
+    { headers: { cookie: adminCookie } },
+  );
+  check(
+    Array.isArray(deliveries.body?.deliveries) &&
+      deliveries.body.deliveries.length <= 3 &&
+      deliveries.body.pagination?.limit === 3 &&
+      ["pending", "processing", "sent", "failed", "exhausted"].every((key) =>
+        Number.isInteger(deliveries.body.summary?.[key]),
+      ),
+    "Admin notification delivery operations response is invalid",
+  );
   await verifyCapabilityPolicies({
     adminCookie,
     userCookie: secondUserCookie,
@@ -1118,7 +1131,7 @@ async function main() {
   console.log(
     `Smoke passed: UI, health, auth, rooms, booking ${booking.id} create/update/cancel, ` +
       "critical booking guards and concurrency, colleagues, events, preferences, " +
-      "capability policies, recurring bookings, booking management, room image lifecycle, working hours, " +
+      "capability policies, recurring bookings, booking and delivery management, room image lifecycle, working hours, " +
       "working days, recurring unavailability, account credentials and administration",
   );
 }

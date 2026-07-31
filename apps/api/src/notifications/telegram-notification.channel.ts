@@ -5,6 +5,7 @@ import {
   NotificationMessage,
   NotificationRecipient,
 } from "./notification-channel";
+import { renderTelegramMessage } from "./telegram-template";
 
 @Injectable()
 export class TelegramNotificationChannel extends NotificationChannel {
@@ -36,7 +37,9 @@ export class TelegramNotificationChannel extends NotificationChannel {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           chat_id: recipient.telegramChatId,
-          text: `${message.title}\n\n${message.body}`,
+          text: renderTelegramMessage(message, recipient.locale),
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
         }),
         signal: AbortSignal.timeout(10_000),
       },

@@ -37,6 +37,7 @@ export class NotificationWorkerService {
   }
 
   async processBatch(): Promise<number> {
+    await this.recoverStalledDeliveries();
     await Promise.all([
       this.enqueueDueStartReminders(),
       this.enqueueDueEndWarnings(),
@@ -66,6 +67,7 @@ export class NotificationWorkerService {
           .set({
             status: "PROCESSING",
             attempts: sql`${notificationOutbox.attempts} + 1`,
+            updatedAt: sql`now()`,
           })
           .where(
             inArray(
@@ -86,6 +88,7 @@ export class NotificationWorkerService {
             status: "SENT",
             processedAt: sql`now()`,
             lastError: null,
+            updatedAt: sql`now()`,
           })
           .where(eq(notificationOutbox.id, job.id));
       } catch (error) {
@@ -100,12 +103,36 @@ export class NotificationWorkerService {
             nextAttemptAt: sql`now() + (${String(
               delayMinutes,
             )} || ' minutes')::interval`,
+            updatedAt: sql`now()`,
           })
           .where(eq(notificationOutbox.id, job.id));
         this.logger.warn(`Delivery ${job.id} failed: ${message}`);
       }
     }
     return jobs.length;
+  }
+
+  private async recoverStalledDeliveries(): Promise<void> {
+    const recovered = await this.database.orm
+      .update(notificationOutbox)
+      .set({
+        status: "FAILED",
+        nextAttemptAt: sql`now()`,
+        lastError: sql`coalesce(${notificationOutbox.lastError}, 'Recovered after worker interruption')`,
+        updatedAt: sql`now()`,
+      })
+      .where(
+        and(
+          eq(notificationOutbox.status, "PROCESSING"),
+          lt(notificationOutbox.updatedAt, sql`now() - interval '10 minutes'`),
+        ),
+      )
+      .returning({ id: notificationOutbox.id });
+    if (recovered.length) {
+      this.logger.warn(
+        `Recovered ${recovered.length} stalled notification delivery job(s)`,
+      );
+    }
   }
 
   private async deliver(
@@ -187,6 +214,7 @@ export class NotificationWorkerService {
         await channel.deliver(recipient, {
           title: payload.title,
           body: payload.body,
+          eventType,
         });
       }),
     );

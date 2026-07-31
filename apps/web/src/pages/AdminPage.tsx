@@ -2,19 +2,21 @@ import { useState } from "react";
 import { useI18n } from "../lib/i18n";
 import { AuditAdmin } from "./admin/AuditAdmin";
 import { BookingsAdmin } from "./admin/BookingsAdmin";
+import { DeliveriesAdmin } from "./admin/DeliveriesAdmin";
 import { RoomsAdmin } from "./admin/RoomsAdmin";
 import { UsersAdmin } from "./admin/UsersAdmin";
 
 export function AdminPage() {
   const { t } = useI18n();
   const [section, setSection] = useState<
-    "users" | "bookings" | "rooms" | "audit"
+    "users" | "bookings" | "rooms" | "deliveries" | "audit"
   >("users");
   const sections = [
     ["users", "01", t("admin.users")],
     ["bookings", "02", t("admin.bookings")],
     ["rooms", "03", t("admin.rooms")],
-    ["audit", "04", t("admin.audit")],
+    ["deliveries", "04", t("admin.deliveries")],
+    ["audit", "05", t("admin.audit")],
   ] as const;
   const activeSection = sections.find(([value]) => value === section);
 
@@ -31,7 +33,7 @@ export function AdminPage() {
         </div>
         <div className="admin-hero__status" aria-hidden="true">
           <span>{t("marks.control")}</span>
-          <strong>{t("shell.admin")} · 04</strong>
+          <strong>{t("shell.admin")} · 05</strong>
         </div>
       </header>
       <nav className="admin-section-tabs" aria-label={t("administration")}>
@@ -58,6 +60,7 @@ export function AdminPage() {
           {section === "users" && <UsersAdmin />}
           {section === "bookings" && <BookingsAdmin />}
           {section === "rooms" && <RoomsAdmin />}
+          {section === "deliveries" && <DeliveriesAdmin />}
           {section === "audit" && <AuditAdmin />}
         </div>
       </div>
