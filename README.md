@@ -321,16 +321,19 @@ npx playwright test --project=api-integration
 Для серії smoke додатково перевіряє три щотижневі події, одиничне
 редагування без зміни сусідів і скасування вибраної та всіх наступних подій.
 
-`test:e2e` очікує запущений стек і встановлений Chromium:
+`test:e2e` очікує запущений стек і встановлені Chromium, Firefox та WebKit:
 
 ```bash
-npx playwright install chromium
+npx playwright install --with-deps chromium firefox webkit
 npm run test:e2e
 ```
 
 Playwright перевіряє сім основних маршрутів на ширинах 1440, 1024, 768 і
 390 px: відсутність runtime-помилок, горизонтального overflow, обрізаних
 інтерактивних контролів, а також семиденний і адаптивний режими розкладу.
+Окремі короткі Firefox/WebKit-проєкти проходять вхід, «Мої зустрічі»,
+розклад і booking modal, а Chromium-сценарій фіксує просторову навігацію
+стрілками та утримання фокуса всередині модалки.
 
 GitHub Actions workflow `.github/workflows/ci.yml` має два послідовні jobs:
 перший перевіряє ESLint, Prettier, типи, unit-тести й production build,

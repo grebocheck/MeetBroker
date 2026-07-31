@@ -63,10 +63,20 @@
 | Щотижневі повторення і scope cancellation | Booking series та occurrence scopes | `recurrence.spec.ts`, `smoke.mjs` | Auto |
 | Захист від гонки | PostgreSQL exclusion constraint і транзакції | конкурентний E2E API test | Auto |
 | Одноразове сповіщення перед кінцем | Outbox idempotency, worker eligibility, env threshold | notification unit tests, `smoke.mjs` | Auto |
-| Інтеграційні API-тести | Create/update/list/cancel/validation/ownership/concurrency | `api-bookings.spec.ts` | Auto |
+| Інтеграційні API-тести | Create/update/list/cancel/validation/ownership/concurrency, RSVP, upload policy та admin boundaries | `api-bookings.spec.ts`, `api-rsvp.spec.ts`, `api-uploads.spec.ts`, `api-admin-security.spec.ts` | Auto |
 | Фільтр місткості | Toolbar schedule filter | demo walkthrough | Manual |
 | Повноцінний mobile flow | Adaptive calendar і booking dialog | `mobile-booking.spec.ts` | Auto |
 | Операційне відновлення | PostgreSQL/uploads backup із checksum, cold-stack restore та worker heartbeat | ізольований restore rehearsal, heartbeat unit/runtime checks | Auto + operator |
+
+## Додаткові readiness-перевірки
+
+| Ризик | Покриття | Перевірка | Статус |
+| --- | --- | --- | --- |
+| Розходження браузерних рушіїв | Вхід, «Мої зустрічі», розклад і booking modal у Chromium, Firefox та WebKit | `browser-compatibility.spec.ts` | Auto |
+| Нестабільна просторова навігація | Стрілки між sidebar navigation, theme/language controls і modal focus scope | `spatial-navigation.spec.ts` | Auto |
+| Обхід адміністративної межі | Employee отримує 403, HTTP role mutation відсутня, self-revoke адміністратора заборонено | `api-admin-security.spec.ts` | Auto |
+| Некоректний RSVP lifecycle | Accept/decline одноразові; повторна відповідь відхиляється; declined не потрапляє в календар | `api-rsvp.spec.ts`, `my-meetings-invitation.spec.ts` | Auto |
+| Небезпечне або надмірне зображення | Декодування, WebP-оптимізація, 12 МБ ceiling, ownership, admin-only room media і фізичне cleanup | `api-uploads.spec.ts`, `smoke.mjs` | Auto |
 
 ## Розширення MeetBroker понад PDF
 

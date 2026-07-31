@@ -329,11 +329,13 @@ npm run test:e2e
 
 Поточний набір містить:
 
-- 47 API unit-тестів;
-- 51 web unit-тест;
-- 16 Playwright-сценаріїв;
-- API integration для транзакцій, дозволів, timezone і конкурентності;
+- 66 API unit-тестів;
+- 61 web unit-тест;
+- 32 Playwright-сценарії у 12 файлах;
+- API integration для транзакцій, дозволів, RSVP, upload policy,
+  адміністративних меж, timezone і конкурентності;
 - browser regression для критичних маршрутів і чотирьох viewport;
+- короткі Firefox/WebKit smoke та реальна просторова навігація у Chromium;
 - реальний mobile booking flow та invitation acceptance.
 
 GitHub Actions виконує два послідовні jobs:
