@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { demoCredentials } from "./demo-credentials";
 
 const routes = [
   "/my-calendar",
@@ -18,14 +19,14 @@ test.beforeEach(async ({ page }) => {
   });
   const response = await page.request.post("/api/auth/login", {
     data: {
-      email: "admin@meetbroker.local",
-      password: "Admin123!",
+      email: demoCredentials.admin.email,
+      password: demoCredentials.admin.password,
     },
   });
   expect(response.ok()).toBe(true);
 });
 
-test("primary authenticated pages have no serious automated accessibility violations", async ({
+test("primary authenticated pages have no WCAG A/AA axe violations", async ({
   page,
 }) => {
   for (const route of routes) {
@@ -36,13 +37,9 @@ test("primary authenticated pages have no serious automated accessibility violat
       const result = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze();
-      const blocking = result.violations.filter(
-        ({ impact }) => impact === "serious" || impact === "critical",
-      );
-
       expect(
-        blocking,
-        `${route} contains serious or critical axe violations`,
+        result.violations,
+        `${route} contains WCAG A/AA axe violations`,
       ).toEqual([]);
     });
   }
@@ -61,10 +58,7 @@ test("booking dialog preserves accessible structure", async ({ page }) => {
     .include(".modal-backdrop")
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
-  const blocking = result.violations.filter(
-    ({ impact }) => impact === "serious" || impact === "critical",
-  );
-  expect(blocking).toEqual([]);
+  expect(result.violations).toEqual([]);
 });
 
 test("keyboard users can enter the main content through the skip link", async ({
