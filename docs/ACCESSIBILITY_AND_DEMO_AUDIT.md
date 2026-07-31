@@ -63,6 +63,7 @@ Playwright запускає `e2e/accessibility.spec.ts` на desktop-wide:
 - [x] Відкрити запрошення у «Мої зустрічі» та прийняти його.
 - [x] Перевірити notification read/read-all без автоматичного переходу.
 - [x] Перемкнути light/dark theme і одну альтернативну locale.
+- [x] Пройти sidebar, quick settings і modal controls стрілками клавіатури.
 - [x] Перевірити desktop 1440×1000, compact 1024×900, tablet 768×1024 та
       mobile 390×844.
 
@@ -73,4 +74,5 @@ Playwright запускає `e2e/accessibility.spec.ts` на desktop-wide:
   opt-in тестом, щоб не створювати спам.
 - Axe не оцінює суб'єктивну зрозумілість Persona-inspired композиції.
 - Gamepad/spatial navigation є прогресивним покращенням, а не конкурсною
-  acceptance-вимогою.
+  acceptance-вимогою; keyboard spatial flow зафіксовано браузерним тестом,
+  а фізичний gamepad усе ще потребує ручної перевірки.

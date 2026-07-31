@@ -26,6 +26,7 @@ export default defineConfig({
       name: "desktop-wide",
       testIgnore: [
         /api-.*\.spec\.ts/,
+        /browser-compatibility\.spec\.ts/,
         /mobile-booking\.spec\.ts/,
         /timezone\.spec\.ts/,
       ],
@@ -40,8 +41,10 @@ export default defineConfig({
         /api-.*\.spec\.ts/,
         /accessibility\.spec\.ts/,
         /auth-errors\.spec\.ts/,
+        /browser-compatibility\.spec\.ts/,
         /mobile-booking\.spec\.ts/,
         /my-meetings-invitation\.spec\.ts/,
+        /spatial-navigation\.spec\.ts/,
         /timezone\.spec\.ts/,
       ],
       use: {
@@ -55,8 +58,10 @@ export default defineConfig({
         /api-.*\.spec\.ts/,
         /accessibility\.spec\.ts/,
         /auth-errors\.spec\.ts/,
+        /browser-compatibility\.spec\.ts/,
         /mobile-booking\.spec\.ts/,
         /my-meetings-invitation\.spec\.ts/,
+        /spatial-navigation\.spec\.ts/,
         /timezone\.spec\.ts/,
       ],
       use: {
@@ -70,7 +75,9 @@ export default defineConfig({
         /api-.*\.spec\.ts/,
         /accessibility\.spec\.ts/,
         /auth-errors\.spec\.ts/,
+        /browser-compatibility\.spec\.ts/,
         /my-meetings-invitation\.spec\.ts/,
+        /spatial-navigation\.spec\.ts/,
         /timezone\.spec\.ts/,
       ],
       use: {
@@ -85,6 +92,22 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 1000 },
         timezoneId: "Europe/Berlin",
+      },
+    },
+    {
+      name: "firefox-smoke",
+      testMatch: /browser-compatibility\.spec\.ts/,
+      use: {
+        ...devices["Desktop Firefox"],
+        viewport: { width: 1440, height: 1000 },
+      },
+    },
+    {
+      name: "webkit-smoke",
+      testMatch: /browser-compatibility\.spec\.ts/,
+      use: {
+        ...devices["Desktop Safari"],
+        viewport: { width: 1440, height: 1000 },
       },
     },
   ],
