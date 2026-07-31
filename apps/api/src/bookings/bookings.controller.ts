@@ -24,6 +24,7 @@ import {
   RespondToInvitationDto,
   UpdateBookingDto,
 } from "./bookings.dto";
+import { BookingCancellationsService } from "./booking-cancellations.service";
 import { BookingInvitationsService } from "./booking-invitations.service";
 import { BookingQueriesService } from "./booking-queries.service";
 import { BookingsService } from "./bookings.service";
@@ -34,6 +35,7 @@ import { OpenEventsService } from "./open-events.service";
 export class BookingsController {
   constructor(
     private readonly bookings: BookingsService,
+    private readonly cancellations: BookingCancellationsService,
     private readonly invitations: BookingInvitationsService,
     private readonly queries: BookingQueriesService,
     private readonly openEvents: OpenEventsService,
@@ -168,6 +170,6 @@ export class BookingsController {
     @Param("id") id: string,
     @Body() dto: CancelBookingDto,
   ): Promise<void> {
-    await this.bookings.cancel(request.user, id, dto);
+    await this.cancellations.cancel(request.user, id, dto);
   }
 }

@@ -10,7 +10,7 @@
 
 | Модуль | Поточний розмір | Наступна доречна межа |
 | --- | ---: | --- |
-| `BookingsService` | 1014 рядків | Окремі cancel, create і update command services |
+| `BookingsService` | 837 рядків | Окремі create і update command services |
 
 ## Уже зменшені ризики
 
@@ -18,6 +18,9 @@
 - image lifecycle винесено в `BookingImagesService`;
 - RSVP locking, availability check, status mutation та activity audit винесено
   в `BookingInvitationsService`;
+- ownership/capability policy, admin attribution, series scope, participant
+  notifications та audit скасувань винесено в
+  `BookingCancellationsService`;
 - advisory locking, participant projection і конфлікти учасників винесено в
   `BookingAttendeesService`;
 - список, пошук, пагінацію та join/leave відкритих подій винесено в
