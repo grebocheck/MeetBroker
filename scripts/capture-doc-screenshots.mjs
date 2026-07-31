@@ -76,9 +76,9 @@ try {
     const page = await context.newPage();
     await page.goto(`${baseURL}${shot.route}`, { waitUntil: "networkidle" });
     await page.evaluate(async () => {
-      await document.fonts.ready;
+      await globalThis.document.fonts.ready;
       await Promise.all(
-        Array.from(document.images)
+        Array.from(globalThis.document.images)
           .filter((image) => !image.complete)
           .map(
             (image) =>
@@ -90,7 +90,7 @@ try {
       );
     });
     await page.evaluate((theme) => {
-      document.documentElement.dataset.theme = theme;
+      globalThis.document.documentElement.dataset.theme = theme;
     }, shot.theme);
     await page.addStyleTag({
       content: `
@@ -104,8 +104,8 @@ try {
     });
     await shot.prepare?.(page);
     await page.evaluate((theme) => {
-      document.documentElement.dataset.theme = theme;
-      window.scrollTo(0, 0);
+      globalThis.document.documentElement.dataset.theme = theme;
+      globalThis.window.scrollTo(0, 0);
     }, shot.theme);
     await page.waitForTimeout(300);
 
