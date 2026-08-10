@@ -48,8 +48,8 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^24.10.1",
     "@types/nodemailer": "^7.0.4",
-    "@types/pg": "^8.15.6",
-    "tsx": "^4.20.6",
+    "@types/pg": "^8.20.4",
+    "tsx": "^4.23.9",
     "typescript": "^5.9.3",
     "vitest": "^4.0.14"
   }
